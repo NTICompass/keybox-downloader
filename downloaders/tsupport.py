@@ -1,10 +1,6 @@
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
-from typing import Optional
-from utils.shellvar import get_var_from_shell
-from zipfile import ZipFile
-import io
 import re
 import requests
 import uuid
@@ -13,28 +9,11 @@ import xml.etree.ElementTree as ET
 
 class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
-    URL='https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/release.json'
-
-    def __init__(self):
-        super().__init__()
-        self.module_zip: Optional[ZipFile] = None
+    URL='https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/bin.tar'
 
     def get_keybox(self) -> str:
-        self.module_zip = self.__get_module_zip()
-        self.encoded = self.__get_encoded_keybox()
+        self.encoded = requests.get(self.URL).text
         return self.__build_keybox()
-
-    def __get_module_zip(self) -> ZipFile:
-        update_file = requests.get(self.URL).json()
-        file = io.BytesIO(requests.get(update_file['zipUrl']).content)
-        return ZipFile(file)
-
-    def __get_encoded_keybox(self) -> str:
-        with self.module_zip as zipModule:
-            keybox_script = zipModule.read('core/key.sh').decode('ascii')
-
-        keybox_vars = get_var_from_shell(keybox_script, ['URL'])
-        return requests.get(keybox_vars['URL']).text
 
     def __build_keybox(self) -> str:
         encoded = self.encoded
