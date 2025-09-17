@@ -1,6 +1,7 @@
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
+from typing import Generator
 import re
 import requests
 import uuid
@@ -10,19 +11,40 @@ import xml.etree.ElementTree as ET
 class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
     URL='https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/bin.tar'
+    URLS=[
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin1.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox0.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox1.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox2.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox3.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox4.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox5.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox6.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox7.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox8.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox9.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/preview.tar',
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/sanctuary.tar'
+    ]
 
-    def get_keybox(self) -> str:
-        self.encoded = requests.get(self.URL).text
-        return self.__build_keybox()
+    def get_keybox(self) -> Generator[str]:
+        for url in self.URLS:
+            self.encoded = requests.get(url).text
+
+            if len(self.encoded.strip()) > 0:
+                yield self.__build_keybox()
 
     def __build_keybox(self) -> str:
-        encoded = self.encoded
+        # Strip off any irrelevant data
+        encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
 
-        # First we need to rot13
-        encoded = decode(encoded, 'rot_13')
-
-        # Then base64 decode
-        encoded = b64decode(encoded).decode('ascii')
+        # Some files are rot13+base64, some are just base64
+        try:
+            encoded = b64decode(encoded).decode('ascii')
+        except UnicodeDecodeError:
+            encoded = decode(encoded, 'rot_13')
+            encoded = b64decode(encoded).decode('ascii')
 
         # This isn't the full keybox file, we need to build it
 
