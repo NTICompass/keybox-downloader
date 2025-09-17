@@ -6,7 +6,7 @@ import requests
 
 
 class IntegrityBox(Downloader):
-    URL="https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh"
+    URL='https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
 
     def get_keybox(self) -> str:
         self.encoded = requests.get(self.__get_keybox_url()).text
