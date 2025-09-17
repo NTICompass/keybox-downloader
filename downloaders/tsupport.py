@@ -2,16 +2,15 @@ from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
 from typing import Generator
+import pathlib
 import re
 import requests
-import uuid
 import xml.etree.ElementTree as ET
 
 
 class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
-    URL='https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/bin.tar'
-    URLS=[
+    URLS = [
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin.tar',
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin1.tar',
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox0.tar',
@@ -33,9 +32,9 @@ class TSupport(Downloader):
             self.encoded = requests.get(url).text
 
             if len(self.encoded.strip()) > 0:
-                yield self.__build_keybox()
+                yield self.__build_keybox(pathlib.Path(url).stem)
 
-    def __build_keybox(self) -> str:
+    def __build_keybox(self, keyId: str) -> str:
         # Strip off any irrelevant data
         encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
 
@@ -64,7 +63,7 @@ class TSupport(Downloader):
         keybox_element.set('DeviceID', '{}{}_{}'.format(
             'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW',
             'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB',
-            str(uuid.uuid4()).split('-')[0]
+            keyId
         ))
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)
