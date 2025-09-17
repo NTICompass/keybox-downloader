@@ -71,4 +71,4 @@ class TSupport(Downloader):
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)
 
-        return ET.tostring(keybox_xml, encoding='unicode')
+        return ET.tostring(keybox_xml, encoding='utf8').decode('utf-8')
