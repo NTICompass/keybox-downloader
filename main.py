@@ -26,13 +26,13 @@ if __name__ == '__main__':
         keybox = dl.get_keybox()
 
         if isinstance(keybox, str):
-            valid_keybox = checker.is_keybox_revoked(ET.fromstring(keybox))
+            valid_keybox = checker.is_keybox_valid(ET.fromstring(keybox))
             save_path = '{}/{}'.format(path, 'valid' if valid_keybox else 'revoked')
 
             write_xml('{}/{}.xml'.format(save_path, type(dl).__name__), keybox)
         else:
             for (idx, keybox_file) in enumerate(keybox):
-                valid_keybox = checker.is_keybox_revoked(ET.fromstring(keybox_file))
+                valid_keybox = checker.is_keybox_valid(ET.fromstring(keybox_file))
                 save_path = '{}/{}'.format(path, 'valid' if valid_keybox else 'revoked')
 
                 write_xml('{}/{}_{}.xml'.format(save_path, type(dl).__name__, idx), keybox_file)

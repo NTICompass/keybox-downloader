@@ -31,7 +31,7 @@ class GoogleChecker:
 
         self.revoked: set[str] = {key for (key, status) in keybox_status['entries'].items() if status['status'] == 'REVOKED'}
 
-    def is_keybox_revoked(self, xml: Element) -> bool:
+    def is_keybox_valid(self, xml: Element) -> bool:
         for cert_pem in xml.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate'):
             hex_serial, issuer_serial = get_cert_info(cert_pem)
             found = (hex_serial and hex_serial in self.revoked) or (issuer_serial and issuer_serial in self.revoked)
