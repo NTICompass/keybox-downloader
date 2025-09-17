@@ -1,2 +1,4 @@
+brotli
+cryptography
 requests
 tqdm
