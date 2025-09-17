@@ -11,6 +11,9 @@ import xml.etree.ElementTree as ET
 class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
     URLS = [
+        # The keybox from the module (Actually just the AOSP keybox)
+        #'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/bin.tar',
+        # Extra keybox files
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin.tar',
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin1.tar',
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox0.tar',
@@ -34,7 +37,7 @@ class TSupport(Downloader):
             if len(self.encoded.strip()) > 0:
                 yield self.__build_keybox(pathlib.Path(url).stem)
 
-    def __build_keybox(self, keyId: str) -> str:
+    def __build_keybox(self, keyid: str) -> str:
         # Strip off any irrelevant data
         encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
 
@@ -63,7 +66,7 @@ class TSupport(Downloader):
         keybox_element.set('DeviceID', '{}{}_{}'.format(
             'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW',
             'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB',
-            keyId
+            keyid
         ))
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)
