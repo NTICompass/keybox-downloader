@@ -5,9 +5,11 @@ from downloaders.yurikey import YuriKey
 import os
 from tqdm import tqdm
 
+
 def write_xml(file: str, data: str):
     with open(file, 'w', encoding='utf-8') as f:
         f.write(data)
+
 
 if __name__ == '__main__':
     path = 'keyboxes'
@@ -22,4 +24,3 @@ if __name__ == '__main__':
         else:
             for (idx, keybox_file) in enumerate(keybox):
                 write_xml('{}/{}_{}.xml'.format(path, type(dl).__name__, idx), keybox_file)
-
