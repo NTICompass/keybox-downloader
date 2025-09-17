@@ -1,5 +1,6 @@
 from downloaders.integritybox import IntegrityBox
 from downloaders.trickyaddon import TrickyAddon
+from downloaders.tsupport import TSupport
 from downloaders.yurikey import YuriKey
 import os
 
@@ -9,7 +10,7 @@ if __name__ == '__main__':
     if not os.path.exists(path):
         os.mkdir(path)
 
-    for dl in (IntegrityBox(), TrickyAddon(), YuriKey()):
+    for dl in (IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()):
         keybox = dl.get_keybox()
 
         with open('{}/{}.xml'.format(path, type(dl).__name__), 'w', encoding='utf-8') as f:
