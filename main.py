@@ -3,6 +3,7 @@ from downloaders.trickyaddon import TrickyAddon
 from downloaders.tsupport import TSupport
 from downloaders.yurikey import YuriKey
 import os
+from tqdm import tqdm
 
 def write_xml(file: str, data: str):
     with open(file, 'w', encoding='utf-8') as f:
@@ -13,7 +14,7 @@ if __name__ == '__main__':
     if not os.path.exists(path):
         os.mkdir(path)
 
-    for dl in (IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()):
+    for dl in tqdm((IntegrityBox(), TrickyAddon(), TSupport(), YuriKey())):
         keybox = dl.get_keybox()
 
         if isinstance(keybox, str):
