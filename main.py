@@ -5,7 +5,8 @@ from downloaders.yurikey import YuriKey
 from time import time
 from tqdm import tqdm
 from types import GeneratorType
-from verify.googlecheck import GoogleChecker
+from utils.duplicate import Duplicate
+from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree
 import logging
 import os
@@ -43,3 +44,8 @@ if __name__ == '__main__':
             logger.info('Saving keybox #{}'.format(idx + 1) if is_generator else 'Saving keybox')
             xml_file = ElementTree(keybox_file)
             xml_file.write(file_name, 'unicode', True)
+
+    logger.info('All keyboxes downloaded, comparing to find duplicates')
+    dupe = Duplicate(path)
+
+    dupe.check_duplicates()
