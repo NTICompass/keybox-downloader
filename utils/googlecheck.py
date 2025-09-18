@@ -13,7 +13,7 @@ and https://github.com/Transwarpcom/Check-Keybox-Certificate-Revocation-Status
 Also see https://developer.android.com/privacy-and-security/security-key-attestation
 """
 class GoogleChecker:
-    URL = 'https://android.googleapis.com/attestation/status?' + str(int(time()))
+    URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
 
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
@@ -29,7 +29,7 @@ class GoogleChecker:
     def is_keybox_valid(self, xml: Element) -> bool:
         ec_certs = xml.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
         rsa_certs = xml.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
-        self.logger.info('Found {} EC and {} RSA certs'.format(len(ec_certs), len(rsa_certs)))
+        self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs')
 
         for (hex_serial, issuer_serial) in self.__get_certs_info([ec_certs[0].text.encode(), rsa_certs[0].text.encode()]):
             found = (hex_serial and hex_serial in self.revoked) or (issuer_serial and issuer_serial in self.revoked)
@@ -42,11 +42,11 @@ class GoogleChecker:
 
     def __get_certs_info(self, certs: list[bytes]) -> Generator[tuple[Optional[str], Optional[str]]]:
         try:
-            self.logger.info('Loading {} certs'.format(len(certs)))
+            self.logger.info(f'Loading {len(certs)} certs')
 
             # Load each cert individually, since `load_pem_x509_certificates` will crash if ANY are invalid
             for cert in (x509.load_pem_x509_certificate(cert_pem) for cert_pem in certs):
-                hex_serial = format(cert.serial_number, 'x').lower().lstrip('0')
+                hex_serial = f'{cert.serial_number:x}'
                 issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
 
                 parsed_serials = (hex_serial, str(issuer_serial.pop()) if len(issuer_serial) > 0 else None)

@@ -32,14 +32,14 @@ class TSupport(Downloader):
     ]
 
     def get_keybox(self) -> Generator[Element]:
-        self.logger.info('There are {} keyboxes to check'.format(len(self.URLS)))
+        self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
         for (idx, url) in enumerate(self.URLS):
-            self.logger.info('Downloading encoded keybox #{}'.format(idx + 1))
+            self.logger.info(f'Downloading encoded keybox #{idx + 1}')
             self.encoded = requests.get(url).text
 
             if len(self.encoded.strip()) > 0:
-                self.logger.info('Building keybox xml #{}'.format(idx + 1))
+                self.logger.info(f'Building keybox xml #{idx + 1}')
                 yield self.__build_keybox(pathlib.Path(url).stem)
 
     def __build_keybox(self, keyid: str) -> Element:
@@ -68,11 +68,10 @@ class TSupport(Downloader):
         ET.SubElement(keybox_xml, 'NumberOfKeyboxes').text = '1'
 
         keybox_element = ET.SubElement(keybox_xml, 'Keybox')
-        keybox_element.set('DeviceID', '{}{}_{}'.format(
-            'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW',
-            'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB',
-            keyid
-        ))
+        keybox_element.set(
+            'DeviceID',
+            f'{'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW'}{'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB'}_{keyid}'
+        )
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)
 

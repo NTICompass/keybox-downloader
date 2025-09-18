@@ -45,4 +45,4 @@ class IntegrityBox(Downloader):
         encoded = decode(encoded, 'rot_13')
 
         # Finally remove extra "junk" from the file
-        return re.sub(r'({})'.format('|'.join(self.junk)), '', encoded)
+        return re.sub(rf'({'|'.join(self.junk)})', '', encoded)

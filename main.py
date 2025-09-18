@@ -16,15 +16,16 @@ logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     path = 'keyboxes'
+    types = ('valid', 'revoked')
 
     if not os.path.exists('logs'):
         os.mkdir('logs')
 
     if not os.path.exists(path):
-        os.makedirs('{}/{}'.format(path, 'valid'))
-        os.makedirs('{}/{}'.format(path, 'revoked'))
+        for key_type in types:
+            os.makedirs(f'{path}/{key_type}')
 
-    logging.basicConfig(filename='logs/keybox-downloader-{}.log'.format(int(time())), level=logging.INFO)
+    logging.basicConfig(filename=f'logs/keybox-downloader-{time():.0f}.log', level=logging.INFO)
     logger.info('Starting Keybox Downloader')
 
     checker = GoogleChecker()
@@ -36,12 +37,14 @@ if __name__ == '__main__':
         logger.info('Got keybox XML, checking revocation')
 
         for (idx, keybox_file) in enumerate(keybox if is_generator else (keybox,)):
-            logger.info('Checking keybox #{}'.format(idx + 1) if is_generator else 'Checking keybox')
-            valid_keybox = checker.is_keybox_valid(keybox_file)
-            save_path = '{}/{}'.format(path, 'valid' if valid_keybox else 'revoked')
-            file_name = '{}/{}.xml'.format(save_path, type(dl).__name__ + ('_{}'.format(idx + 1) if is_generator else ''))
+            keybox_idx = idx + 1
 
-            logger.info('Saving keybox #{}'.format(idx + 1) if is_generator else 'Saving keybox')
+            logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')
+            valid_keybox = checker.is_keybox_valid(keybox_file)
+            save_path = f'{path}/{'valid' if valid_keybox else 'revoked'}'
+            file_name = f'{save_path}/{type(dl).__name__ + (f'_{keybox_idx:d}' if is_generator else '')}.xml'
+
+            logger.info(f'Saving keybox #{keybox_idx:d}' if is_generator else 'Saving keybox')
             xml_file = ElementTree(keybox_file)
             xml_file.write(file_name, 'unicode', True)
 
