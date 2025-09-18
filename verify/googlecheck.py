@@ -44,7 +44,8 @@ class GoogleChecker:
         try:
             self.logger.info('Loading {} certs'.format(len(certs)))
 
-            for cert in x509.load_pem_x509_certificates(b''.join(certs)):
+            # Load each cert individually, since `load_pem_x509_certificates` will crash if ANY are invalid
+            for cert in (x509.load_pem_x509_certificate(cert_pem) for cert_pem in certs):
                 hex_serial = format(cert.serial_number, 'x').lower().lstrip('0')
                 issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
 
@@ -54,5 +55,4 @@ class GoogleChecker:
                 yield parsed_serials
         except ValueError:
             self.logger.info('Could not parse cert')
-            for x in range(len(certs)):
-                yield None, None
+            yield None, None
