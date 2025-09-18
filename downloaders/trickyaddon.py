@@ -9,10 +9,14 @@ class TrickyAddon(Downloader):
     URL='https://github.com/KOWX712/Tricky-Addon-Update-Target-List/raw/refs/heads/main/.extra'
 
     def get_keybox(self) -> Element:
+        self.logger.info('Downloading encoded keybox')
+
         self.encoded = requests.get(self.URL).text
         return ET.fromstring(self.__decode_keybox())
 
     def __decode_keybox(self) -> str:
+        self.logger.info('Decoding keybox xml')
+
         encoded = self.encoded
 
         # First decode the hex bytes

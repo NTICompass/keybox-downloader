@@ -32,10 +32,14 @@ class TSupport(Downloader):
     ]
 
     def get_keybox(self) -> Generator[Element]:
-        for url in self.URLS:
+        self.logger.info('There are {} keyboxes to check'.format(len(self.URLS)))
+
+        for (idx, url) in enumerate(self.URLS):
+            self.logger.info('Downloading encoded keybox #{}'.format(idx + 1))
             self.encoded = requests.get(url).text
 
             if len(self.encoded.strip()) > 0:
+                self.logger.info('Building keybox xml #{}'.format(idx + 1))
                 yield self.__build_keybox(pathlib.Path(url).stem)
 
     def __build_keybox(self, keyid: str) -> Element:

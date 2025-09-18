@@ -15,11 +15,15 @@ class IntegrityBox(Downloader):
         return ET.fromstring(self.__decode_keybox())
 
     def __get_keybox_url(self) -> str:
+        self.logger.info('Downloading keybox script')
+
         keybox_script = requests.get(self.URL).text
         keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
         return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
 
     def __decode_keybox(self) -> str:
+        self.logger.info('Decoding keybox xml')
+
         encoded = self.encoded
 
         # Decode base64 ten times!

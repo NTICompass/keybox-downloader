@@ -11,9 +11,13 @@ class YuriKey(Downloader):
 
     def get_keybox(self) -> Element:
         self.encoded = self.__get_encoded_keybox()
+        self.logger.info('Decoding keybox xml')
+
         return ET.fromstring(b64decode(self.encoded).decode('ascii'))
 
     def __get_encoded_keybox(self) -> str:
+        self.logger.info('Downloading encoded keybox')
+
         keybox_script = b64decode(requests.get(self.URL).text).decode('utf-8')
         keybox_vars = get_var_from_shell(keybox_script, ['KEYBOX_BASE64_PAYLOAD'])
         return keybox_vars['KEYBOX_BASE64_PAYLOAD']
