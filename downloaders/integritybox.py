@@ -35,7 +35,7 @@ class IntegrityBox(Downloader):
         encoded = self.encoded
 
         # Decode base64 ten times!
-        for i in range(10) :
+        for i in range(10):
             encoded = b64decode(encoded).decode('ascii')
 
         # Then decode the hex bytes

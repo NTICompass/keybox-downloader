@@ -3,6 +3,7 @@ from typing import Generator, Optional, Union
 from xml.etree.ElementTree import Element
 import logging
 
+
 class Downloader(ABC):
     def __init__(self):
         self.encoded: Optional[str] = None
