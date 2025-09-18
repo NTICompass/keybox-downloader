@@ -3,12 +3,20 @@ from codecs import decode
 from downloaders.downloader import Downloader
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
+import re
 import requests
 import xml.etree.ElementTree as ET
 
 
 class IntegrityBox(Downloader):
     URL='https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
+    FIX_URL='https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/cleanup.sh'
+
+    def __init__(self):
+        super().__init__()
+
+        junk_vars = get_var_from_shell(requests.get(self.FIX_URL).text, ['X'])
+        self.junk: list[str] = junk_vars['X'].split(',')
 
     def get_keybox(self) -> Element:
         self.encoded = requests.get(self.__get_keybox_url()).text
@@ -33,5 +41,8 @@ class IntegrityBox(Downloader):
         # Then decode the hex bytes
         encoded = bytes.fromhex(encoded).decode('utf-8')
 
-        # Finally use rot13
-        return decode(encoded, 'rot_13')
+        # Next use rot13
+        encoded = decode(encoded, 'rot_13')
+
+        # Finally remove extra "junk" from the file
+        return re.sub(r'({})'.format('|'.join(self.junk)), '', encoded)
