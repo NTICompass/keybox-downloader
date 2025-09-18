@@ -2,6 +2,7 @@ from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
 from typing import Generator
+from xml.etree.ElementTree import Element
 import pathlib
 import re
 import requests
@@ -30,14 +31,14 @@ class TSupport(Downloader):
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/sanctuary.tar'
     ]
 
-    def get_keybox(self) -> Generator[str]:
+    def get_keybox(self) -> Generator[Element]:
         for url in self.URLS:
             self.encoded = requests.get(url).text
 
             if len(self.encoded.strip()) > 0:
                 yield self.__build_keybox(pathlib.Path(url).stem)
 
-    def __build_keybox(self, keyid: str) -> str:
+    def __build_keybox(self, keyid: str) -> Element:
         # Strip off any irrelevant data
         encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
 
@@ -71,4 +72,4 @@ class TSupport(Downloader):
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)
 
-        return ET.tostring(keybox_xml, encoding='utf8').decode('utf-8')
+        return keybox_xml

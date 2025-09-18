@@ -2,15 +2,17 @@ from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
 from utils.shellvar import get_var_from_shell
+from xml.etree.ElementTree import Element
 import requests
+import xml.etree.ElementTree as ET
 
 
 class IntegrityBox(Downloader):
     URL='https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
 
-    def get_keybox(self) -> str:
+    def get_keybox(self) -> Element:
         self.encoded = requests.get(self.__get_keybox_url()).text
-        return self.__decode_keybox()
+        return ET.fromstring(self.__decode_keybox())
 
     def __get_keybox_url(self) -> str:
         keybox_script = requests.get(self.URL).text

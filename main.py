@@ -3,14 +3,10 @@ from downloaders.trickyaddon import TrickyAddon
 from downloaders.tsupport import TSupport
 from downloaders.yurikey import YuriKey
 from tqdm import tqdm
+from types import GeneratorType
 from verify.googlecheck import GoogleChecker
+from xml.etree.ElementTree import ElementTree
 import os
-import xml.etree.ElementTree as ET
-
-
-def write_xml(file: str, data: str):
-    with open(file, 'w', encoding='utf-8') as f:
-        f.write(data)
 
 
 if __name__ == '__main__':
@@ -24,15 +20,12 @@ if __name__ == '__main__':
 
     for dl in tqdm((IntegrityBox(), TrickyAddon(), TSupport(), YuriKey())):
         keybox = dl.get_keybox()
+        is_generator = isinstance(keybox, GeneratorType)
 
-        if isinstance(keybox, str):
-            valid_keybox = checker.is_keybox_valid(ET.fromstring(keybox))
+        for (idx, keybox_file) in enumerate(keybox if is_generator else (keybox,)):
+            valid_keybox = checker.is_keybox_valid(keybox_file)
             save_path = '{}/{}'.format(path, 'valid' if valid_keybox else 'revoked')
+            file_name = '{}/{}.xml'.format(save_path, type(dl).__name__ + ('_{}'.format(idx) if is_generator else ''))
 
-            write_xml('{}/{}.xml'.format(save_path, type(dl).__name__), keybox)
-        else:
-            for (idx, keybox_file) in enumerate(keybox):
-                valid_keybox = checker.is_keybox_valid(ET.fromstring(keybox_file))
-                save_path = '{}/{}'.format(path, 'valid' if valid_keybox else 'revoked')
-
-                write_xml('{}/{}_{}.xml'.format(save_path, type(dl).__name__, idx), keybox_file)
+            xml_file = ElementTree(keybox_file)
+            xml_file.write(file_name, 'unicode', True)
