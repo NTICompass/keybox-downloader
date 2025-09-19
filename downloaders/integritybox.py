@@ -9,8 +9,8 @@ import xml.etree.ElementTree as ET
 
 
 class IntegrityBox(Downloader):
-    URL='https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
-    FIX_URL='https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/cleanup.sh'
+    URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
+    FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/cleanup.sh'
 
     def __init__(self):
         super().__init__()

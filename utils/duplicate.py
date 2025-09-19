@@ -14,13 +14,13 @@ class Duplicate:
         self.logger.info(f'Loading {len(self.files)} files in {folder}')
 
     def check_duplicates(self):
-        self.__group_keyboxes()
+        self.group_keyboxes()
 
         # TODO Calculate which files are the same, but for now just dump the data to the log
         duplicates = {cert_hash: list(files) for cert_hash, files in self.certs.items() if len(files) > 1}
         self.logger.info('Results: \n' + json.dumps(duplicates, indent=4))
 
-    def __group_keyboxes(self):
+    def group_keyboxes(self):
         for file in self.files:
             self.logger.info(f'Parsing XML file {file}')
 
