@@ -1,7 +1,7 @@
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
-from typing import Generator
+from typing import Generator, Optional
 from xml.etree.ElementTree import Element
 import pathlib
 import re
@@ -30,6 +30,11 @@ class TSupport(Downloader):
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/sanctuary.tar'
     ]
 
+    def __init__(self):
+        super().__init__()
+
+        self.keys: Optional[str] = None
+
     def get_keybox(self) -> Generator[Element]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
@@ -39,26 +44,15 @@ class TSupport(Downloader):
 
             if len(self.encoded.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
-                yield self.__build_keybox(pathlib.Path(self.current_url).stem)
+                self.keys = self.decode_keybox()
+                yield self.build_keybox(pathlib.Path(self.current_url).stem)
 
-    def __build_keybox(self, keyid: str) -> Element:
-        # Strip off any irrelevant data
-        encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
-
-        # Some files are rot13+base64, some are just base64
-        try:
-            encoded = b64decode(encoded).decode('ascii')
-        except UnicodeDecodeError:
-            encoded = decode(encoded, 'rot_13')
-            encoded = b64decode(encoded).decode('ascii')
-
-        # This isn't the full keybox file, we need to build it
-
+    def build_keybox(self, keyid: str) -> Element:
         # First, extract the metadata
-        keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', encoded))
+        keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', self.keys))
 
         # Next, get the XML data
-        keybox_keys = re.search(r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', encoded, re.DOTALL)
+        keybox_keys = re.search(r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', self.keys, re.DOTALL)
         ecdsa_key = ET.fromstring(keybox_keys.group(2))
         rsa_key = ET.fromstring(keybox_keys.group(4))
 
@@ -75,3 +69,16 @@ class TSupport(Downloader):
         keybox_element.append(rsa_key)
 
         return keybox_xml
+
+    def decode_keybox(self) -> str:
+        # Strip off any irrelevant data
+        encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
+
+        # Some files are rot13+base64, some are just base64
+        try:
+            encoded = b64decode(encoded).decode('ascii')
+        except UnicodeDecodeError:
+            encoded = decode(encoded, 'rot_13')
+            encoded = b64decode(encoded).decode('ascii')
+
+        return encoded

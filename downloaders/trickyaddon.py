@@ -11,15 +11,13 @@ class TrickyAddon(Downloader):
         self.logger.info('Downloading encoded keybox')
 
         self.encoded = next(self.download_urls())
-        return ET.fromstring(self.__decode_keybox())
+        return ET.fromstring(self.decode_keybox())
 
-    def __decode_keybox(self) -> str:
+    def decode_keybox(self) -> str:
         self.logger.info('Decoding keybox xml')
 
-        encoded = self.encoded
-
         # First decode the hex bytes
-        encoded = bytes.fromhex(encoded).decode('ascii')
+        encoded = bytes.fromhex(self.encoded).decode('ascii')
 
         # Then base64 decode
         return b64decode(encoded).decode('ascii')

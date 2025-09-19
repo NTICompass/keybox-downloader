@@ -9,14 +9,17 @@ class YuriKey(Downloader):
     URL='https://github.com/YurikeyDev/yurikey/raw/refs/heads/main/conf'
 
     def get_keybox(self) -> Element:
-        self.encoded = self.__get_encoded_keybox()
+        self.encoded = self.get_encoded_keybox()
         self.logger.info('Decoding keybox xml')
 
-        return ET.fromstring(b64decode(self.encoded).decode('ascii'))
+        return ET.fromstring(self.decode_keybox())
 
-    def __get_encoded_keybox(self) -> str:
+    def get_encoded_keybox(self) -> str:
         self.logger.info('Downloading encoded keybox')
 
         keybox_script = b64decode(next(self.download_urls())).decode('utf-8')
         keybox_vars = get_var_from_shell(keybox_script, ['KEYBOX_BASE64_PAYLOAD'])
         return keybox_vars['KEYBOX_BASE64_PAYLOAD']
+
+    def decode_keybox(self) -> str:
+        return b64decode(self.encoded).decode('ascii')

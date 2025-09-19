@@ -19,17 +19,17 @@ class IntegrityBox(Downloader):
         self.junk: list[str] = junk_vars['X'].split(',')
 
     def get_keybox(self) -> Element:
-        self.encoded = requests.get(self.__get_keybox_url()).text
-        return ET.fromstring(self.__decode_keybox())
+        self.encoded = requests.get(self.get_keybox_url()).text
+        return ET.fromstring(self.decode_keybox())
 
-    def __get_keybox_url(self) -> str:
+    def get_keybox_url(self) -> str:
         self.logger.info('Downloading keybox script')
 
         keybox_script = next(self.download_urls())
         keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
         return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
 
-    def __decode_keybox(self) -> str:
+    def decode_keybox(self) -> str:
         self.logger.info('Decoding keybox xml')
 
         encoded = self.encoded

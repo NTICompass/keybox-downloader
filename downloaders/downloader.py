@@ -18,6 +18,10 @@ class Downloader(ABC):
     def get_keybox(self) -> Union[Element, Generator[Element]]:
         pass
 
+    @abstractmethod
+    def decode_keybox(self) -> str:
+        pass
+
     def download_urls(self) -> Generator[str]:
         try:
             download = self.URLS
