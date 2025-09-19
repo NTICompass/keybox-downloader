@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
         logger.info('Got keybox XML, checking revocation')
 
-        for (idx, keybox_file) in enumerate(keybox if is_generator else (keybox,)):
+        for idx, keybox_file in enumerate(keybox if is_generator else (keybox,)):
             keybox_idx = idx + 1
 
             logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')

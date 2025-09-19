@@ -24,14 +24,14 @@ class GoogleChecker:
             'Cache-Control': 'no-cache',
         }).json()
 
-        self.revoked: set[str] = {key for (key, status) in keybox_status['entries'].items() if status['status'] == 'REVOKED'}
+        self.revoked: set[str] = {key for key, status in keybox_status['entries'].items() if status['status'] == 'REVOKED'}
 
     def is_keybox_valid(self, xml: Element) -> bool:
         ec_certs = xml.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
         rsa_certs = xml.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
         self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs')
 
-        for (hex_serial, issuer_serial) in self.__get_certs_info([ec_certs[0].text.encode(), rsa_certs[0].text.encode()]):
+        for hex_serial, issuer_serial in self.__get_certs_info([ec_certs[0].text.encode(), rsa_certs[0].text.encode()]):
             found = (hex_serial and hex_serial in self.revoked) or (issuer_serial and issuer_serial in self.revoked)
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
 

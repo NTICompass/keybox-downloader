@@ -1,5 +1,5 @@
 from cryptography import x509
-import glob
+from glob import glob
 import json
 import logging
 import xml.etree.ElementTree as ET
@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 class Duplicate:
     def __init__(self, folder: str):
         self.logger = logging.getLogger(type(self).__name__)
-        self.files: list[str] = glob.glob(f'{folder.rstrip('/')}/**/*.xml', recursive=True)
+        self.files: list[str] = glob(f'{folder.rstrip('/')}/**/*.xml', recursive=True)
         self.certs: dict[str, set[str]] = {}
 
         self.logger.info(f'Loading {len(self.files)} files in {folder}')
