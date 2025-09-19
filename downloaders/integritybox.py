@@ -25,7 +25,7 @@ class IntegrityBox(Downloader):
     def __get_keybox_url(self) -> str:
         self.logger.info('Downloading keybox script')
 
-        keybox_script = requests.get(self.URL).text
+        keybox_script = next(self.download_urls())
         keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
         return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
 

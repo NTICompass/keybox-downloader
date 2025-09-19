@@ -5,7 +5,6 @@ from typing import Generator
 from xml.etree.ElementTree import Element
 import pathlib
 import re
-import requests
 import xml.etree.ElementTree as ET
 
 
@@ -34,13 +33,13 @@ class TSupport(Downloader):
     def get_keybox(self) -> Generator[Element]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
-        for (idx, url) in enumerate(self.URLS):
+        for idx, dl in enumerate(self.download_urls()):
             self.logger.info(f'Downloading encoded keybox #{idx + 1}')
-            self.encoded = requests.get(url).text
+            self.encoded = dl
 
             if len(self.encoded.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
-                yield self.__build_keybox(pathlib.Path(url).stem)
+                yield self.__build_keybox(pathlib.Path(self.current_url).stem)
 
     def __build_keybox(self, keyid: str) -> Element:
         # Strip off any irrelevant data
