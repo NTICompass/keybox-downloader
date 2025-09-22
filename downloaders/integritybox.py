@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 class IntegrityBox(Downloader):
     # https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/Arrival.tar
     URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
-    FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/cleanup.sh'
+    FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
 
     def __init__(self):
         super().__init__()
