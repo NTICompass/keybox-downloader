@@ -45,9 +45,9 @@ class TSupport(Downloader):
             if len(self.encoded.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode_keybox()
-                yield self.build_keybox(pathlib.Path(self.current_url).stem)
+                yield self.build_keybox()
 
-    def build_keybox(self, keyid: str) -> Element:
+    def build_keybox(self) -> Element:
         # First, extract the metadata
         keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', self.keys))
 
@@ -63,7 +63,9 @@ class TSupport(Downloader):
         keybox_element = ET.SubElement(keybox_xml, 'Keybox')
         keybox_element.set(
             'DeviceID',
-            f'{'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW'}{'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB'}_{keyid}'
+            f'{'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW'}'
+            f'{'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB'}'
+            f'_{pathlib.Path(self.current_url).stem}'
         )
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)
