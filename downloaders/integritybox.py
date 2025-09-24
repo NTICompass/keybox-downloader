@@ -4,7 +4,6 @@ from downloaders.downloader import Downloader
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
 import re
-import requests
 import xml.etree.ElementTree as ET
 
 
@@ -16,11 +15,11 @@ class IntegrityBox(Downloader):
     def __init__(self):
         super().__init__()
 
-        junk_vars = get_var_from_shell(requests.get(self.FIX_URL).text, ['X'])
+        junk_vars = get_var_from_shell(self.dl.get(self.FIX_URL).text, ['X'])
         self.junk: list[str] = junk_vars['X'].split(',')
 
     def get_keybox(self) -> Element:
-        self.encoded = requests.get(self.get_keybox_url()).text
+        self.encoded = self.dl.get(self.get_keybox_url()).text
         return ET.fromstring(self.decode_keybox())
 
     def get_keybox_url(self) -> str:

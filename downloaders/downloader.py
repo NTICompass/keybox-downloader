@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
+from requests import Session
 from typing import Generator, Optional, Union
 from xml.etree.ElementTree import Element
 import logging
-import requests
 
 
 class Downloader(ABC):
@@ -13,6 +13,7 @@ class Downloader(ABC):
         self.encoded: Optional[str] = None
         self.current_url: Optional[str] = None
         self.logger = logging.getLogger(type(self).__name__)
+        self.dl = Session()
 
     @abstractmethod
     def get_keybox(self) -> Union[Element, Generator[Element]]:
@@ -30,4 +31,4 @@ class Downloader(ABC):
 
         for dl in download:
             self.current_url = dl
-            yield requests.get(dl).text
+            yield self.dl.get(dl).text
