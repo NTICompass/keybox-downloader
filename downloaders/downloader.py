@@ -16,7 +16,7 @@ class Downloader(ABC):
         self.dl = Session()
 
     @abstractmethod
-    async def get_keybox(self) -> tuple[Element, str] | Generator[tuple[Element, str]]:
+    def get_keybox(self) -> Element | Generator[Element]:
         pass
 
     @abstractmethod
