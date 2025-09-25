@@ -8,11 +8,11 @@ import xml.etree.ElementTree as ET
 class YuriKey(Downloader):
     URL = 'https://github.com/YurikeyDev/yurikey/raw/refs/heads/main/conf'
 
-    def get_keybox(self) -> Element:
+    async def get_keybox(self) -> tuple[Element, str]:
         self.encoded = self.get_encoded_keybox()
         self.logger.info('Decoding keybox xml')
 
-        return ET.fromstring(self.decode_keybox())
+        return ET.fromstring(self.decode_keybox()), type(self).__name__
 
     def get_encoded_keybox(self) -> str:
         self.logger.info('Downloading encoded keybox')

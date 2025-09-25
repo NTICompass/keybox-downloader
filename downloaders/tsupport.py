@@ -1,7 +1,7 @@
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
-from typing import Generator, Optional
+from typing import AsyncGenerator, Optional
 from xml.etree.ElementTree import Element
 import pathlib
 import re
@@ -35,7 +35,7 @@ class TSupport(Downloader):
 
         self.keys: Optional[str] = None
 
-    def get_keybox(self) -> Generator[Element]:
+    async def get_keybox(self) -> AsyncGenerator[tuple[Element, str]]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
         for idx, dl in enumerate(self.download_urls()):
@@ -45,7 +45,7 @@ class TSupport(Downloader):
             if len(self.encoded.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode_keybox()
-                yield self.build_keybox()
+                yield self.build_keybox(), type(self).__name__
 
     def build_keybox(self) -> Element:
         # First, extract the metadata
