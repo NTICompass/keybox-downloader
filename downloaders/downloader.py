@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from requests import Session
-from typing import Generator, Optional, Union
+from typing import Generator, Optional
 from xml.etree.ElementTree import Element
 import logging
 
@@ -16,7 +16,7 @@ class Downloader(ABC):
         self.dl = Session()
 
     @abstractmethod
-    def get_keybox(self) -> Union[Element, Generator[Element]]:
+    def get_keybox(self) -> Element | Generator[Element]:
         pass
 
     @abstractmethod
