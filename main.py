@@ -1,3 +1,4 @@
+from downloaders.downloader import Downloader
 from downloaders.integritybox import IntegrityBox
 from downloaders.trickyaddon import TrickyAddon
 from downloaders.tsupport import TSupport
@@ -9,6 +10,7 @@ from types import GeneratorType
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree
+import asyncio
 import logging
 import os
 
@@ -42,27 +44,29 @@ if __name__ == '__main__':
         rmtree(path)
         make_folders()
 
-    checker = GoogleChecker()
+    async def main(*downloaders: Downloader):
+        checker = GoogleChecker()
 
-    for dl in tqdm((IntegrityBox(), TrickyAddon(), TSupport(), YuriKey())):
-        keybox = dl.get_keybox()
-        is_generator = isinstance(keybox, GeneratorType)
+        for dl in tqdm(downloaders):
+            keybox = dl.get_keybox()
+            is_generator = isinstance(keybox, GeneratorType)
 
-        logger.info('Got keybox XML, checking revocation')
+            logger.info('Got keybox XML, checking revocation')
 
-        for idx, keybox_file in enumerate(keybox if is_generator else (keybox,)):
-            keybox_idx = idx + 1
+            for idx, keybox_file in enumerate(keybox if is_generator else (keybox,)):
+                keybox_idx = idx + 1
 
-            logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')
-            valid_keybox = checker.is_keybox_valid(keybox_file)
-            save_path = f'{path}/{types[int(valid_keybox)]}'
-            file_name = f'{save_path}/{type(dl).__name__ + (f'_{keybox_idx:d}' if is_generator else '')}.xml'
+                logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')
+                valid_keybox = checker.is_keybox_valid(keybox_file)
+                save_path = f'{path}/{types[int(valid_keybox)]}'
+                file_name = f'{save_path}/{type(dl).__name__ + (f'_{keybox_idx:d}' if is_generator else '')}.xml'
 
-            logger.info(f'Saving keybox #{keybox_idx:d}' if is_generator else 'Saving keybox')
-            xml_file = ElementTree(keybox_file)
-            xml_file.write(file_name, 'unicode', True)
+                logger.info(f'Saving keybox #{keybox_idx:d}' if is_generator else 'Saving keybox')
+                xml_file = ElementTree(keybox_file)
+                xml_file.write(file_name, 'unicode', True)
 
-    logger.info('All keyboxes downloaded, comparing to find duplicates')
-    dupe = Duplicate(path)
+        logger.info('All keyboxes downloaded, comparing to find duplicates')
+        dupe = Duplicate(path)
+        dupe.check_duplicates()
 
-    dupe.check_duplicates()
+    asyncio.run(main(IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()))
