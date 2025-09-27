@@ -1,6 +1,7 @@
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
+from typing import Optional
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
 import re
@@ -15,17 +16,20 @@ class IntegrityBox(Downloader):
     def __init__(self):
         super().__init__()
 
-        junk_vars = get_var_from_shell(self.dl.get(self.FIX_URL).text, ['X'])
-        self.junk: list[str] = junk_vars['X'].split(',')
+        self.junk: Optional[list[str]] = None
 
     async def get_keybox(self) -> Element:
-        self.encoded = self.dl.get(self.get_keybox_url()).text
+        junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
+
+        self.junk = junk_vars['X'].split(',')
+        self.encoded = (await self.client.get(await self.get_keybox_url())).text
+
         return ET.fromstring(self.decode_keybox())
 
-    def get_keybox_url(self) -> str:
+    async def get_keybox_url(self) -> str:
         self.logger.info('Downloading keybox script')
 
-        keybox_script = next(self.download_urls())
+        keybox_script = await anext(self.download_urls())
         keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
         return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
 

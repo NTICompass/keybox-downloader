@@ -1,4 +1,4 @@
 asyncstdlib
 cryptography
-requests
+httpx
 tqdm

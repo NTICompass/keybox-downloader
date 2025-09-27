@@ -1,3 +1,4 @@
+from asyncstdlib import enumerate as a_enumerate
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
@@ -38,7 +39,7 @@ class TSupport(Downloader):
     async def get_keybox(self) -> AsyncGenerator[Element]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
-        for idx, dl in enumerate(self.download_urls()):
+        async for idx, dl in a_enumerate(self.download_urls()):
             self.logger.info(f'Downloading encoded keybox #{idx + 1}')
             self.encoded = dl
 

@@ -66,6 +66,8 @@ if __name__ == '__main__':
                 xml_file = ElementTree(keybox_file)
                 xml_file.write(file_name, 'unicode', True)
 
+        await Downloader.client.aclose()
+
         logger.info('All keyboxes downloaded, comparing to find duplicates')
         dupe = Duplicate(path)
         dupe.check_duplicates()

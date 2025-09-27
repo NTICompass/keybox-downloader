@@ -10,7 +10,7 @@ class TrickyAddon(Downloader):
     async def get_keybox(self) -> Element:
         self.logger.info('Downloading encoded keybox')
 
-        self.encoded = next(self.download_urls())
+        self.encoded = await anext(self.download_urls())
         return ET.fromstring(self.decode_keybox())
 
     def decode_keybox(self) -> str:

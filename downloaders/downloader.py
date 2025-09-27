@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from requests import Session
-from typing import Generator, Optional
+from httpx import AsyncClient
+from typing import AsyncGenerator, Generator, Optional
 from xml.etree.ElementTree import Element
 import logging
 
@@ -8,12 +8,12 @@ import logging
 class Downloader(ABC):
     URL: str
     URLS: list[str]
+    client = AsyncClient(follow_redirects=True)
 
     def __init__(self):
         self.encoded: Optional[str] = None
         self.current_url: Optional[str] = None
         self.logger = logging.getLogger(type(self).__name__)
-        self.dl = Session()
 
     @abstractmethod
     async def get_keybox(self) -> Element | Generator[Element]:
@@ -23,7 +23,7 @@ class Downloader(ABC):
     def decode_keybox(self) -> str:
         pass
 
-    def download_urls(self) -> Generator[str]:
+    async def download_urls(self) -> AsyncGenerator[str]:
         try:
             download = self.URLS
         except AttributeError:
@@ -31,4 +31,4 @@ class Downloader(ABC):
 
         for dl in download:
             self.current_url = dl
-            yield self.dl.get(dl).text
+            yield (await self.client.get(dl)).text
