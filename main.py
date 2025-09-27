@@ -52,8 +52,6 @@ if __name__ == '__main__':
             keybox = dl.get_keybox()
             is_generator = isinstance(keybox, AsyncGeneratorType)
 
-            logger.info('Got keybox XML, checking revocation')
-
             async for idx, keybox_file in a_enumerate(keybox if is_generator else (await keybox,)):
                 keybox_idx = idx + 1
 
