@@ -1,3 +1,4 @@
+from asyncstdlib import enumerate as a_enumerate
 from downloaders.downloader import Downloader
 from downloaders.integritybox import IntegrityBox
 from downloaders.trickyaddon import TrickyAddon
@@ -6,7 +7,7 @@ from downloaders.yurikey import YuriKey
 from shutil import make_archive, rmtree
 from time import time
 from tqdm import tqdm
-from types import GeneratorType
+from types import AsyncGeneratorType
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree
@@ -49,11 +50,11 @@ if __name__ == '__main__':
 
         for dl in tqdm(downloaders):
             keybox = dl.get_keybox()
-            is_generator = isinstance(keybox, GeneratorType)
+            is_generator = isinstance(keybox, AsyncGeneratorType)
 
             logger.info('Got keybox XML, checking revocation')
 
-            for idx, keybox_file in enumerate(keybox if is_generator else (keybox,)):
+            async for idx, keybox_file in a_enumerate(keybox if is_generator else (await keybox,)):
                 keybox_idx = idx + 1
 
                 logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')

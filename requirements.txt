@@ -1,4 +1,4 @@
-brotli
+asyncstdlib
 cryptography
 requests
 tqdm

@@ -18,7 +18,7 @@ class IntegrityBox(Downloader):
         junk_vars = get_var_from_shell(self.dl.get(self.FIX_URL).text, ['X'])
         self.junk: list[str] = junk_vars['X'].split(',')
 
-    def get_keybox(self) -> Element:
+    async def get_keybox(self) -> Element:
         self.encoded = self.dl.get(self.get_keybox_url()).text
         return ET.fromstring(self.decode_keybox())
 
