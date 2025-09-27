@@ -18,15 +18,17 @@ class GoogleChecker:
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
         self.revoked: Optional[set[str]] = None
+        self.status_list: Optional[dict] = None
 
     async def is_keybox_valid(self, xml: Element) -> bool:
-        self.logger.info('Downloading revoked keybox list from Google')
-        keybox_status = (await Downloader.client.get(self.URL, headers={
-            'Accept-Encoding': 'br, gzip',
-            'Cache-Control': 'no-cache',
-        })).json()
+        if self.status_list is None:
+            self.logger.info('Downloading revoked keybox list from Google')
+            self.status_list = (await Downloader.client.get(self.URL, headers={
+                'Accept-Encoding': 'br, gzip',
+                'Cache-Control': 'no-cache',
+            })).json()
 
-        self.revoked = {key for key, status in keybox_status['entries'].items() if status['status'] == 'REVOKED'}
+        self.revoked = {key for key, status in self.status_list['entries'].items() if status['status'] == 'REVOKED'}
 
         ec_certs = xml.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
         rsa_certs = xml.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
