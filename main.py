@@ -58,7 +58,7 @@ if __name__ == '__main__':
                 keybox_idx = idx + 1
 
                 logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')
-                valid_keybox = checker.is_keybox_valid(keybox_file)
+                valid_keybox = await checker.is_keybox_valid(keybox_file)
                 save_path = f'{path}/{types[int(valid_keybox)]}'
                 file_name = f'{save_path}/{type(dl).__name__ + (f'_{keybox_idx:d}' if is_generator else '')}.xml'
 

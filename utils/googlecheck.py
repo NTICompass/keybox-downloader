@@ -1,9 +1,9 @@
 from cryptography import x509
+from downloaders.downloader import Downloader
 from time import time
 from typing import Generator, Optional
 from xml.etree.ElementTree import Element
 import logging
-import requests
 
 
 """
@@ -17,16 +17,17 @@ class GoogleChecker:
 
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
+        self.revoked: Optional[set[str]] = None
 
+    async def is_keybox_valid(self, xml: Element) -> bool:
         self.logger.info('Downloading revoked keybox list from Google')
-        keybox_status = requests.get(self.URL, headers={
+        keybox_status = (await Downloader.client.get(self.URL, headers={
             'Accept-Encoding': 'br, gzip',
             'Cache-Control': 'no-cache',
-        }).json()
+        })).json()
 
-        self.revoked: set[str] = {key for key, status in keybox_status['entries'].items() if status['status'] == 'REVOKED'}
+        self.revoked = {key for key, status in keybox_status['entries'].items() if status['status'] == 'REVOKED'}
 
-    def is_keybox_valid(self, xml: Element) -> bool:
         ec_certs = xml.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
         rsa_certs = xml.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
         self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs')
