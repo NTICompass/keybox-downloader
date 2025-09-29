@@ -7,17 +7,18 @@ from xml.etree.ElementTree import Element
 import re
 import xml.etree.ElementTree as ET
 
-
 """
 https://integritybox.vercel.app/
 https://github.com/freekeybox/mona/
 https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar
 """
+
+
 class IntegrityBox(Downloader):
     # KEYBOX_URL = 'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/Arrival.tar'
     KEYBOX_URL = 'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/ShockWave.tar'
     URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
-    JUNK_DATA = {'every', 'soul', 'will', 'taste', 'death'} # ...
+    JUNK_DATA = {'every', 'soul', 'will', 'taste', 'death'}  # ...
     FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
 
     def __init__(self):
@@ -38,6 +39,8 @@ class IntegrityBox(Downloader):
             download_url = await self.get_keybox_url()
 
         self.encoded = (await self.client.get(download_url)).text
+
+        # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
         return ET.fromstring(self.decode_keybox())
 
     async def get_keybox_url(self) -> str:
