@@ -8,22 +8,36 @@ import re
 import xml.etree.ElementTree as ET
 
 
+"""
+https://integritybox.vercel.app/
+https://github.com/freekeybox/mona/
+https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar
+"""
 class IntegrityBox(Downloader):
-    # https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/Arrival.tar
+    # KEYBOX_URL = 'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/Arrival.tar'
+    KEYBOX_URL = 'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/ShockWave.tar'
     URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
+    JUNK_DATA = {'every', 'soul', 'will', 'taste', 'death'} # ...
     FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
 
     def __init__(self):
         super().__init__()
 
-        self.junk: Optional[list[str]] = None
+        self.junk: Optional[list[str] | set[str]] = None
 
     async def get_keybox(self) -> Element:
-        junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
+        try:
+            self.junk = self.JUNK_DATA
+        except AttributeError:
+            junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
+            self.junk = junk_vars['X'].split(',')
 
-        self.junk = junk_vars['X'].split(',')
-        self.encoded = (await self.client.get(await self.get_keybox_url())).text
+        try:
+            download_url = self.KEYBOX_URL
+        except AttributeError:
+            download_url = await self.get_keybox_url()
 
+        self.encoded = (await self.client.get(download_url)).text
         return ET.fromstring(self.decode_keybox())
 
     async def get_keybox_url(self) -> str:
