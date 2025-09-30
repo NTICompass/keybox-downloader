@@ -18,7 +18,7 @@ class Duplicate:
 
     def check_duplicates(self):
         self.group_keyboxes()
-        self.logger.info('Results: \n' + json.dumps(self.certs, indent=4, default=lambda x: list(x) if isinstance(x, set) else x))
+        self.logger.info(f'Results:\n{json.dumps(self.certs, indent=4, default=lambda x: list(x) if isinstance(x, set) else x)}')
 
     def group_keyboxes(self):
         for file in self.files:
