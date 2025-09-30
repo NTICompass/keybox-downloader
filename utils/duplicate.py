@@ -44,6 +44,8 @@ class Duplicate:
                 issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
                 cert_key = f'{hex_serial}_{issuer_serial.pop()}'
 
+                self.logger.info(f'Valid between {cert.not_valid_before_utc:%a %b %d %Y, %I:%M%p} and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}')
+
                 if cert_key not in self.certs:
                     self.certs[cert_key] = set()
 
