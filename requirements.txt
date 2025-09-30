@@ -1,5 +1,5 @@
 asyncstdlib
 binary2strings
 cryptography
-httpx
+httpx[brotli]
 tqdm
