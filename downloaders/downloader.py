@@ -23,7 +23,7 @@ class Downloader(ABC):
     def decode_keybox(self) -> str:
         pass
 
-    async def download_urls(self) -> AsyncGenerator[str]:
+    async def download_urls(self, binary: bool = False) -> AsyncGenerator[str | bytes]:
         try:
             download = self.URLS
         except AttributeError:
@@ -31,4 +31,5 @@ class Downloader(ABC):
 
         for dl in download:
             self.current_url = dl
-            yield (await self.client.get(dl)).text
+            r = await self.client.get(dl)
+            yield r.content if binary else r.text

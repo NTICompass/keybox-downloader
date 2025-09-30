@@ -1,11 +1,14 @@
 from base64 import b64decode
 from downloaders.downloader import Downloader
-from utils.shellvar import get_var_from_shell
+from io import BytesIO
+from typing import Optional
 from xml.etree.ElementTree import Element
+import binary2strings as b2s
 import xml.etree.ElementTree as ET
 
 
 class YuriKey(Downloader):
+    # This has been changed to an ELF binary
     URL = 'https://github.com/YurikeyDev/yurikey/raw/refs/heads/main/conf'
 
     async def get_keybox(self) -> Element:
@@ -14,12 +17,14 @@ class YuriKey(Downloader):
 
         return ET.fromstring(self.decode_keybox())
 
-    async def get_encoded_keybox(self) -> str:
-        self.logger.info('Downloading encoded keybox')
+    async def get_encoded_keybox(self) -> Optional[str]:
+        self.logger.info('Downloading keybox binary')
 
-        keybox_script = b64decode(await anext(self.download_urls())).decode('utf-8')
-        keybox_vars = get_var_from_shell(keybox_script, ['KEYBOX_BASE64_PAYLOAD'])
-        return keybox_vars['KEYBOX_BASE64_PAYLOAD']
+        bin_elf = BytesIO(await anext(self.download_urls(True)))
+        for string, encoding, span, is_interesting in b2s.extract_all_strings(bin_elf.read(), min_chars=1024):
+           if is_interesting:
+               return string
+        return None
 
     def decode_keybox(self) -> str:
         return b64decode(self.encoded).decode('ascii')
