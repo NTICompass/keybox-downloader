@@ -18,10 +18,7 @@ class Duplicate:
 
     def check_duplicates(self):
         self.group_keyboxes()
-
-        # TODO Calculate which files are the same, but for now just dump the data to the log
-        duplicates = {cert_hash: list(files) for cert_hash, files in self.certs.items() if len(files) > 1}
-        self.logger.info('Results: \n' + json.dumps(duplicates, indent=4))
+        self.logger.info('Results: \n' + json.dumps(self.certs, indent=4, default=lambda x: list(x) if isinstance(x, set) else x))
 
     def group_keyboxes(self):
         for file in self.files:
