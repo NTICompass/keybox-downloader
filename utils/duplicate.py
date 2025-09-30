@@ -6,10 +6,13 @@ import xml.etree.ElementTree as ET
 
 
 class Duplicate:
-    def __init__(self, folder: str):
+    def __init__(self, folder: str, extras: bool = True):
         self.logger = logging.getLogger(type(self).__name__)
         self.files: list[str] = glob(f'{folder.rstrip('/')}/**/*.xml', recursive=True)
         self.certs: dict[str, set[str]] = {}
+
+        if extras:
+            self.files.extend(glob('extra/**/*.xml', recursive=True))
 
         self.logger.info(f'Loading {len(self.files)} files in {folder}')
 
