@@ -1,7 +1,6 @@
 from base64 import b64decode
 from codecs import decode
 from downloaders.downloader import Downloader
-from typing import Optional
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
 import re
@@ -24,7 +23,7 @@ class IntegrityBox(Downloader):
     def __init__(self):
         super().__init__()
 
-        self.junk: Optional[list[str] | set[str]] = None
+        self.junk: list[str] | set[str] | None = None
 
     async def get_keybox(self) -> Element:
         try:

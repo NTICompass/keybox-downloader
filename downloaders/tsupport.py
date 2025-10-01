@@ -1,8 +1,8 @@
 from asyncstdlib import enumerate as a_enumerate
 from base64 import b64decode
 from codecs import decode
+from collections.abc import AsyncGenerator
 from downloaders.downloader import Downloader
-from typing import AsyncGenerator, Optional
 from xml.etree.ElementTree import Element
 import pathlib
 import re
@@ -34,7 +34,7 @@ class TSupport(Downloader):
     def __init__(self):
         super().__init__()
 
-        self.keys: Optional[str] = None
+        self.keys: str | None = None
 
     async def get_keybox(self) -> AsyncGenerator[Element]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')

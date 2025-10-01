@@ -1,7 +1,7 @@
+from collections.abc import Generator
 from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
-from typing import Generator, Optional
 from xml.etree.ElementTree import Element
 import logging
 
@@ -17,8 +17,8 @@ class GoogleChecker:
 
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
-        self.revoked: Optional[set[str]] = None
-        self.status_list: Optional[dict] = None
+        self.revoked: set[str] | None = None
+        self.status_list: dict | None = None
 
     async def is_keybox_valid(self, xml: Element) -> bool:
         if self.status_list is None:
@@ -43,7 +43,7 @@ class GoogleChecker:
 
         return True
 
-    def get_certs_info(self, *certs: bytes) -> Generator[tuple[Optional[str], Optional[str]]]:
+    def get_certs_info(self, *certs: bytes) -> Generator[tuple[str | None, str | None]]:
         try:
             self.logger.info(f'Loading {len(certs)} certs')
 

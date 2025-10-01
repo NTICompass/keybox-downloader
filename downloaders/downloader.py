@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator, Generator
 from httpx import AsyncClient
-from typing import AsyncGenerator, Generator, Optional
 from xml.etree.ElementTree import Element
 import logging
 
@@ -11,8 +11,8 @@ class Downloader(ABC):
     client: AsyncClient = AsyncClient(follow_redirects=True)
 
     def __init__(self):
-        self.encoded: Optional[str] = None
-        self.current_url: Optional[str] = None
+        self.encoded: str | None = None
+        self.current_url: str | None = None
         self.logger = logging.getLogger(type(self).__name__)
 
     @abstractmethod

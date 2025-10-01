@@ -1,7 +1,6 @@
 from base64 import b64decode
 from downloaders.downloader import Downloader
 from io import BytesIO
-from typing import Optional
 from xml.etree.ElementTree import Element
 import binary2strings as b2s
 import xml.etree.ElementTree as ET
@@ -17,7 +16,7 @@ class YuriKey(Downloader):
 
         return ET.fromstring(self.decode_keybox())
 
-    async def get_encoded_keybox(self) -> Optional[str]:
+    async def get_encoded_keybox(self) -> str | None:
         self.logger.info('Downloading keybox binary')
 
         bin_elf = BytesIO(await anext(self.download_urls(True)))
