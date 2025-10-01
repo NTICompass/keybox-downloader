@@ -29,14 +29,23 @@ class Certs:
 
         return name
 
-    def get_certs(self, name: str | None = None, keybox: Element | None = None) -> Generator[Certificate]:
+    def get_certs(self, log_valid: bool = True, name: str | None = None, keybox: Element | None = None) -> Generator[Certificate]:
         cert_name = name if name is not None else get_keybox_id(keybox)
         if cert_name is None:
             raise ValueError
 
-        for cert in self.cert_data[cert_name]:
-            self.logger.info(
-                f'Valid between {cert.not_valid_before_utc:%a %b %d %Y, %I:%M%p} '
-                f'and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}'
-            )
+        try:
+            cert_list = self.cert_data[cert_name]
+        except KeyError:
+            if keybox is not None:
+                cert_list = self.cert_data[self.load_certs(keybox)]
+            else:
+                raise ValueError
+
+        for cert in cert_list:
+            if log_valid:
+                self.logger.info(
+                    f'Valid between {cert.not_valid_before_utc:%a %b %d %Y, %I:%M%p} '
+                    f'and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}'
+                )
             yield cert
