@@ -29,7 +29,7 @@ class Certs:
 
         return cert_key
 
-    def get_certs(self, log_valid: bool = True, key: int | None = None, keybox: Element | None = None) -> Generator[Certificate]:
+    def get_certs(self, log_valid: bool = False, key: int | None = None, keybox: Element | None = None) -> Generator[Certificate]:
         cert_key = key if key is not None else hash(keybox)
         if cert_key is None:
             raise ValueError
