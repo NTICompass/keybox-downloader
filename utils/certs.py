@@ -20,7 +20,7 @@ class Certs:
         ec_certs = keybox.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
         rsa_certs = keybox.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
 
-        self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for {name}')
+        self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for "{name}"')
 
         self.cert_data[name] = x509.load_pem_x509_certificates(
             b''.join(cert_pem.text.encode() for cert_pem in ec_certs) +
