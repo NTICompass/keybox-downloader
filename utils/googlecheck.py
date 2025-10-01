@@ -29,7 +29,7 @@ class GoogleChecker(Certs):
 
             self.revoked = {key for key, status in self.status_list['entries'].items() if status['status'] == 'REVOKED'}
 
-        for cert in self.get_certs(log_valid=True, name=self.load_certs(xml)):
+        for cert in self.get_certs(log_valid=True, key=self.load_certs(xml)):
             issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
             parsed_serials = (f'{cert.serial_number:x}', str(issuer_serial.pop()) if len(issuer_serial) > 0 else None)
 
