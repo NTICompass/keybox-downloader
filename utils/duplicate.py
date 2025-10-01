@@ -1,13 +1,13 @@
 from cryptography import x509
 from glob import glob
+from utils.certs import Certs
 import json
-import logging
 import xml.etree.ElementTree as ET
 
 
-class Duplicate:
+class Duplicate(Certs):
     def __init__(self, folder: str, extras: bool = True):
-        self.logger = logging.getLogger(type(self).__name__)
+        super().__init__()
         self.files: list[str] = glob(f'{folder.rstrip('/')}/**/*.xml', recursive=True)
         self.certs: dict[str, set[str]] = {}
 
@@ -27,21 +27,10 @@ class Duplicate:
             keybox = ET.parse(file)
             root = keybox.getroot()
 
-            ec_certs = root.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
-            rsa_certs = root.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
-            self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs')
-
-            certs = x509.load_pem_x509_certificates(
-                b''.join(cert_pem.text.encode() for cert_pem in ec_certs) +
-                b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
-            )
-
-            for cert in certs:
+            for cert in self.get_certs(keybox=root):
                 hex_serial = f'{cert.serial_number:x}'
                 issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
                 cert_key = f'{hex_serial}_{issuer_serial.pop()}'
-
-                self.logger.info(f'Valid between {cert.not_valid_before_utc:%a %b %d %Y, %I:%M%p} and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}')
 
                 if cert_key not in self.certs:
                     self.certs[cert_key] = set()

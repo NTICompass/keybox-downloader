@@ -1,9 +1,8 @@
-from collections.abc import Generator
 from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
+from utils.certs import Certs
 from xml.etree.ElementTree import Element
-import logging
 
 
 """
@@ -12,11 +11,11 @@ and https://github.com/Transwarpcom/Check-Keybox-Certificate-Revocation-Status
 
 Also see https://developer.android.com/privacy-and-security/security-key-attestation
 """
-class GoogleChecker:
+class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
 
     def __init__(self):
-        self.logger = logging.getLogger(type(self).__name__)
+        super().__init__()
         self.revoked: set[str] | None = None
         self.status_list: dict | None = None
 
@@ -30,31 +29,16 @@ class GoogleChecker:
 
             self.revoked = {key for key, status in self.status_list['entries'].items() if status['status'] == 'REVOKED'}
 
-        ec_certs = xml.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
-        rsa_certs = xml.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
-        self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs')
+        for cert in self.get_certs(name=self.load_certs(xml)):
+            issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
+            parsed_serials = (f'{cert.serial_number:x}', str(issuer_serial.pop()) if len(issuer_serial) > 0 else None)
 
-        for hex_serial, issuer_serial in self.get_certs_info(*(cert.text.encode() for cert in ec_certs), *(cert.text.encode() for cert in rsa_certs)):
-            found = (hex_serial and hex_serial in self.revoked) or (issuer_serial and issuer_serial in self.revoked)
+            self.logger.info('Parsed cert {}, issuer {}'.format(*parsed_serials))
+
+            found = (parsed_serials[0] and parsed_serials[0] in self.revoked) or (parsed_serials[1] and parsed_serials[1] in self.revoked)
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
 
             if found:
                 return False
 
         return True
-
-    def get_certs_info(self, *certs: bytes) -> Generator[tuple[str | None, str | None]]:
-        try:
-            self.logger.info(f'Loading {len(certs)} certs')
-
-            for cert in x509.load_pem_x509_certificates(b''.join(certs)):
-                hex_serial = f'{cert.serial_number:x}'
-                issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
-
-                parsed_serials = (hex_serial, str(issuer_serial.pop()) if len(issuer_serial) > 0 else None)
-                self.logger.info('Parsed cert {}, issuer {}'.format(*parsed_serials))
-
-                yield parsed_serials
-        except ValueError:
-            self.logger.info('Could not parse cert')
-            yield None, None

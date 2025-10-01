@@ -1,0 +1,42 @@
+from collections.abc import Generator
+from cryptography import x509
+from cryptography.hazmat.bindings._rust import x509 as rust_x509
+from xml.etree.ElementTree import Element
+import logging
+
+Certificate = rust_x509.Certificate
+
+def get_keybox_id(keybox: Element | None) -> str | None:
+    return keybox.find('.//Keybox[@DeviceID]').get('DeviceID') if keybox is not None else None
+
+class Certs:
+    cert_data: dict[str, list[Certificate]] = {}
+
+    def __init__(self):
+        self.logger = logging.getLogger(type(self).__name__)
+
+    def load_certs(self, keybox: Element) -> str:
+        name = get_keybox_id(keybox)
+        ec_certs = keybox.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
+        rsa_certs = keybox.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
+
+        self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for {name}')
+
+        self.cert_data[name] = x509.load_pem_x509_certificates(
+            b''.join(cert_pem.text.encode() for cert_pem in ec_certs) +
+            b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
+        )
+
+        return name
+
+    def get_certs(self, name: str | None = None, keybox: Element | None = None) -> Generator[Certificate]:
+        cert_name = name if name is not None else get_keybox_id(keybox)
+        if cert_name is None:
+            raise ValueError
+
+        for cert in self.cert_data[cert_name]:
+            self.logger.info(
+                f'Valid between {cert.not_valid_before_utc:%a %b %d %Y, %I:%M%p} '
+                f'and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}'
+            )
+            yield cert
