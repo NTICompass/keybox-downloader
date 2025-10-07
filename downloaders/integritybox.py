@@ -14,10 +14,7 @@ https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar
 
 
 class IntegrityBox(Downloader):
-    # KEYBOX_URL = 'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/Arrival.tar'
-    KEYBOX_URL = 'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/ShockWave.tar'
     URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
-    JUNK_DATA = {'every', 'soul', 'will', 'taste', 'death'}  # ...
     FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
 
     def __init__(self):
@@ -26,17 +23,10 @@ class IntegrityBox(Downloader):
         self.junk: list[str] | set[str] | None = None
 
     async def get_keybox(self) -> Element:
-        try:
-            self.junk = self.JUNK_DATA
-        except AttributeError:
-            junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
-            self.junk = junk_vars['X'].split(',')
+        download_url = await self.get_keybox_url()
+        junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
 
-        try:
-            download_url = self.KEYBOX_URL
-        except AttributeError:
-            download_url = await self.get_keybox_url()
-
+        self.junk = junk_vars['X'].split(',')
         self.encoded = (await self.client.get(download_url)).text
 
         # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
