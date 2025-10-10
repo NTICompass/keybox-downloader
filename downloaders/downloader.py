@@ -16,7 +16,7 @@ class Downloader(ABC):
         self.logger = logging.getLogger(type(self).__name__)
 
     @abstractmethod
-    async def get_keybox(self) -> Element | Generator[Element]:
+    async def get_keybox(self) -> Element | None | Generator[Element | None]:
         pass
 
     @abstractmethod

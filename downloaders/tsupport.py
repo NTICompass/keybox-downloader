@@ -36,7 +36,7 @@ class TSupport(Downloader):
 
         self.keys: str | None = None
 
-    async def get_keybox(self) -> AsyncGenerator[Element]:
+    async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
         async for idx, dl in a_enumerate(self.download_urls()):
@@ -47,6 +47,8 @@ class TSupport(Downloader):
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode_keybox()
                 yield self.build_keybox()
+            else:
+                yield None
 
     def build_keybox(self) -> Element:
         # First, extract the metadata

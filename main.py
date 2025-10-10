@@ -55,6 +55,10 @@ if __name__ == '__main__':
             async for idx, keybox_file in a_enumerate(keybox if is_generator else (await keybox,)):
                 keybox_idx = idx + 1
 
+                if keybox_file is None:
+                    logger.info(f'Skipping empty keybox #{keybox_idx:d}' if is_generator else 'Skipping empty keybox')
+                    continue
+
                 logger.info(f'Checking keybox #{keybox_idx:d}' if is_generator else 'Checking keybox')
                 valid_keybox = await checker.is_keybox_valid(keybox_file)
                 save_path = f'{path}/{types[int(valid_keybox)]}'
