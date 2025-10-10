@@ -1,5 +1,6 @@
 from base64 import b64decode
 from codecs import decode
+from collections.abc import AsyncGenerator
 from downloaders.downloader import Downloader
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
@@ -9,28 +10,34 @@ import xml.etree.ElementTree as ET
 """
 https://integritybox.vercel.app/
 https://github.com/freekeybox/mona/
-https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar
 """
 
 
 class IntegrityBox(Downloader):
     URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
     FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
+    WEB_URL = 'https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar'
 
     def __init__(self):
         super().__init__()
 
         self.junk: list[str] | set[str] | None = None
 
-    async def get_keybox(self) -> Element:
+    async def get_keybox(self) -> AsyncGenerator[Element]:
         download_url = await self.get_keybox_url()
         junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
 
         self.junk = junk_vars['X'].split(',')
         self.encoded = (await self.client.get(download_url)).text
 
-        # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
-        return ET.fromstring(self.decode_keybox())
+        # Also download the keybox from the webapp, which is probably the same
+        for idx, keybox in enumerate((self.decode_keybox(), (await self.client.get(self.WEB_URL)).text)):
+            # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
+            xml = ET.fromstring(keybox)
+            keybox_id = xml.find('.//Keybox[@DeviceID]')
+            keybox_id.set('DeviceID', f'{keybox_id.get('DeviceID')} {idx+1:d}')
+
+            yield xml
 
     async def get_keybox_url(self) -> str:
         self.logger.info('Downloading keybox script')

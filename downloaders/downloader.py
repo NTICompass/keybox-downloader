@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator
 from httpx import AsyncClient
 from xml.etree.ElementTree import Element
 import logging
@@ -16,7 +16,7 @@ class Downloader(ABC):
         self.logger = logging.getLogger(type(self).__name__)
 
     @abstractmethod
-    async def get_keybox(self) -> Element | None | Generator[Element | None]:
+    async def get_keybox(self) -> Element | None:
         pass
 
     @abstractmethod
