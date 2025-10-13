@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 
 
 class TrickyAddon(Downloader):
+    # https://t.me/s/kowchannel
     URL = 'https://github.com/KOWX712/Tricky-Addon-Update-Target-List/raw/refs/heads/main/.extra'
 
     async def get_keybox(self) -> Element | None:

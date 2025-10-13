@@ -7,15 +7,12 @@ from xml.etree.ElementTree import Element
 import re
 import xml.etree.ElementTree as ET
 
-"""
-https://integritybox.vercel.app/
-https://github.com/freekeybox/mona/
-"""
-
 
 class IntegrityBox(Downloader):
+    # https://t.me/MeowDump
     URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
     FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
+    # https://integritybox.vercel.app/
     WEB_URL = 'https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar'
 
     def __init__(self):
