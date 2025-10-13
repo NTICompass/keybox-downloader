@@ -22,17 +22,21 @@ class IntegrityBox(Downloader):
 
     async def get_keybox(self) -> AsyncGenerator[Element]:
         download_url = await self.get_keybox_url()
-        junk_vars = get_var_from_shell((await self.client.get(self.FIX_URL)).text, ['X'])
+        junk_vars = get_var_from_shell(
+            (await self.client.get(self.FIX_URL)).text, ['X']
+        )
 
         self.junk = junk_vars['X'].split(',')
         self.encoded = (await self.client.get(download_url)).text
 
         # Also download the keybox from the webapp, which is probably the same
-        for idx, keybox in enumerate((self.decode_keybox(), (await self.client.get(self.WEB_URL)).text)):
+        for idx, keybox in enumerate(
+            (self.decode_keybox(), (await self.client.get(self.WEB_URL)).text)
+        ):
             # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
             xml = ET.fromstring(keybox)
             keybox_id = xml.find('.//Keybox[@DeviceID]')
-            keybox_id.set('DeviceID', f'{keybox_id.get('DeviceID')} {idx+1:d}')
+            keybox_id.set('DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}')
 
             yield xml
 
@@ -41,7 +45,9 @@ class IntegrityBox(Downloader):
 
         keybox_script = await anext(self.download_urls())
         keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
-        return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
+        return b64decode(
+            keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
+        ).decode('ascii')
 
     def decode_keybox(self) -> str:
         self.logger.info('Decoding keybox xml')
@@ -59,4 +65,4 @@ class IntegrityBox(Downloader):
         encoded = decode(encoded, 'rot_13')
 
         # Finally remove extra "junk" from the file
-        return re.sub(rf'({'|'.join(self.junk)})', '', encoded)
+        return re.sub(rf'({"|".join(self.junk)})', '', encoded)

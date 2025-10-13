@@ -28,7 +28,7 @@ class TSupport(Downloader):
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox8.tar',
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox9.tar',
         'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/preview.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/sanctuary.tar'
+        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/sanctuary.tar',
     ]
 
     def __init__(self):
@@ -55,7 +55,9 @@ class TSupport(Downloader):
         keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', self.keys))
 
         # Next, get the XML data
-        keybox_keys = re.search(r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', self.keys, re.DOTALL)
+        keybox_keys = re.search(
+            r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', self.keys, re.DOTALL
+        )
         ecdsa_key = ET.fromstring(keybox_keys.group(2))
         rsa_key = ET.fromstring(keybox_keys.group(4))
 
@@ -66,9 +68,9 @@ class TSupport(Downloader):
         keybox_element = ET.SubElement(keybox_xml, 'Keybox')
         keybox_element.set(
             'DeviceID',
-            f'{'HW' if keybox_metadata['ID'] == 'Hardware Attestation' else 'SW'}'
-            f'{'PVT' if keybox_metadata['TYPE'] == 'PRIVATE' else 'PUB'}'
-            f'_{pathlib.Path(self.current_url).stem}'
+            f'{"HW" if keybox_metadata["ID"] == "Hardware Attestation" else "SW"}'
+            f'{"PVT" if keybox_metadata["TYPE"] == "PRIVATE" else "PUB"}'
+            f'_{pathlib.Path(self.current_url).stem}',
         )
         keybox_element.append(ecdsa_key)
         keybox_element.append(rsa_key)

@@ -6,8 +6,14 @@ import logging
 
 Certificate = rust_x509.Certificate
 
+
 def get_keybox_id(keybox: Element | None) -> str | None:
-    return keybox.find('.//Keybox[@DeviceID]').get('DeviceID') if keybox is not None else None
+    return (
+        keybox.find('.//Keybox[@DeviceID]').get('DeviceID')
+        if keybox is not None
+        else None
+    )
+
 
 class Certs:
     cert_data: dict[int, list[Certificate]] = {}
@@ -18,18 +24,29 @@ class Certs:
     def load_certs(self, keybox: Element) -> int:
         cert_key = hash(keybox)
 
-        ec_certs = keybox.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
-        rsa_certs = keybox.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
+        ec_certs = keybox.findall(
+            './/Key[@algorithm="ecdsa"]/CertificateChain/Certificate'
+        )
+        rsa_certs = keybox.findall(
+            './/Key[@algorithm="rsa"]/CertificateChain/Certificate'
+        )
 
-        self.logger.info(f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for "{get_keybox_id(keybox)}"')
+        self.logger.info(
+            f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for "{get_keybox_id(keybox)}"'
+        )
         self.cert_data[cert_key] = x509.load_pem_x509_certificates(
-            b''.join(cert_pem.text.encode() for cert_pem in ec_certs) +
-            b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
+            b''.join(cert_pem.text.encode() for cert_pem in ec_certs)
+            + b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
         )
 
         return cert_key
 
-    def get_certs(self, log_valid: bool = False, key: int | None = None, keybox: Element | None = None) -> Generator[Certificate]:
+    def get_certs(
+        self,
+        log_valid: bool = False,
+        key: int | None = None,
+        keybox: Element | None = None,
+    ) -> Generator[Certificate]:
         cert_key = key if key is not None else hash(keybox)
         if cert_key is None:
             raise ValueError

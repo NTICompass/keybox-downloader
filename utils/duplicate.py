@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 class Duplicate(Certs):
     def __init__(self, folder: str, extras: bool = True):
         super().__init__()
-        self.files: list[str] = glob(f'{folder.rstrip('/')}/**/*.xml', recursive=True)
+        self.files: list[str] = glob(f'{folder.rstrip("/")}/**/*.xml', recursive=True)
         self.certs: dict[str, set[str]] = {}
 
         if extras:
@@ -18,7 +18,9 @@ class Duplicate(Certs):
 
     def check_duplicates(self):
         self.group_keyboxes()
-        self.logger.info(f'Results:\n{json.dumps(self.certs, indent=4, default=lambda x: list(x) if isinstance(x, set) else x)}')
+        self.logger.info(
+            f'Results:\n{json.dumps(self.certs, indent=4, default=lambda x: list(x) if isinstance(x, set) else x)}'
+        )
 
     def group_keyboxes(self):
         for file in self.files:
@@ -29,7 +31,11 @@ class Duplicate(Certs):
 
             for cert in self.get_certs(keybox=root):
                 hex_serial = f'{cert.serial_number:x}'
-                issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
+                issuer_serial = {
+                    attr.value.lower()
+                    for attr in cert.issuer
+                    if attr.oid == x509.NameOID.SERIAL_NUMBER
+                }
                 cert_key = f'{hex_serial}_{issuer_serial.pop()}'
 
                 if cert_key not in self.certs:
