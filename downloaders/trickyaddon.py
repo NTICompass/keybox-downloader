@@ -18,8 +18,9 @@ class TrickyAddon(Downloader):
             else None
         )
 
-        # Change `<Key algorithm="xlp">` to `<Key algorithm="rsa">`
-        key_xml.find('.//Key[@algorithm="xlp"]').set('algorithm', 'rsa')
+        if key_xml is not None:
+            # Change `<Key algorithm="xlp">` to `<Key algorithm="rsa">`
+            key_xml.find('.//Key[@algorithm="xlp"]').set('algorithm', 'rsa')
 
         return key_xml
 
