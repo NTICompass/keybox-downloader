@@ -1,5 +1,4 @@
 asyncstdlib
 cryptography
 httpx[brotli]
-ruff
 tqdm
