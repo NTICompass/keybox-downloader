@@ -1,4 +1,4 @@
-from adbutils import adb
+from adbutils import adb, AdbError
 from glob import glob
 from pathlib import Path
 import inquirer
@@ -32,5 +32,7 @@ if __name__ == '__main__':
         sys.exit('No file selected')
     except RuntimeError:
         sys.exit('Multiple devices found')
+    except AdbError as e:
+        sys.exit(str(e))
     else:
         print('Keybox successfully installed')
