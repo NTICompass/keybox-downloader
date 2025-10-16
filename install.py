@@ -17,21 +17,28 @@ if __name__ == '__main__':
         carousel=True,
     )
     args = inquirer.prompt([select])
+    scripts = glob('*.sh', root_dir='scripts')
 
     try:
+        # Connect to the 1st device (throws exception if there are zero or multiple)
         device = adb.device()
 
+        # Copy the selected keybox to the tmp folder
         device.sync.push(Path(f'{folder}/{args["file"]}'), key_file)
-        for script in glob('*.sh', root_dir='scripts'):
+
+        # Also copy the installer script(s)
+        for script in scripts:
             device.sync.push(Path(f'scripts/{script}'), f'{tmp_folder}/{script}')
 
-        print(device.shell(f'su root -c "sh {runner}"'))
-        for script in glob('*.sh', root_dir='scripts'):
+        # Run the main installer script
+        install = device.shell(f'su root -c "sh {runner}"')
+        print(install)
+
+        # Remove the scripts (the keybox was moved already)
+        for script in scripts:
             device.shell(f'rm {tmp_folder}/{script}')
     except TypeError:
         sys.exit('No file selected')
-    except RuntimeError:
-        sys.exit('Multiple devices found')
     except AdbError as e:
         sys.exit(str(e))
     else:
