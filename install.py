@@ -32,3 +32,5 @@ if __name__ == '__main__':
         sys.exit('No file selected')
     except RuntimeError:
         sys.exit('Multiple devices found')
+    else:
+        print('Keybox successfully installed')
