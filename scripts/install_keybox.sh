@@ -10,5 +10,5 @@ if [ -e "$KEY_FILE" ]; then
 fi
 
 if [ -e "$PIF_SCRIPT" ]; then
-  sh "$PIF_SCRIPT" -s -m -p
+  sh "$PIF_SCRIPT" -m
 fi
