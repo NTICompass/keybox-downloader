@@ -5,6 +5,7 @@
       <map>
         <entry key="crossPlatformExecutableResolution" value="true" />
         <entry key="executable" value="true" />
+        <entry key="runningMode" value="true" />
       </map>
     </option>
   </component>
