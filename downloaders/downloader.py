@@ -8,7 +8,7 @@ import logging
 class Downloader(ABC):
     URL: str
     URLS: list[str]
-    client: AsyncClient = AsyncClient(follow_redirects=True)
+    client: AsyncClient = AsyncClient(follow_redirects=True, timeout=None)
 
     def __init__(self):
         self.encoded: str | None = None
