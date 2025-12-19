@@ -13,7 +13,15 @@ class YuriKey(Downloader):
         self.encoded = await self.get_encoded_keybox()
         self.logger.info('Decoding keybox xml')
 
-        return ET.fromstring(self.decode_keybox())
+        key_xml = ET.fromstring(self.decode_keybox())
+
+        try:
+            # Change `<Key algorithm="nbs">` to `<Key algorithm="rsa">`
+            key_xml.find('.//Key[@algorithm="nbs"]').set('algorithm', 'rsa')
+        except AttributeError:
+            pass
+
+        return key_xml
 
     async def get_encoded_keybox(self) -> str:
         self.logger.info('Downloading encoded keybox')
