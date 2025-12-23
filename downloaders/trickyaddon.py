@@ -24,6 +24,12 @@ class TrickyAddon(Downloader):
         except AttributeError:
             pass
 
+        try:
+            # Change `<Key algorithm="nbs">` to `<Key algorithm="rsa">`
+            key_xml.find('.//Key[@algorithm="nbs"]').set('algorithm', 'rsa')
+        except AttributeError:
+            pass
+
         return key_xml
 
     def decode_keybox(self) -> str:
