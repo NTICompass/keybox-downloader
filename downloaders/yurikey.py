@@ -1,5 +1,5 @@
 from base64 import b64decode
-from downloaders.downloader import Downloader
+from downloaders.downloader import Downloader, fix_rsa_keys
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
@@ -10,18 +10,10 @@ class YuriKey(Downloader):
     URL = 'https://github.com/YurikeyDev/yurikey/raw/refs/heads/main/conf'
 
     async def get_keybox(self) -> Element:
-        self.encoded = await self.get_encoded_keybox()
         self.logger.info('Decoding keybox xml')
+        self.encoded = await self.get_encoded_keybox()
 
-        key_xml = ET.fromstring(self.decode_keybox())
-
-        try:
-            # Change `<Key algorithm="nbs">` to `<Key algorithm="rsa">`
-            key_xml.find('.//Key[@algorithm="nbs"]').set('algorithm', 'rsa')
-        except AttributeError:
-            pass
-
-        return key_xml
+        return fix_rsa_keys(ET.fromstring(self.decode_keybox()))
 
     async def get_encoded_keybox(self) -> str:
         self.logger.info('Downloading encoded keybox')

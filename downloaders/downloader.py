@@ -6,6 +6,19 @@ import asyncio
 import logging
 
 
+def fix_rsa_keys(key_xml: Element[str]) -> Element[str]:
+    not_rsa = ('xlp', 'nbs')
+
+    for algo in not_rsa:
+        try:
+            key_xml.find(f'.//Key[@algorithm="{algo}"]').set('algorithm', 'rsa')
+            break
+        except AttributeError:
+            continue
+
+    return key_xml
+
+
 class Downloader(ABC):
     URL: str
     URLS: list[str]

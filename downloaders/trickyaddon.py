@@ -1,5 +1,5 @@
 from base64 import b64decode
-from downloaders.downloader import Downloader
+from downloaders.downloader import Downloader, fix_rsa_keys
 from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 
@@ -10,27 +10,13 @@ class TrickyAddon(Downloader):
 
     async def get_keybox(self) -> Element | None:
         self.logger.info('Downloading encoded keybox')
-
         self.encoded = await anext(self.download_urls())
-        key_xml = (
+
+        return fix_rsa_keys(
             ET.fromstring(self.decode_keybox())
             if len(self.encoded.strip()) > 0
             else None
         )
-
-        try:
-            # Change `<Key algorithm="xlp">` to `<Key algorithm="rsa">`
-            key_xml.find('.//Key[@algorithm="xlp"]').set('algorithm', 'rsa')
-        except AttributeError:
-            pass
-
-        try:
-            # Change `<Key algorithm="nbs">` to `<Key algorithm="rsa">`
-            key_xml.find('.//Key[@algorithm="nbs"]').set('algorithm', 'rsa')
-        except AttributeError:
-            pass
-
-        return key_xml
 
     def decode_keybox(self) -> str:
         self.logger.info('Decoding keybox xml')
