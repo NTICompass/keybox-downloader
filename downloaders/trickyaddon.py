@@ -1,5 +1,5 @@
+from . import Downloader, fix_rsa_keys
 from base64 import b64decode
-from downloaders.downloader import Downloader, fix_rsa_keys
 from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 

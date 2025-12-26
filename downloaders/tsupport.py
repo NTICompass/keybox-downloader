@@ -1,8 +1,8 @@
+from . import Downloader
 from asyncstdlib import enumerate as a_enumerate
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
-from downloaders.downloader import Downloader
 from xml.etree.ElementTree import Element
 import pathlib
 import re

@@ -1,9 +1,5 @@
 from asyncstdlib import enumerate as a_enumerate
-from downloaders.downloader import Downloader
-from downloaders.integritybox import IntegrityBox
-from downloaders.trickyaddon import TrickyAddon
-from downloaders.tsupport import TSupport
-from downloaders.yurikey import YuriKey
+from downloaders import Downloader, IntegrityBox, TrickyAddon, TSupport, YuriKey
 from shutil import make_archive, rmtree
 from time import time
 from tqdm import tqdm

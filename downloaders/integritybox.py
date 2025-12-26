@@ -1,7 +1,7 @@
+from . import Downloader
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
-from downloaders.downloader import Downloader
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element
 import re
