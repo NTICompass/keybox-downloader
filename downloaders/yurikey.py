@@ -23,4 +23,10 @@ class YuriKey(Downloader):
         return keybox_vars['KEYBOX_BASE64_PAYLOAD']
 
     def decode_keybox(self) -> str:
-        return b64decode(self.encoded).decode('ascii')
+        encoded = self.encoded
+
+        # Decode base64 twice
+        for i in range(2):
+            encoded = b64decode(encoded).decode('ascii')
+
+        return encoded
