@@ -1,9 +1,12 @@
-from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
 from utils.certs import Certs
 from xml.etree.ElementTree import Element
 
+try:
+    from cryptography import x509
+except ImportError:
+    from .openssl import x509
 
 """
 Thanks to https://github.com/Ante0/YetAnotherKeyboxChecker
