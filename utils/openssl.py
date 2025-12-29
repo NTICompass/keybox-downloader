@@ -30,7 +30,9 @@ class Name:
 
 @dataclass(repr=False, eq=False)
 class NameOIDValue:
-    SERIAL_NUMBER = ObjectIdentifier('serialNumber')
+    SERIAL_NUMBER = ObjectIdentifier('serialNumber') # "2.5.4.5"
+    COMMON_NAME = ObjectIdentifier('title') # "2.5.4.3"
+    ORGANIZATIONAL_UNIT_NAME = ObjectIdentifier('') # "2.5.4.11"
 
 
 class x509:
