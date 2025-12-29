@@ -1,6 +1,7 @@
 adbutils
 asyncstdlib
 cryptography
+dateparser
 httpx[brotli]
 inquirer
 tqdm

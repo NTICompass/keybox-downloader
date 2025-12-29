@@ -7,6 +7,7 @@ dependencies = [
     "adbutils>=2.12.0",
     "asyncstdlib>=3.13.1",
     "cryptography>=46.0.3",
+    "dateparser>=1.2.2",
     "httpx[brotli]>=0.28.1",
     "inquirer>=3.4.1",
     "tqdm>=4.67.1",
