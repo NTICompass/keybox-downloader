@@ -1,7 +1,7 @@
 #!/system/bin/sh
 KEY_FILE=/data/local/tmp/my_keybox.xml
 KEY_BOX=/data/adb/tricky_store/keybox.xml
-PIF_SCRIPT=/data/adb/modules/playintegrityfix/autopif2.sh
+PIF_SCRIPT=/data/adb/modules/playintegrityfix/autopif4.sh
 
 if [ -e "$KEY_FILE" ]; then
   mv "$KEY_FILE" "$KEY_BOX"
