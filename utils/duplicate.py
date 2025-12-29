@@ -12,7 +12,7 @@ except ImportError:
 
     x509.Name = Name
 
-def get_attribute_from_cert(cert_name: x509.Name, oid: ObjectIdentifier) -> set[LiteralString | bytes]:
+def get_attribute_from_cert(cert_name: x509.Name, oid: ObjectIdentifier) -> set[LiteralString | bytes | str]:
     return {
         attr.value.lower()
         for attr in cert_name

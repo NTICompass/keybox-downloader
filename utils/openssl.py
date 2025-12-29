@@ -6,13 +6,8 @@ import dateparser
 import re
 import subprocess
 
-
-class staticproperty(property):
-    """
-    From: https://stackoverflow.com/a/76453871
-    """
-    def __get__(self, owner_self, owner_cls):
-        return self.fget()
+BEGIN = '-----BEGIN CERTIFICATE-----'
+END = '-----END CERTIFICATE-----'
 
 
 @dataclass(repr=False)
@@ -30,25 +25,24 @@ class Name:
         self.values = data
 
     def __iter__(self) -> Generator[NameValue]:
-        for key, value in self.values.items():
-            yield NameValue(oid=ObjectIdentifier(key), value=value)
+        return (NameValue(oid=ObjectIdentifier(key), value=value) for key, value in self.values.items())
+
+
+@dataclass(repr=False, eq=False)
+class NameOIDValue:
+    SERIAL_NUMBER = ObjectIdentifier('serialNumber')
 
 
 class x509:
     """
     If we don't have the `cryptography` module, then use this module to call `openssl` from the command line
     """
-    BEGIN = '-----BEGIN CERTIFICATE-----'
-    END = '-----END CERTIFICATE-----'
 
-    def load_pem_x509_certificates(self, data: bytes) -> list[x509_cert]:
-        return [x509_cert(cert) for cert in re.findall(rf'{self.BEGIN}.+?{self.END}', data.decode('ascii'))]
+    NameOID = NameOIDValue()
 
-    @staticproperty
-    def NameOID(self) -> dict[str, ObjectIdentifier]:
-        return {
-            'SERIAL_NUMBER': ObjectIdentifier('serialNumber')
-        }
+    @staticmethod
+    def load_pem_x509_certificates(data: bytes) -> list[x509_cert]:
+        return [x509_cert(cert) for cert in re.findall(rf'{BEGIN}.+?{END}', data.decode('ascii'), re.DOTALL)]
 
 
 @dataclass(repr=False, eq=False)
@@ -57,10 +51,16 @@ class x509_cert:
     To get info about the cert, use `openssl x509 -inform pem -noout -text`
     https://docs.openssl.org/3.6/man1/openssl-x509/
     """
+
     cert: str
 
     def get_from_openssl(self, field: str) -> list[str]:
-        openssl = subprocess.run(['openssl', 'x509', '-inform', 'pem', '-noout', f'-{field}'], input=self.cert, text=True, capture_output=True)
+        openssl = subprocess.run(
+            ['openssl', 'x509', '-inform', 'pem', '-noout', f'-{field}'],
+            input=''.join(line.lstrip() for line in self.cert.splitlines(keepends=True)),
+            text=True,
+            capture_output=True
+        )
         return openssl.stdout.strip().split('=', maxsplit=1)
 
     def read_openssl_value(self, field: list[str] | str, convert: Callable[[str], Any]) -> Any:
@@ -87,7 +87,7 @@ class x509_cert:
     @property
     def serial_number(self) -> int:
         return self.read_openssl_value(
-            'serial', lambda serial: int(serial[1], 16)
+            'serial', lambda serial: int(serial, 16)
         )
 
     @property

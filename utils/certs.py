@@ -40,8 +40,8 @@ class Certs:
             f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for "{get_keybox_id(keybox)}"'
         )
         self.cert_data[cert_key] = x509.load_pem_x509_certificates(
-            b''.join(cert_pem.text.encode() for cert_pem in ec_certs)
-            + b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
+            b''.join(cert_pem.text.encode() for cert_pem in ec_certs) +
+            b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
         )
 
         return cert_key
