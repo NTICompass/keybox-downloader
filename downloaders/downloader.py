@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 
-def fix_rsa_keys(key_xml: Element[str]) -> Element[str]:
+def fix_rsa_keys(key_xml: Element) -> Element:
     not_rsa = ('xlp', 'nbs')
 
     for algo in not_rsa:
