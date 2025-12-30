@@ -1,6 +1,5 @@
 from glob import glob
 from pathlib import Path
-from shlex import quote
 import inquirer
 import sys
 
@@ -32,7 +31,7 @@ if __name__ == '__main__':
 
     if is_android:
         install = (f'{tmp_folder}/{runner['android']}', str(selected.absolute()))
-        subprocess.run(['su', 'root', '-c', quote(f'sh {' '.join(install)}')], stdout=sys.stdout)
+        subprocess.run(['su', 'root', '-c', f'sh {' '.join(install)}'], stdout=sys.stdout)
 
         print('Keybox successfully installed')
     else:
