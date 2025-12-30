@@ -1,6 +1,4 @@
-adbutils
 asyncstdlib
 cryptography
 httpx[brotli]
-inquirer
 tqdm
