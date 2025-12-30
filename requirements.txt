@@ -1,4 +1,5 @@
 asyncstdlib
 cryptography
+inquirer
 httpx[brotli]
 tqdm
