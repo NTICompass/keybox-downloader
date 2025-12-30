@@ -30,8 +30,8 @@ if __name__ == '__main__':
         sys.exit('No file selected')
 
     if is_android:
-        install = (f'{tmp_folder}/{runner['android']}', str(selected.absolute()))
-        subprocess.run(['su', 'root', '-c', f'sh {' '.join(install)}'], stdout=sys.stdout)
+        install = (Path(f'{tmp_folder}/{runner['android']}').absolute(), selected.absolute())
+        subprocess.run(['su', 'root', '-c', f'sh {' '.join(str(arg) for arg in install)}'], stdout=sys.stdout)
 
         print('Keybox successfully installed')
     else:
