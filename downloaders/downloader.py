@@ -22,7 +22,15 @@ def fix_rsa_keys(key_xml: Element) -> Element:
 class Downloader(ABC):
     URL: str
     URLS: list[str]
-    client: AsyncClient = AsyncClient(follow_redirects=True, timeout=None)
+    client: AsyncClient = AsyncClient(
+        http2=True,
+        follow_redirects=True,
+        timeout=None,
+        headers={
+            'Accept-Encoding': 'br, gzip',
+            'Cache-Control': 'no-cache',
+        },
+    )
 
     def __init__(self):
         self.encoded: str | None = None

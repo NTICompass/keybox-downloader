@@ -28,13 +28,7 @@ class GoogleChecker(Certs):
         if self.status_list is None:
             self.logger.info('Downloading revoked keybox list from Google')
             self.status_list = (
-                await Downloader.client.get(
-                    self.URL,
-                    headers={
-                        'Accept-Encoding': 'br, gzip',
-                        'Cache-Control': 'no-cache',
-                    },
-                )
+                await Downloader.client.get(self.URL)
             ).json()
 
             self.revoked = {

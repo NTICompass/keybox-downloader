@@ -1,5 +1,5 @@
 asyncstdlib
 cryptography
-httpx[brotli]
+httpx[http2,brotli]
 inquirer
 tqdm
