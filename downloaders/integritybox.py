@@ -8,12 +8,23 @@ import re
 import xml.etree.ElementTree as ET
 
 
+def get_keybox_url(keybox_script: str) -> str:
+    keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
+    return b64decode(
+        keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
+    ).decode('ascii')
+
+
 class IntegrityBox(Downloader):
     # https://t.me/MeowDump
-    URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh'
-    FIX_URL = 'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh'
-    # https://integritybox.vercel.app/
-    WEB_URL = 'https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar'
+    URLS = [
+        # Key Script
+        'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh',
+        # Cleanup Script
+        'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh',
+        # https://integritybox.vercel.app/
+        'https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar',
+    ]
 
     def __init__(self):
         super().__init__()
@@ -21,33 +32,23 @@ class IntegrityBox(Downloader):
         self.junk: list[str] | set[str] | None = None
 
     async def get_keybox(self) -> AsyncGenerator[Element]:
-        download_url = await self.get_keybox_url()
-        junk_vars = get_var_from_shell(
-            (await self.client.get(self.FIX_URL)).text, ['X']
-        )
+        self.logger.info('Downloading keybox scripts')
+        keybox_script, cleanup_script, web_keybox = [data async for data in self.download_urls()]
 
-        self.junk = junk_vars['X'].split(',')
+        download_url = get_keybox_url(keybox_script)
+        junk_vars = get_var_from_shell(cleanup_script, ['X'])
+
         self.encoded = (await self.client.get(download_url)).text
+        self.junk = junk_vars['X'].split(',')
 
         # Also download the keybox from the webapp, which is probably the same
-        for idx, keybox in enumerate(
-            (self.decode_keybox(), (await self.client.get(self.WEB_URL)).text)
-        ):
+        for idx, keybox in enumerate((self.decode_keybox(), web_keybox)):
             # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
             xml = ET.fromstring(keybox)
             keybox_id = xml.find('.//Keybox[@DeviceID]')
             keybox_id.set('DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}')
 
             yield xml
-
-    async def get_keybox_url(self) -> str:
-        self.logger.info('Downloading keybox script')
-
-        keybox_script = await anext(self.download_urls())
-        keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
-        return b64decode(
-            keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
-        ).decode('ascii')
 
     def decode_keybox(self) -> str:
         self.logger.info('Decoding keybox xml')
