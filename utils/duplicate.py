@@ -1,6 +1,6 @@
+from .certs import Certs
 from glob import glob
 from typing import LiteralString
-from utils.certs import Certs
 import json
 import xml.etree.ElementTree as ET
 

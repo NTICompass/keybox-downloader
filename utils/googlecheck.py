@@ -1,6 +1,6 @@
+from .certs import Certs
 from downloaders.downloader import Downloader
 from time import time
-from utils.certs import Certs
 from xml.etree.ElementTree import Element
 
 try:
