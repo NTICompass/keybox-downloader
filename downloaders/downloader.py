@@ -22,7 +22,7 @@ def fix_rsa_keys(key_xml: Element) -> Element:
 class Downloader(ABC):
     URL: str
     URLS: list[str]
-    client: AsyncClient = AsyncClient(
+    client = AsyncClient(
         http2=True,
         follow_redirects=True,
         timeout=None,
@@ -46,7 +46,10 @@ class Downloader(ABC):
         pass
 
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
-        """`yield from` doesn't work in `AsyncGenerator`"""
+        """
+        `yield from` doesn't work in `AsyncGenerator`
+        https://peps.python.org/pep-0525/#asynchronous-yield-from
+        """
         for r in await asyncio.gather(*[self.client.get(dl) for dl in download]):
             yield r
 
