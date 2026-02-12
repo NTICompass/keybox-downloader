@@ -10,11 +10,11 @@ class YuriKey(Downloader):
     # https://t.me/s/yuriiroot
     URL = 'https://github.com/Yurii0307/yurikey/raw/refs/heads/main/key'
 
-    async def get_keybox(self) -> Element:
+    async def get_keybox(self) -> AsyncGenerator[Element]:
         self.logger.info('Downloading encoded keybox')
         self.encoded = await anext(self.download_urls())
 
-        return ET.fromstring(self.decode_keybox())
+        yield ET.fromstring(self.decode_keybox())
 
     def decode_keybox(self) -> str:
         return b64decode(self.encoded).decode('ascii')

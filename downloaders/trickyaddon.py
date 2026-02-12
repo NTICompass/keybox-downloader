@@ -1,5 +1,6 @@
 from . import Downloader, fix_rsa_keys
 from base64 import b64decode
+from collections.abc import AsyncGenerator
 from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 
@@ -8,11 +9,11 @@ class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
     URL = 'https://github.com/KOWX712/Tricky-Addon-Update-Target-List/raw/refs/heads/main/.extra'
 
-    async def get_keybox(self) -> Element | None:
+    async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading encoded keybox')
         self.encoded = await anext(self.download_urls())
 
-        return fix_rsa_keys(
+        yield fix_rsa_keys(
             ET.fromstring(self.decode_keybox())
             if len(self.encoded.strip()) > 0
             else None

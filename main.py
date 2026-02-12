@@ -3,7 +3,6 @@ from downloaders import Downloader, IntegrityBox, TrickyAddon, TSupport, YuriKey
 from shutil import make_archive, rmtree
 from time import time
 from tqdm import tqdm
-from types import AsyncGeneratorType
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree
@@ -48,36 +47,19 @@ if __name__ == '__main__':
         checker = GoogleChecker()
 
         for dl in tqdm(downloaders):
-            keybox = dl.get_keybox()
-            is_generator = isinstance(keybox, AsyncGeneratorType)
-
-            async for idx, keybox_file in a_enumerate(
-                keybox if is_generator else (await keybox,)
-            ):
+            async for idx, keybox_file in a_enumerate(dl.get_keybox()):
                 keybox_idx = idx + 1
 
                 if keybox_file is None:
-                    logger.info(
-                        f'Skipping empty keybox #{keybox_idx:d}'
-                        if is_generator
-                        else 'Skipping empty keybox'
-                    )
+                    logger.info(f'Skipping empty keybox #{keybox_idx:d}')
                     continue
 
-                logger.info(
-                    f'Checking keybox #{keybox_idx:d}'
-                    if is_generator
-                    else 'Checking keybox'
-                )
+                logger.info(f'Checking keybox #{keybox_idx:d}')
                 valid_keybox = await checker.is_keybox_valid(keybox_file)
                 save_path = f'{path}/{types[int(valid_keybox)]}'
-                file_name = f'{save_path}/{type(dl).__name__ + (f"_{keybox_idx:d}" if is_generator else "")}.xml'
+                file_name = f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'
 
-                logger.info(
-                    f'Saving keybox #{keybox_idx:d}'
-                    if is_generator
-                    else 'Saving keybox'
-                )
+                logger.info(f'Saving keybox #{keybox_idx:d}')
                 xml_file = ElementTree(keybox_file)
                 xml_file.write(file_name, 'unicode', True)
 
