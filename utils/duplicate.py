@@ -12,12 +12,11 @@ except ImportError:
 
     x509.Name = Name
 
-def get_attribute_from_cert(cert_name: x509.Name, oid: ObjectIdentifier) -> set[LiteralString | bytes | str]:
-    return {
-        attr.value.lower()
-        for attr in cert_name
-        if attr.oid == oid
-    }
+
+def get_attribute_from_cert(
+    cert_name: x509.Name, oid: ObjectIdentifier
+) -> set[LiteralString | bytes | str]:
+    return {attr.value.lower() for attr in cert_name if attr.oid == oid}
 
 
 class Duplicate(Certs):
@@ -46,14 +45,21 @@ class Duplicate(Certs):
 
             for cert in self.get_certs(keybox=root):
                 hex_serial = f'{cert.serial_number:x}'
-                issuer_serial = get_attribute_from_cert(cert.issuer, x509.NameOID.SERIAL_NUMBER)
-                issuer_name = get_attribute_from_cert(cert.issuer, x509.NameOID.COMMON_NAME)
-                issuer_unit = get_attribute_from_cert(cert.issuer, x509.NameOID.ORGANIZATIONAL_UNIT_NAME)
+                issuer_serial = get_attribute_from_cert(
+                    cert.issuer, x509.NameOID.SERIAL_NUMBER
+                )
+                issuer_name = get_attribute_from_cert(
+                    cert.issuer, x509.NameOID.COMMON_NAME
+                )
+                issuer_unit = get_attribute_from_cert(
+                    cert.issuer, x509.NameOID.ORGANIZATIONAL_UNIT_NAME
+                )
 
-                cert_key = f'{hex_serial}_{(issuer_serial | issuer_name | issuer_unit).pop()}'
+                cert_key = (
+                    f'{hex_serial}_{(issuer_serial | issuer_name | issuer_unit).pop()}'
+                )
 
                 if cert_key not in self.certs:
                     self.certs[cert_key] = set()
 
                 self.certs[cert_key].add(file)
-

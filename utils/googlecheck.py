@@ -27,9 +27,7 @@ class GoogleChecker(Certs):
     async def is_keybox_valid(self, xml: Element) -> bool:
         if self.status_list is None:
             self.logger.info('Downloading revoked keybox list from Google')
-            self.status_list = (
-                await Downloader.client.get(self.URL)
-            ).json()
+            self.status_list = (await Downloader.client.get(self.URL)).json()
 
             self.revoked = {
                 key

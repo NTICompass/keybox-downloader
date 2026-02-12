@@ -33,7 +33,9 @@ class IntegrityBox(Downloader):
 
     async def get_keybox(self) -> AsyncGenerator[Element]:
         self.logger.info('Downloading keybox scripts')
-        keybox_script, cleanup_script, web_keybox = [data async for data in self.download_urls()]
+        keybox_script, cleanup_script, web_keybox = [
+            data async for data in self.download_urls()
+        ]
 
         download_url = get_keybox_url(keybox_script)
         junk_vars = get_var_from_shell(cleanup_script, ['X'])

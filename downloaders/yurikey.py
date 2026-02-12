@@ -16,6 +16,5 @@ class YuriKey(Downloader):
 
         return ET.fromstring(self.decode_keybox())
 
-
     def decode_keybox(self) -> str:
         return b64decode(self.encoded).decode('ascii')

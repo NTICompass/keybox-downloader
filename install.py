@@ -30,8 +30,11 @@ if __name__ == '__main__':
         sys.exit('No file selected')
 
     if is_android:
-        install = (Path(f'scripts/{runner['android']}').absolute(), selected.absolute())
-        subprocess.run(['su', 'root', '-c', f'sh {' '.join(str(arg) for arg in install)}'], stdout=sys.stdout)
+        install = (Path(f'scripts/{runner["android"]}').absolute(), selected.absolute())
+        subprocess.run(
+            ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
+            stdout=sys.stdout,
+        )
 
         print('Keybox successfully installed')
     else:
@@ -43,10 +46,14 @@ if __name__ == '__main__':
             device.sync.push(selected, key_file)
 
             # Also copy the installer script
-            device.sync.push(Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}')
+            device.sync.push(
+                Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}'
+            )
 
             # Run the main installer script
-            with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
+            with device.shell(
+                f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True
+            ) as stream:
                 print(stream.read_until_close())
 
             # Remove the scripts (the keybox was moved already)

@@ -25,14 +25,17 @@ class Name:
         self.values = data
 
     def __iter__(self) -> Generator[NameValue]:
-        return (NameValue(oid=ObjectIdentifier(key), value=value) for key, value in self.values.items())
+        return (
+            NameValue(oid=ObjectIdentifier(key), value=value)
+            for key, value in self.values.items()
+        )
 
 
 @dataclass(repr=False, eq=False)
 class NameOIDValue:
-    SERIAL_NUMBER = ObjectIdentifier('serialNumber') # "2.5.4.5"
-    COMMON_NAME = ObjectIdentifier('title') # "2.5.4.3"
-    ORGANIZATIONAL_UNIT_NAME = ObjectIdentifier('') # "2.5.4.11"
+    SERIAL_NUMBER = ObjectIdentifier('serialNumber')  # "2.5.4.5"
+    COMMON_NAME = ObjectIdentifier('title')  # "2.5.4.3"
+    ORGANIZATIONAL_UNIT_NAME = ObjectIdentifier('')  # "2.5.4.11"
 
 
 class x509:
@@ -44,7 +47,10 @@ class x509:
 
     @staticmethod
     def load_pem_x509_certificates(data: bytes) -> list[x509_cert]:
-        return [x509_cert(cert) for cert in re.findall(rf'{BEGIN}.+?{END}', data.decode('ascii'), re.DOTALL)]
+        return [
+            x509_cert(cert)
+            for cert in re.findall(rf'{BEGIN}.+?{END}', data.decode('ascii'), re.DOTALL)
+        ]
 
 
 @dataclass(repr=False, eq=False)
@@ -59,13 +65,17 @@ class x509_cert:
     def get_from_openssl(self, field: str) -> list[str]:
         openssl = subprocess.run(
             ['openssl', 'x509', '-inform', 'pem', '-noout', f'-{field}'],
-            input=''.join(line.lstrip() for line in self.cert.splitlines(keepends=True)),
+            input=''.join(
+                line.lstrip() for line in self.cert.splitlines(keepends=True)
+            ),
             text=True,
-            capture_output=True
+            capture_output=True,
         )
         return openssl.stdout.strip().split('=', maxsplit=1)
 
-    def read_openssl_value(self, field: list[str] | str, convert: Callable[[str], Any]) -> Any:
+    def read_openssl_value(
+        self, field: list[str] | str, convert: Callable[[str], Any]
+    ) -> Any:
         in_field, out_field = [field] * 2 if isinstance(field, str) else field
         data_field, data_value = self.get_from_openssl(in_field)
 
@@ -88,15 +98,16 @@ class x509_cert:
 
     @property
     def serial_number(self) -> int:
-        return self.read_openssl_value(
-            'serial', lambda serial: int(serial, 16)
-        )
+        return self.read_openssl_value('serial', lambda serial: int(serial, 16))
 
     @property
     def issuer(self) -> Name:
         data: dict[str, str] = self.read_openssl_value(
             'issuer',
-            lambda issuer: dict(issuer_value.split('=', maxsplit=1) for issuer_value in re.split(r',\s+', issuer))
+            lambda issuer: dict(
+                issuer_value.split('=', maxsplit=1)
+                for issuer_value in re.split(r',\s+', issuer)
+            ),
         )
 
         return Name(data)
