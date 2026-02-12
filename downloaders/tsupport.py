@@ -88,4 +88,9 @@ class TSupport(Downloader):
             encoded = decode(encoded, 'rot_13')
             encoded = b64decode(encoded).decode('ascii')
 
-        return encoded
+        # Fix invalid XML data
+        return re.sub(
+            r'</Key><Key algorithm="rsa">\s*#RSA\s*</Key><Key algorithm="rsa">',
+            '</Key>\n#RSA\n<Key algorithm="rsa">',
+            encoded,
+        )
