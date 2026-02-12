@@ -1,17 +1,10 @@
 from collections.abc import Generator
+from cryptography import x509
+from cryptography.hazmat.bindings._rust import x509 as x509_cert
 from xml.etree.ElementTree import Element
 import logging
 
-try:
-    from cryptography import x509
-    from cryptography.hazmat.bindings._rust import x509 as x509_cert
-
-    Certificate = x509_cert.Certificate
-except ImportError:
-    from .openssl import x509, x509_cert
-
-    Certificate = x509_cert
-
+Certificate = x509_cert.Certificate
 
 def get_keybox_id(keybox: Element | None) -> str | None:
     return (

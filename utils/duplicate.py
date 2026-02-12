@@ -1,16 +1,10 @@
 from .certs import Certs
+from cryptography import x509
+from cryptography.hazmat.bindings._rust import ObjectIdentifier
 from glob import glob
 from typing import LiteralString
 import json
 import xml.etree.ElementTree as ET
-
-try:
-    from cryptography import x509
-    from cryptography.hazmat.bindings._rust import ObjectIdentifier
-except ImportError:
-    from .openssl import x509, Name, ObjectIdentifier
-
-    x509.Name = Name
 
 
 def get_attribute_from_cert(
