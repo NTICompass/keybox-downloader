@@ -2,7 +2,7 @@
 name = "keybox-downloader"
 version = "0.1.0"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "adbutils>=2.12.0",
     "asyncstdlib>=3.13.1",
