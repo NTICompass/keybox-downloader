@@ -11,7 +11,7 @@ import logging
 import os
 
 path = 'keyboxes'
-types = ('revoked', 'valid')
+types = ('revoked', 'valid', 'aosp')
 log_path = 'logs'
 backup_path = 'backups'
 
@@ -56,7 +56,13 @@ if __name__ == '__main__':
 
                 logger.info(f'Checking keybox #{keybox_idx:d}')
                 valid_keybox = await checker.is_keybox_valid(keybox_file)
-                save_path = f'{path}/{types[int(valid_keybox)]}'
+
+                # Check if it's the AOSP keybox before saving
+                save_path = (
+                    f'{path}/aosp'
+                    if valid_keybox and checker.is_aosp_keybox(keybox_file)
+                    else f'{path}/{types[int(valid_keybox)]}'
+                )
                 file_name = f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'
 
                 logger.info(f'Saving keybox #{keybox_idx:d}')

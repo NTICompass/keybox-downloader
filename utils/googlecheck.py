@@ -1,4 +1,5 @@
 from .certs import Certs
+from collections import Counter
 from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
@@ -15,6 +16,7 @@ Also see https://developer.android.com/privacy-and-security/security-key-attesta
 
 class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
+    AOSP_CERTS = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
     def __init__(self):
         super().__init__()
@@ -54,3 +56,9 @@ class GoogleChecker(Certs):
                 return False
 
         return True
+
+    def is_aosp_keybox(self, xml: Element) -> bool:
+        return (
+            Counter(cert.serial_number for cert in self.get_certs(keybox=xml))
+            == self.AOSP_CERTS
+        )
