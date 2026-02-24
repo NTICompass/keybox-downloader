@@ -22,6 +22,8 @@ class IntegrityBox(Downloader):
         'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh',
         # Cleanup Script
         'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh',
+        # Extra Keybox(es)
+        'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/OptimusPrime',
         # https://integritybox.vercel.app/
         'https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar',
     ]
@@ -31,29 +33,42 @@ class IntegrityBox(Downloader):
 
         self.junk: list[str] | set[str] | None = None
 
-    async def get_keybox(self) -> AsyncGenerator[Element]:
+    async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading keybox scripts')
-        keybox_script, cleanup_script, web_keybox = [
+
+        # Also download the keybox from the webapp, which is probably the same
+        keybox_script, cleanup_script, encoded_keybox, web_keybox = [
             data async for data in self.download_urls()
         ]
 
         download_url = get_keybox_url(keybox_script)
         junk_vars = get_var_from_shell(cleanup_script, ['X'])
-
-        self.encoded = (await self.client.get(download_url)).text
         self.junk = junk_vars['X'].split(',')
 
-        # Also download the keybox from the webapp, which is probably the same
-        for idx, keybox in enumerate((self.decode_keybox(), web_keybox)):
-            # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
-            xml = ET.fromstring(keybox)
-            keybox_id = xml.find('.//Keybox[@DeviceID]')
-            keybox_id.set('DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}')
+        keyboxes = [web_keybox]
 
-            yield xml
+        # Decode the keyboxes
+        for encoded in ((await self.client.get(download_url)).text, encoded_keybox):
+            self.encoded = encoded
+            keyboxes.append(self.decode_keybox())
 
-    def decode_keybox(self) -> str:
+        # Output keyboxes as XML
+        for idx, keybox in enumerate(keyboxes):
+            if keybox is None:
+                yield None
+            else:
+                # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
+                xml = ET.fromstring(keybox)
+                keybox_id = xml.find('.//Keybox[@DeviceID]')
+                keybox_id.set('DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}')
+
+                yield xml
+
+    def decode_keybox(self) -> str | None:
         self.logger.info('Decoding keybox xml')
+
+        if len(self.encoded.strip()) == 0:
+            return None
 
         encoded = self.encoded
 
