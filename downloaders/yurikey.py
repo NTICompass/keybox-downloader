@@ -27,9 +27,11 @@ class YuriKey(Downloader):
 
             for code in soup.find_all('code'):
                 self.logger.info('Downloading ZIP from filebin.net')
-                url = f'https://filebin.net/archive/{code.get_text()}/zip'
                 zip_data = (
-                    await self.client.get(url, headers={'User-Agent': 'curl/8.18.0'})
+                    await self.client.get(
+                        f'https://filebin.net/archive/{code.get_text()}/zip',
+                        headers={'User-Agent': 'curl/8.18.0'},
+                    )
                 ).content
 
                 with ZipFile(BytesIO(zip_data), 'r') as zip_file:
@@ -37,6 +39,12 @@ class YuriKey(Downloader):
                     for name in zip_file.namelist():
                         with zip_file.open(name) as keybox_data:
                             yield ET.fromstring(keybox_data.read())
+
+                self.logger.info('Deleting filebin, for the lulz')
+                await self.client.delete(
+                    f'https://filebin.net/{code.get_text()}',
+                    headers={'User-Agent': 'curl/8.18.0'},
+                )
 
     def decode_keybox(self) -> str:
         return b64decode(self.encoded).decode('ascii')
