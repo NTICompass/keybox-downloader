@@ -1,7 +1,9 @@
 from glob import glob
 from pathlib import Path
+from utils.certs import Certs
 import inquirer
 import sys
+import xml.etree.ElementTree as ET
 
 is_android = hasattr(sys, 'getandroidapilevel')
 
@@ -14,20 +16,31 @@ folder = 'keyboxes/valid'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': '/install_keybox.sh', 'android': '/install_android.sh'}
+certs = Certs()
+
+
+def get_cert_serial(file: str) -> int:
+    cert_file = ET.parse(Path(f'{folder}/{file}'))
+
+    for cert in certs.get_certs(keybox=cert_file.getroot()):
+        if cert.signature_algorithm_oid.dotted_string == '1.2.840.10045.4.3.2':
+            return cert.serial_number
+
+    return 0
+
 
 if __name__ == '__main__':
-    select = inquirer.List(
-        'file',
-        message='Select an XML file',
-        choices=glob('*.xml', root_dir=folder),
+    selected_file: str = inquirer.list_input(
+        'Select an XML file',
+        choices=[
+            (f'{file} ({get_cert_serial(file):x})', file)
+            for file in glob('*.xml', root_dir=folder)
+        ],
         carousel=True,
     )
-    args = inquirer.prompt([select])
 
-    try:
-        selected = Path(f'{folder}/{args["file"]}')
-    except TypeError:
-        sys.exit('No file selected')
+    print(f'Installing {selected_file}')
+    selected = Path(f'{folder}/{selected_file}')
 
     if is_android:
         install = (Path(f'scripts/{runner["android"]}').absolute(), selected.absolute())
