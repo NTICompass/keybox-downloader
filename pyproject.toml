@@ -8,8 +8,8 @@ dependencies = [
     "asyncstdlib>=3.13.1",
     "beautifulsoup4>=4.14.3",
     "cryptography==46.0.5",
-    "httpx[http2,brotli]>=0.28.1",
+    "httpx[brotli,http2]>=0.28.1",
     "inquirer>=3.4.1",
-    "ruff==0.15.0",
+    "ruff==0.15.3",
     "tqdm==4.67.3",
 ]
