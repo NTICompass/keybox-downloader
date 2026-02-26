@@ -39,7 +39,7 @@ class YuriKey(Downloader):
                         self.logger.info('Unzipping data...')
                         for name in zip_file.namelist():
                             with zip_file.open(name) as keybox_data:
-                                yield ET.fromstring(keybox_data.read())
+                                yield ET.parse(keybox_data).getroot()
 
                     self.logger.info('Deleting filebin, for the lulz')
                     await self.client.delete(
