@@ -1,5 +1,12 @@
 from asyncstdlib import enumerate as a_enumerate
-from downloaders import Downloader, IntegrityBox, TrickyAddon, TSupport, YuriKey
+from downloaders import (
+    Downloader,
+    DroidWin,
+    IntegrityBox,
+    TrickyAddon,
+    TSupport,
+    YuriKey,
+)
 from shutil import make_archive, rmtree
 from time import time
 from tqdm import tqdm
@@ -75,4 +82,4 @@ if __name__ == '__main__':
         dupe = Duplicate(path)
         dupe.check_duplicates()
 
-    asyncio.run(main(IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()))
+    asyncio.run(main(DroidWin(), IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()))
