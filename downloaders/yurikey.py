@@ -1,10 +1,7 @@
 from . import Downloader
 from base64 import b64decode
-from bs4 import BeautifulSoup
 from collections.abc import AsyncGenerator
-from io import BytesIO
-from xml.etree.ElementTree import Element, ParseError
-from zipfile import ZipFile
+from xml.etree.ElementTree import Element
 import xml.etree.ElementTree as ET
 
 
