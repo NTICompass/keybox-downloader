@@ -1,6 +1,6 @@
 from .certs import Certs
 from cryptography import x509
-from cryptography.hazmat.bindings._rust import ObjectIdentifier
+from cryptography.x509.base import ObjectIdentifier
 from glob import glob
 from typing import LiteralString
 import json
