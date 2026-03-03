@@ -9,10 +9,10 @@ from downloaders import (
 )
 from shutil import make_archive, rmtree
 from time import time
-from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
-from xml.etree.ElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree, Element
 import asyncio
 import logging
 import os
@@ -50,30 +50,42 @@ if __name__ == '__main__':
         rmtree(path)
         make_folders()
 
+    async def run(
+        dl: Downloader, checker: GoogleChecker
+    ) -> dict[str, ElementTree[Element[str]]]:
+        files: dict[str, ElementTree[Element[str]]] = {}
+
+        async for idx, keybox_file in a_enumerate(dl.get_keybox()):
+            keybox_idx = idx + 1
+
+            if keybox_file is None:
+                logger.info(f'Skipping empty keybox #{keybox_idx:d}')
+                continue
+
+            logger.info(f'Checking keybox #{keybox_idx:d}')
+            valid_keybox = await checker.is_keybox_valid(keybox_file)
+
+            # Check if it's the AOSP keybox before saving
+            save_path = (
+                f'{path}/aosp'
+                if valid_keybox and checker.is_aosp_keybox(keybox_file)
+                else f'{path}/{types[int(valid_keybox)]}'
+            )
+            file_name = f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'
+
+            logger.info(f'Saving keybox #{keybox_idx:d}')
+            files[file_name] = ElementTree(keybox_file)
+
+        return files
+
     async def main(*downloaders: Downloader):
         checker = GoogleChecker()
 
-        for dl in tqdm(downloaders):
-            async for idx, keybox_file in a_enumerate(dl.get_keybox()):
-                keybox_idx = idx + 1
-
-                if keybox_file is None:
-                    logger.info(f'Skipping empty keybox #{keybox_idx:d}')
-                    continue
-
-                logger.info(f'Checking keybox #{keybox_idx:d}')
-                valid_keybox = await checker.is_keybox_valid(keybox_file)
-
-                # Check if it's the AOSP keybox before saving
-                save_path = (
-                    f'{path}/aosp'
-                    if valid_keybox and checker.is_aosp_keybox(keybox_file)
-                    else f'{path}/{types[int(valid_keybox)]}'
-                )
-                file_name = f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'
-
-                logger.info(f'Saving keybox #{keybox_idx:d}')
-                xml_file = ElementTree(keybox_file)
+        for task in tqdm_asyncio.as_completed(
+            [asyncio.create_task(run(dl, checker)) for dl in downloaders],
+            total=len(downloaders),
+        ):
+            for file_name, xml_file in (await task).items():
                 xml_file.write(file_name, 'unicode', True)
 
         await Downloader.client.aclose()
