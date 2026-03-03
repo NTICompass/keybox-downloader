@@ -39,4 +39,4 @@ class DroidWin(Downloader):
                     yield ET.parse(keybox_data).getroot()
 
     def decode_keybox(self) -> str:
-        pass
+        raise NotImplementedError('Keybox not encoded')
