@@ -50,10 +50,10 @@ if __name__ == '__main__':
         rmtree(path)
         make_folders()
 
-    async def run(
-        dl: Downloader, checker: GoogleChecker
-    ) -> dict[str, ElementTree[Element[str]]]:
-        files: dict[str, ElementTree[Element[str]]] = {}
+    type KeyboxFiles = dict[str, ElementTree[Element[str]]]
+
+    async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
+        files: KeyboxFiles = {}
 
         async for idx, keybox_file in a_enumerate(dl.get_keybox()):
             keybox_idx = idx + 1
@@ -71,10 +71,11 @@ if __name__ == '__main__':
                 if valid_keybox and checker.is_aosp_keybox(keybox_file)
                 else f'{path}/{types[int(valid_keybox)]}'
             )
-            file_name = f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'
 
             logger.info(f'Saving keybox #{keybox_idx:d}')
-            files[file_name] = ElementTree(keybox_file)
+            files[f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'] = (
+                ElementTree(keybox_file)
+            )
 
         return files
 
