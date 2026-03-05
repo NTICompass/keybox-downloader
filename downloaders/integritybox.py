@@ -3,7 +3,7 @@ from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
 from utils.shellvar import get_var_from_shell
-from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import Element, ParseError
 import re
 import xml.etree.ElementTree as ET
 
@@ -58,11 +58,17 @@ class IntegrityBox(Downloader):
                 yield None
             else:
                 # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
-                xml = ET.fromstring(keybox)
-                keybox_id = xml.find('.//Keybox[@DeviceID]')
-                keybox_id.set('DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}')
+                try:
+                    xml = ET.fromstring(keybox)
+                    keybox_id = xml.find('.//Keybox[@DeviceID]')
+                    keybox_id.set(
+                        'DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}'
+                    )
 
-                yield xml
+                    yield xml
+                except ParseError:
+                    self.logger.info(f'Cannot parse "{keybox}"')
+                    yield None
 
     def decode_keybox(self) -> str | None:
         self.logger.info('Decoding keybox xml')
