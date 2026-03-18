@@ -21,18 +21,20 @@ certs = Certs()
 
 def get_cert_serial(file: str) -> int:
     cert_file = ET.parse(Path(f'{folder}/{file}'))
+    serials = [
+        cert.serial_number
+        for cert in certs.get_certs(keybox=cert_file.getroot())
+        if cert.signature_algorithm_oid.dotted_string == '1.2.840.10045.4.3.2'
+    ]
 
-    for cert in certs.get_certs(keybox=cert_file.getroot()):
-        if cert.signature_algorithm_oid.dotted_string == '1.2.840.10045.4.3.2':
-            return cert.serial_number
-
-    return 0
+    return serials[0] if len(serials) > 0 else 0
 
 
 if __name__ == '__main__':
     selected_file: str = inquirer.list_input(
         'Select an XML file',
         choices=[
+            # (string to show in list, string to return from selection)
             (f'{file} ({get_cert_serial(file):x})', file)
             for file in glob('*.xml', root_dir=folder)
         ],

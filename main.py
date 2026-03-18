@@ -83,8 +83,7 @@ if __name__ == '__main__':
         checker = GoogleChecker()
 
         for task in tqdm_asyncio.as_completed(
-            [asyncio.create_task(run(dl, checker)) for dl in downloaders],
-            total=len(downloaders),
+            [asyncio.create_task(run(dl, checker)) for dl in downloaders]
         ):
             for file_name, xml_file in (await task).items():
                 xml_file.write(file_name, 'unicode', True)
