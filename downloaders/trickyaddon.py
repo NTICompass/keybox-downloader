@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 
 class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
+    # This URL is different from other GitHub URLs
     URL = 'https://raw.githubusercontent.com/KOWX712/Tricky-Addon-Update-Target-List/keybox/.extra'
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:

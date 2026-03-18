@@ -19,13 +19,13 @@ class IntegrityBox(Downloader):
     # https://t.me/MeowDump
     URLS = [
         # Key Script
-        'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/key.sh',
+        'github:MeowDump/Integrity-Box::webroot/common_scripts/key.sh',
         # Cleanup Script
-        'https://github.com/MeowDump/Integrity-Box/raw/refs/heads/main/webroot/common_scripts/cleanup.sh',
+        'github:MeowDump/Integrity-Box::webroot/common_scripts/cleanup.sh',
         # Extra Keybox(es)
-        'https://github.com/MeowDump/MeowDump/raw/refs/heads/main/NullVoid/OptimusPrime',
+        'github:MeowDump/MeowDump::NullVoid/OptimusPrime',
         # https://integritybox.vercel.app/
-        'https://github.com/freekeybox/mona/raw/refs/heads/main/meow.tar',
+        'github:freekeybox/mona::meow.tar',
     ]
 
     def __init__(self):

@@ -13,22 +13,22 @@ class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
     URLS = [
         # The keybox from the module (Actually just the AOSP keybox)
-        #'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/bin.tar',
+        #'github:Citra-Standalone/Citra-Standalone::bin.tar',
         # Extra keybox files
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/bin1.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox0.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox1.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox2.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox3.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox4.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox5.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox6.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox7.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox8.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/blackbox9.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/preview.tar',
-        'https://github.com/Citra-Standalone/Citra-Standalone/raw/refs/heads/main/zipball/sanctuary.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/bin.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/bin1.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox0.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox1.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox2.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox3.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox4.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox5.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox6.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox7.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox8.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox9.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/preview.tar',
+        'github:Citra-Standalone/Citra-Standalone::zipball/sanctuary.tar',
     ]
 
     def __init__(self):

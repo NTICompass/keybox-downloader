@@ -22,6 +22,10 @@ def fix_rsa_keys(key_xml: Element | None) -> Element | None:
     return key_xml
 
 
+def build_github_url(repo: str, branch: str, file: str) -> str:
+    return f'https://raw.githubusercontent.com/{repo}/refs/heads/{branch if len(branch) > 0 else "main"}/{file}'
+
+
 class Downloader(ABC):
     URL: str
     URLS: list[str]
@@ -53,7 +57,16 @@ class Downloader(ABC):
         `yield from` doesn't work in `AsyncGenerator`
         https://peps.python.org/pep-0525/#asynchronous-yield-from
         """
-        for r in await asyncio.gather(*[self.client.get(dl) for dl in download]):
+        for r in await asyncio.gather(
+            *[
+                self.client.get(
+                    build_github_url(*dl.split(':', 4)[1:])
+                    if dl.startswith('github:')
+                    else dl
+                )
+                for dl in download
+            ]
+        ):
             yield r
 
     async def download_urls(self, binary: bool = False) -> AsyncGenerator[str | bytes]:

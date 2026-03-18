@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 class YuriKey(Downloader):
     # https://t.me/s/yuriiroot
-    URL = 'https://github.com/Yurii0307/yurikey/raw/refs/heads/main/key'
+    URL = 'github:Yurii0307/yurikey::key'
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading encoded keybox')
