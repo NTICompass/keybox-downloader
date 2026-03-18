@@ -3,6 +3,7 @@ from downloaders import (
     Downloader,
     DroidWin,
     IntegrityBox,
+    TrickyAddon,
     TSupport,
     YuriKey,
 )
@@ -94,4 +95,4 @@ if __name__ == '__main__':
         dupe = Duplicate(path)
         dupe.check_duplicates()
 
-    asyncio.run(main(DroidWin(), IntegrityBox(), TSupport(), YuriKey()))
+    asyncio.run(main(DroidWin(), IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()))

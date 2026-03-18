@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
-    URL = 'https://github.com/KOWX712/Tricky-Addon-Update-Target-List/raw/refs/heads/main/.extra'
+    URL = 'https://raw.githubusercontent.com/KOWX712/Tricky-Addon-Update-Target-List/keybox/.extra'
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading encoded keybox')
