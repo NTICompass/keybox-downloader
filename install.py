@@ -15,7 +15,7 @@ else:
 folder = 'keyboxes/valid'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
-runner = {'pc': '/install_keybox.sh', 'android': '/install_android.sh'}
+runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 certs = Certs()
 
 
