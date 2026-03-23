@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
-from httpx import AsyncClient, Response, URL
+from httpx import AsyncClient, Response, URL, HTTPStatusError
 from xml.etree.ElementTree import Element
 import asyncio
 import logging
@@ -53,10 +53,6 @@ class Downloader(ABC):
         pass
 
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
-        """
-        `yield from` doesn't work in `AsyncGenerator`
-        https://peps.python.org/pep-0525/#asynchronous-yield-from
-        """
         for r in await asyncio.gather(
             *[
                 self.client.get(
@@ -67,7 +63,18 @@ class Downloader(ABC):
                 for dl in download
             ]
         ):
-            yield r
+            try:
+                r.raise_for_status()
+            except HTTPStatusError as exc:
+                self.logger.info(
+                    f'Error response {exc.response.status_code} while requesting {exc.request.url!r}.'
+                )
+            else:
+                """
+                 `yield from` doesn't work in `AsyncGenerator`
+                 https://peps.python.org/pep-0525/#asynchronous-yield-from
+                 """
+                yield r
 
     async def download_urls(self, binary: bool = False) -> AsyncGenerator[str | bytes]:
         try:
