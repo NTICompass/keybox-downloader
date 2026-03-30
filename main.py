@@ -50,7 +50,7 @@ if __name__ == '__main__':
         rmtree(path)
         make_folders()
 
-    type KeyboxFiles = dict[str, ElementTree[Element[str]]]
+    type KeyboxFiles = dict[str, ElementTree[Element[str] | None]]
 
     async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
         files: KeyboxFiles = {}
