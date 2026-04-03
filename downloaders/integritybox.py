@@ -96,5 +96,5 @@ class IntegrityBox(Downloader):
         # Finally remove extra "junk" from the file
         encoded = re.sub(rf'({"|".join(self.junk)})', '', encoded)
 
-        # Fix for cert not being valid PEM (remove this hack)
-        return encoded.replace('KTzntx7', 'KTzx7')
+        # Fix for cert not being valid PEM (TODO: remove this hack)
+        return encoded.replace('KTzntx7', 'KTzx7', 1)
