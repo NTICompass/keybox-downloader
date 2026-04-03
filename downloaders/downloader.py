@@ -26,6 +26,10 @@ def build_github_url(repo: str, branch: str, file: str) -> str:
     return f'https://raw.githubusercontent.com/{repo}/refs/heads/{branch if len(branch) > 0 else "main"}/{file}'
 
 
+def force_str(value: str | bytes, default='') -> str:
+    return value if isinstance(value, str) else default
+
+
 class Downloader(ABC):
     URL: str
     URLS: list[str]

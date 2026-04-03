@@ -1,4 +1,4 @@
-from .downloader import Downloader, fix_rsa_keys
+from .downloader import Downloader, fix_rsa_keys, force_str
 from .droidwin import DroidWin
 from .integritybox import IntegrityBox
 from .trickyaddon import TrickyAddon
@@ -13,4 +13,5 @@ __all__ = [
     'TSupport',
     'YuriKey',
     'fix_rsa_keys',
+    'force_str',
 ]

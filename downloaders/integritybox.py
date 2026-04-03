@@ -1,4 +1,4 @@
-from . import Downloader
+from . import Downloader, force_str
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
@@ -31,7 +31,7 @@ class IntegrityBox(Downloader):
     def __init__(self):
         super().__init__()
 
-        self.junk: list[str] | set[str] | None = None
+        self.junk: list[str] = []
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading keybox scripts')
@@ -41,14 +41,17 @@ class IntegrityBox(Downloader):
             data async for data in self.download_urls()
         ]
 
-        download_url = get_keybox_url(keybox_script)
-        junk_vars = get_var_from_shell(cleanup_script, ['X'])
+        download_url = get_keybox_url(force_str(keybox_script))
+        junk_vars = get_var_from_shell(force_str(cleanup_script), ['X'])
         self.junk = junk_vars['X'].split(',')
 
-        keyboxes = [web_keybox]
+        keyboxes: list[str | None] = [force_str(web_keybox)]
 
         # Decode the keyboxes
-        for encoded in ((await self.client.get(download_url)).text, encoded_keybox):
+        for encoded in (
+            (await self.client.get(download_url)).text,
+            force_str(encoded_keybox),
+        ):
             self.encoded = encoded
             keyboxes.append(self.decode_keybox())
 
@@ -61,9 +64,11 @@ class IntegrityBox(Downloader):
                 try:
                     xml = ET.fromstring(keybox)
                     keybox_id = xml.find('.//Keybox[@DeviceID]')
-                    keybox_id.set(
-                        'DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}'
-                    )
+
+                    if keybox_id is not None:
+                        keybox_id.set(
+                            'DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}'
+                        )
 
                     yield xml
                 except ParseError:
@@ -73,7 +78,7 @@ class IntegrityBox(Downloader):
     def decode_keybox(self) -> str | None:
         self.logger.info('Decoding keybox xml')
 
-        if len(self.encoded.strip()) == 0:
+        if self.encoded is None or len(self.encoded.strip()) == 0:
             return None
 
         encoded = self.encoded
@@ -89,4 +94,7 @@ class IntegrityBox(Downloader):
         encoded = decode(encoded, 'rot_13')
 
         # Finally remove extra "junk" from the file
-        return re.sub(rf'({"|".join(self.junk)})', '', encoded)
+        encoded = re.sub(rf'({"|".join(self.junk)})', '', encoded)
+
+        # Fix for cert not being valid PEM (remove this hack)
+        return encoded.replace('KTzntx7', 'KTzx7')
