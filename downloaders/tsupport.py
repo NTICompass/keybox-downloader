@@ -91,7 +91,7 @@ class TSupport(Downloader):
 
         # Fix invalid XML data
         return re.sub(
-            r'</Key><Key algorithm="rsa">\s*#RSA\s*</Key><Key algorithm="rsa">',
+            r'</Key>\s*#RSA\s*</Key>',
             '</Key>\n#RSA\n<Key algorithm="rsa">',
             encoded,
         )
