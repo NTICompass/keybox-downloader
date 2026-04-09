@@ -40,7 +40,7 @@ class TSupport(Downloader):
             self.logger.info(f'Downloading encoded keybox #{idx + 1}')
             self.encoded = str(dl)
 
-            if len(self.encoded is not None and self.encoded.strip()) > 0:
+            if self.encoded is not None and len(self.encoded.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode_keybox()
                 yield self.build_keybox()
