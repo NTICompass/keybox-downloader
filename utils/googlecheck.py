@@ -22,7 +22,8 @@ class GoogleChecker(Certs):
     status_list: dict
 
     async def is_keybox_valid(self, xml: Element) -> bool:
-        if self.status_list is None:
+        # This is done here and not in `__init__` because of the `await`
+        if not hasattr(self, 'status_list'):
             self.logger.info('Downloading revoked keybox list from Google')
             self.status_list = (await Downloader.client.get(self.URL)).json()
 
