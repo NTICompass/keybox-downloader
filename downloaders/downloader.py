@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
-from httpx import AsyncClient, Response, URL, HTTPStatusError
+from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from xml.etree.ElementTree import Element
 import asyncio
 import logging
@@ -14,7 +14,10 @@ def fix_rsa_keys(key_xml: Element | None) -> Element | None:
 
     for algo in not_rsa:
         try:
-            key_xml.find(f'.//Key[@algorithm="{algo}"]').set('algorithm', 'rsa')
+            keys = key_xml.find(f'.//Key[@algorithm="{algo}"]')
+
+            if keys is not None:
+                keys.set('algorithm', 'rsa')
             break
         except AttributeError:
             continue
@@ -24,10 +27,6 @@ def fix_rsa_keys(key_xml: Element | None) -> Element | None:
 
 def build_github_url(repo: str, branch: str, file: str) -> str:
     return f'https://raw.githubusercontent.com/{repo}/refs/heads/{branch if len(branch) > 0 else "main"}/{file}'
-
-
-def force_str(value: str | bytes, default='') -> str:
-    return value if isinstance(value, str) else default
 
 
 class Downloader(ABC):
@@ -43,9 +42,10 @@ class Downloader(ABC):
         },
     )
 
+    encoded: str
+    current_url: HTTP_URL
+
     def __init__(self):
-        self.encoded: str | None = None
-        self.current_url: URL | None = None
         self.logger = logging.getLogger(type(self).__name__)
 
     @abstractmethod

@@ -1,4 +1,4 @@
-from . import Downloader, force_str
+from . import Downloader
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
@@ -8,7 +8,7 @@ import re
 import xml.etree.ElementTree as ET
 
 
-def get_keybox_url(keybox_script: str) -> str:
+def get_keybox_url(keybox_script: str | bytes) -> str:
     keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
     return b64decode(
         keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
@@ -41,18 +41,18 @@ class IntegrityBox(Downloader):
             data async for data in self.download_urls()
         ]
 
-        download_url = get_keybox_url(force_str(keybox_script))
-        junk_vars = get_var_from_shell(force_str(cleanup_script), ['X'])
+        download_url = get_keybox_url(keybox_script)
+        junk_vars = get_var_from_shell(cleanup_script, ['X'])
         self.junk = junk_vars['X'].split(',')
 
-        keyboxes: list[str | None] = [force_str(web_keybox)]
+        keyboxes: list[str | bytes | None] = [web_keybox]
 
         # Decode the keyboxes
         for encoded in (
             (await self.client.get(download_url)).text,
-            force_str(encoded_keybox),
+            encoded_keybox,
         ):
-            self.encoded = encoded
+            self.encoded = str(encoded)
             keyboxes.append(self.decode_keybox())
 
         # Output keyboxes as XML

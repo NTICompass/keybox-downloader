@@ -18,10 +18,8 @@ class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
     AOSP_CERTS = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
-    def __init__(self):
-        super().__init__()
-        self.revoked: set[str] | None = None
-        self.status_list: dict | None = None
+    revoked: set[str]
+    status_list: dict
 
     async def is_keybox_valid(self, xml: Element) -> bool:
         if self.status_list is None:

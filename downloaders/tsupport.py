@@ -31,26 +31,23 @@ class TSupport(Downloader):
         'github:Citra-Standalone/Citra-Standalone::zipball/sanctuary.tar',
     ]
 
-    def __init__(self):
-        super().__init__()
-
-        self.keys: str | None = None
+    keys: str
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
         async for idx, dl in a_enumerate(self.download_urls()):
             self.logger.info(f'Downloading encoded keybox #{idx + 1}')
-            self.encoded = dl
+            self.encoded = str(dl)
 
-            if len(self.encoded.strip()) > 0:
+            if len(self.encoded is not None and self.encoded.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode_keybox()
                 yield self.build_keybox()
             else:
                 yield None
 
-    def build_keybox(self) -> Element:
+    def build_keybox(self) -> Element | None:
         # First, extract the metadata
         keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', self.keys))
 
@@ -58,24 +55,28 @@ class TSupport(Downloader):
         keybox_keys = re.search(
             r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', self.keys, re.DOTALL
         )
-        ecdsa_key = ET.fromstring(keybox_keys.group(2))
-        rsa_key = ET.fromstring(keybox_keys.group(4))
 
-        # Finally, build the XML
-        keybox_xml = ET.Element('AndroidAttestation')
-        ET.SubElement(keybox_xml, 'NumberOfKeyboxes').text = '1'
+        if keybox_keys is not None:
+            ecdsa_key = ET.fromstring(keybox_keys.group(2))
+            rsa_key = ET.fromstring(keybox_keys.group(4))
 
-        keybox_element = ET.SubElement(keybox_xml, 'Keybox')
-        keybox_element.set(
-            'DeviceID',
-            f'{"HW" if keybox_metadata["ID"] == "Hardware Attestation" else "SW"}'
-            f'{"PVT" if keybox_metadata["TYPE"] == "PRIVATE" else "PUB"}'
-            f'_{pathlib.Path(self.current_url.path).stem}',
-        )
-        keybox_element.append(ecdsa_key)
-        keybox_element.append(rsa_key)
+            # Finally, build the XML
+            keybox_xml = ET.Element('AndroidAttestation')
+            ET.SubElement(keybox_xml, 'NumberOfKeyboxes').text = '1'
 
-        return keybox_xml
+            keybox_element = ET.SubElement(keybox_xml, 'Keybox')
+            keybox_element.set(
+                'DeviceID',
+                f'{"HW" if keybox_metadata["ID"] == "Hardware Attestation" else "SW"}'
+                f'{"PVT" if keybox_metadata["TYPE"] == "PRIVATE" else "PUB"}'
+                f'_{pathlib.Path(self.current_url.path).stem}',
+            )
+            keybox_element.append(ecdsa_key)
+            keybox_element.append(rsa_key)
+
+            return keybox_xml
+        else:
+            return None
 
     def decode_keybox(self) -> str:
         # Strip off any irrelevant data

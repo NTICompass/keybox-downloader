@@ -15,9 +15,8 @@ class DroidWin(Downloader):
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading webpage')
-        webpage = await anext(self.download_urls())
 
-        soup = BeautifulSoup(webpage, 'html.parser')
+        soup = BeautifulSoup(await anext(self.download_urls()), 'html.parser')
         links = soup.find_all(
             'a',
             {

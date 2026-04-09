@@ -11,7 +11,7 @@ class YuriKey(Downloader):
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading encoded keybox')
-        self.encoded = await anext(self.download_urls())
+        self.encoded = str(await anext(self.download_urls()))
 
         yield ET.fromstring(self.decode_keybox())
 

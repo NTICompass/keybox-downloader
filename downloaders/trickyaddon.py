@@ -12,11 +12,11 @@ class TrickyAddon(Downloader):
 
     async def get_keybox(self) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading encoded keybox')
-        self.encoded = await anext(self.download_urls())
+        self.encoded = str(await anext(self.download_urls()))
 
         yield fix_rsa_keys(
             ET.fromstring(self.decode_keybox())
-            if len(self.encoded.strip()) > 0
+            if len(self.encoded is not None and self.encoded.strip()) > 0
             else None
         )
 
@@ -24,7 +24,9 @@ class TrickyAddon(Downloader):
         self.logger.info('Decoding keybox xml')
 
         # First decode the hex bytes
-        encoded = bytes.fromhex(self.encoded).decode('ascii')
+        encoded = bytes.fromhex(
+            self.encoded if self.encoded is not None else ''
+        ).decode('ascii')
 
         # Then base64 decode
         return b64decode(encoded).decode('ascii')

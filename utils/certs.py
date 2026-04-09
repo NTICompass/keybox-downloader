@@ -6,11 +6,11 @@ import logging
 
 
 def get_keybox_id(keybox: Element | None) -> str | None:
-    return (
-        keybox.find('.//Keybox[@DeviceID]').get('DeviceID')
-        if keybox is not None
-        else None
-    )
+    if keybox is None:
+        return None
+
+    device = keybox.find('.//Keybox[@DeviceID]')
+    return device.get('DeviceID') if device is not None else None
 
 
 class Certs:
@@ -35,8 +35,16 @@ class Certs:
 
         try:
             self.cert_data[cert_key] = x509.load_pem_x509_certificates(
-                b''.join(cert_pem.text.encode() for cert_pem in ec_certs)
-                + b''.join(cert_pem.text.encode() for cert_pem in rsa_certs)
+                b''.join(
+                    cert_pem.text.encode()
+                    for cert_pem in ec_certs
+                    if cert_pem.text is not None
+                )
+                + b''.join(
+                    cert_pem.text.encode()
+                    for cert_pem in rsa_certs
+                    if cert_pem.text is not None
+                )
             )
         except ValueError:
             return 0
