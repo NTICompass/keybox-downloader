@@ -15,6 +15,7 @@ def get_keybox_id(keybox: Element | None) -> str | None:
 
 class Certs:
     cert_data: dict[int, list[Certificate]] = {}
+    cert_counts: dict[int, tuple[int, int]] = {}
 
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
@@ -29,8 +30,9 @@ class Certs:
             './/Key[@algorithm="rsa"]/CertificateChain/Certificate'
         )
 
+        self.cert_counts[cert_key] = (len(ec_certs), len(rsa_certs))
         self.logger.info(
-            f'Found {len(ec_certs)} EC and {len(rsa_certs)} RSA certs for "{get_keybox_id(keybox)}"'
+            f'Found {self.cert_counts[cert_key][0]} EC and {self.cert_counts[cert_key][1]} RSA certs for "{get_keybox_id(keybox)}"'
         )
 
         try:
@@ -76,3 +78,12 @@ class Certs:
                     f'and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}'
                 )
             yield cert
+
+    def get_counts(
+        self, key: int | None = None, keybox: Element | None = None
+    ) -> tuple[int, int]:
+        cert_key = key if key is not None else hash(keybox)
+        if cert_key is None:
+            raise ValueError
+
+        return self.cert_counts[cert_key]

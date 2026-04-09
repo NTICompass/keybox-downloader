@@ -1,6 +1,7 @@
 from glob import glob
 from pathlib import Path
 from utils.certs import Certs
+from xml.etree.ElementTree import Element
 import inquirer
 import sys
 import xml.etree.ElementTree as ET
@@ -17,17 +18,28 @@ tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 certs = Certs()
+files: dict[str, Element[str]] = {}
 
 
 def get_cert_serial(file: str) -> int:
-    cert_file = ET.parse(Path(f'{folder}/{file}'))
+    if file not in files:
+        files[file] = ET.parse(Path(f'{folder}/{file}')).getroot()
+
     serials = [
         cert.serial_number
-        for cert in certs.get_certs(keybox=cert_file.getroot())
+        for cert in certs.get_certs(keybox=files[file])
         if cert.signature_algorithm_oid.dotted_string == '1.2.840.10045.4.3.2'
     ]
 
     return serials[0] if len(serials) > 0 else 0
+
+
+def get_cert_counts(file: str) -> str:
+    if file not in files:
+        files[file] = ET.parse(Path(f'{folder}/{file}')).getroot()
+
+    ec_certs, rsa_certs = certs.get_counts(keybox=files[file])
+    return f'{ec_certs} EC certs, {rsa_certs} RSA certs'
 
 
 if __name__ == '__main__':
@@ -35,7 +47,7 @@ if __name__ == '__main__':
         'Select an XML file',
         choices=[
             # (string to show in list, string to return from selection)
-            (f'{file} ({get_cert_serial(file):x})', file)
+            (f'{file} ({get_cert_serial(file):x} => {get_cert_counts(file)})', file)
             for file in glob('*.xml', root_dir=folder)
         ],
         carousel=True,
