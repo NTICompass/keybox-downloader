@@ -10,6 +10,6 @@ dependencies = [
     "cryptography==46.0.7",
     "httpx[brotli,http2]>=0.28.1",
     "inquirer>=3.4.1",
-    "ruff==0.15.9",
+    "ruff==0.15.10",
     "tqdm==4.67.3",
 ]
