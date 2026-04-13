@@ -22,3 +22,9 @@ How can I download files from Telegram? They have an API, but then I'd need to m
 Maybe use something like telegram@totallysecure.email?
 
 What about other Telegram channels, what else can I find? I think I remember https://t.me/evokeroot
+
+---
+I found another project that's basically doing the same thing as mine, but with only 3 sources.
+https://github.com/purainity/keybox-tools
+
+Though they do have public keys for the "hardware attestation root", which could be interesting to try to check against.
