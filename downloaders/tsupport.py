@@ -65,9 +65,15 @@ class TSupport(Downloader):
             ET.SubElement(keybox_xml, 'NumberOfKeyboxes').text = '1'
 
             keybox_element = ET.SubElement(keybox_xml, 'Keybox')
+
+            try:
+                key_id = keybox_metadata["ID"]
+            except KeyError:
+                key_id = ''
+
             keybox_element.set(
                 'DeviceID',
-                f'{"HW" if keybox_metadata["ID"] == "Hardware Attestation" else "SW"}'
+                f'{"HW" if key_id == "Hardware Attestation" else "SW"}'
                 f'{"PVT" if keybox_metadata["TYPE"] == "PRIVATE" else "PUB"}'
                 f'_{pathlib.Path(self.current_url.path).stem}',
             )
