@@ -18,7 +18,7 @@ tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 certs = Certs()
-files: dict[str, Element[str]] = {}
+files: dict[str, Element] = {}
 
 
 def get_cert_serial(file: str) -> int:
