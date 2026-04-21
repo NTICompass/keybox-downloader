@@ -35,36 +35,7 @@ class DroidWin(Downloader):
             with ZipFile(BytesIO(zip_dl.content), 'r') as zip_file:
                 self.logger.info('Extracting keybox from ZIP file')
                 with zip_file.open('keybox.xml') as keybox_data:
-                    xml_file = ET.parse(keybox_data)
-
-                    # Fix certs, remove excess new lines
-                    for cert in xml_file.iterfind(
-                        './/Keybox//Certificate[@format="pem"]'
-                    ):
-                        if cert.text:
-                            # From: https://stackoverflow.com/a/17610612
-                            cert.text = '\n'.join(
-                                [
-                                    ll.rstrip()
-                                    for ll in cert.text.splitlines()
-                                    if ll.strip()
-                                ]
-                            )
-
-                    # Probably fix the private keys, too
-                    for key in xml_file.iterfind(
-                        './/Keybox//PrivateKey[@format="pem"]'
-                    ):
-                        if key.text:
-                            key.text = '\n'.join(
-                                [
-                                    ll.rstrip()
-                                    for ll in key.text.splitlines()
-                                    if ll.strip()
-                                ]
-                            )
-
-                    yield xml_file.getroot()
+                    yield ET.parse(keybox_data).getroot()
 
     def decode_keybox(self) -> str:
         raise NotImplementedError('Keybox not encoded')

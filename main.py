@@ -63,6 +63,22 @@ if __name__ == '__main__':
                 continue
 
             logger.info(f'Checking keybox #{keybox_idx:d}')
+
+            # Fix certs, remove excess new lines
+            for cert in keybox_file.iterfind('.//Keybox//Certificate[@format="pem"]'):
+                if cert.text:
+                    # From: https://stackoverflow.com/a/17610612
+                    cert.text = '\n'.join(
+                        [ll.rstrip() for ll in cert.text.splitlines() if ll.strip()]
+                    )
+
+            # Probably fix the private keys, too
+            for key in keybox_file.iterfind('.//Keybox//PrivateKey[@format="pem"]'):
+                if key.text:
+                    key.text = '\n'.join(
+                        [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
+                    )
+
             valid_keybox = await checker.is_keybox_valid(keybox_file)
 
             # Check if it's the AOSP keybox before saving
