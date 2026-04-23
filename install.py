@@ -1,10 +1,13 @@
 from glob import glob
 from pathlib import Path
-from prompt_toolkit.application import Application
-from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.application import Application, get_app
+from prompt_toolkit.formatted_text import StyleAndTextTuples
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.widgets import Frame
+from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
+from prompt_toolkit.widgets import Frame, Button
+from typing import Callable
 from utils.certs import Certs
 from xml.etree.ElementTree import Element
 import sys
@@ -50,57 +53,92 @@ def get_cert_counts(file: str) -> str:
 def select_file(keyboxes: list[str]) -> str | None:
     selected_index = 0
     kb = KeyBindings()
-    menu_control = FormattedTextControl(
-        text=lambda: '\n'.join(
-            f'{"->" if idx == selected_index else "  "} {file}'
+
+    def file_list() -> StyleAndTextTuples:
+        def handler(idx: int) -> Callable[[MouseEvent], None]:
+            def click(mouse_event: MouseEvent):
+                nonlocal selected_index
+
+                if (
+                    mouse_event.button == MouseButton.LEFT
+                    and mouse_event.event_type == MouseEventType.MOUSE_UP
+                ):
+                    selected_index = idx
+
+            return click
+
+        return [
+            # (style, text, handler)
+            (
+                'class:selected' if idx == selected_index else '',
+                f'{"->" if idx == selected_index else "  "} {file}\n',
+                handler(idx),
+            )
             for idx, file in enumerate(keyboxes)
+        ]
+
+    def on_continue():
+        get_app().exit(result=keyboxes[selected_index])
+
+    menu_control = Window(FormattedTextControl(text=file_list))
+    preview = Window(
+        FormattedTextControl(
+            text=lambda: (
+                f'{keyboxes[selected_index]}: {get_cert_serial(keyboxes[selected_index]):x}'
+            ),
+            focusable=False,
         )
     )
-    preview = FormattedTextControl(
-        text=lambda: (
-            f'{keyboxes[selected_index]}: {get_cert_serial(keyboxes[selected_index]):x}'
-        ),
-        focusable=False,
-    )
+    continue_button = Button(text='Continue', handler=on_continue)
 
     def move(delta: int):
         nonlocal selected_index
+
         selected_index = (selected_index + delta) % len(keyboxes)
 
     @kb.add('up')
-    def _(event):
+    def _(event: KeyPressEvent):
         move(-1)
-        # event.app.invalidate()
 
     @kb.add('down')
-    def _(event):
+    def _(event: KeyPressEvent):
         move(1)
-        # event.app.invalidate()
 
     @kb.add('enter')
-    def _(event):
+    def _(event: KeyPressEvent):
         event.app.exit(result=keyboxes[selected_index])
 
     @kb.add('q')
-    def _(event):
+    def _(event: KeyPressEvent):
         event.app.exit(result=None)
 
     if is_android:
         root = HSplit(
             [
-                Frame(Window(menu_control), title='Valid Keyboxes'),
-                Frame(Window(preview), title='Keybox Info'),
+                Frame(menu_control, title='Valid Keyboxes'),
+                Frame(preview, title='Keybox Info'),
             ]
         )
     else:
-        root = VSplit(
+        root = HSplit(
             [
-                Frame(Window(menu_control), title='Valid Keyboxes'),
-                Frame(Window(preview), title='Keybox Info'),
+                VSplit(
+                    [
+                        Frame(menu_control, title='Valid Keyboxes'),
+                        Frame(preview, title='Keybox Info'),
+                    ]
+                ),
+                continue_button,
             ]
         )
 
-    app = Application(layout=Layout(root), key_bindings=kb, full_screen=True)
+    app = Application(
+        layout=Layout(root, focused_element=menu_control),
+        full_screen=True,
+        key_bindings=kb,
+        mouse_support=not is_android,
+    )
+    app.output.show_cursor = lambda: None
     return app.run()
 
 
