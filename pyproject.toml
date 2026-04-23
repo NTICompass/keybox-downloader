@@ -9,7 +9,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "cryptography==46.0.7",
     "httpx[brotli,http2]>=0.28.1",
-    "inquirer>=3.4.1",
-    "ruff==0.15.10",
+    "prompt-toolkit>=3.0.52",
+    "ruff==0.15.11",
     "tqdm==4.67.3",
 ]

@@ -1,10 +1,15 @@
 from glob import glob
 from pathlib import Path
+from prompt_toolkit.application import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout, HSplit, VSplit, Window
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.widgets import Frame
 from utils.certs import Certs
 from xml.etree.ElementTree import Element
-import inquirer
 import sys
 import xml.etree.ElementTree as ET
+
 
 is_android = hasattr(sys, 'getandroidapilevel')
 
@@ -42,50 +47,105 @@ def get_cert_counts(file: str) -> str:
     return f'{ec_certs} EC certs, {rsa_certs} RSA certs'
 
 
-if __name__ == '__main__':
-    selected_file: str = inquirer.list_input(
-        'Select an XML file',
-        choices=[
-            # (string to show in list, string to return from selection)
-            (f'{file} ({get_cert_serial(file):x} => {get_cert_counts(file)})', file)
-            for file in glob('*.xml', root_dir=folder)
-        ],
-        carousel=True,
+def select_file(keyboxes: list[str]) -> str | None:
+    selected_index = 0
+    kb = KeyBindings()
+    menu_control = FormattedTextControl(
+        text=lambda: '\n'.join(
+            f'{"->" if idx == selected_index else "  "} {file}'
+            for idx, file in enumerate(keyboxes)
+        )
+    )
+    preview = FormattedTextControl(
+        text=lambda: (
+            f'{keyboxes[selected_index]}: {get_cert_serial(keyboxes[selected_index]):x}'
+        ),
+        focusable=False,
     )
 
-    print(f'Installing {selected_file}')
-    selected = Path(f'{folder}/{selected_file}')
+    def move(delta: int):
+        nonlocal selected_index
+        selected_index = (selected_index + delta) % len(keyboxes)
+
+    @kb.add('up')
+    def _(event):
+        move(-1)
+        # event.app.invalidate()
+
+    @kb.add('down')
+    def _(event):
+        move(1)
+        # event.app.invalidate()
+
+    @kb.add('enter')
+    def _(event):
+        event.app.exit(result=keyboxes[selected_index])
+
+    @kb.add('q')
+    def _(event):
+        event.app.exit(result=None)
 
     if is_android:
-        install = (Path(f'scripts/{runner["android"]}').absolute(), selected.absolute())
-        subprocess.run(
-            ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
-            stdout=sys.stdout,
+        root = HSplit(
+            [
+                Frame(Window(menu_control), title='Valid Keyboxes'),
+                Frame(Window(preview), title='Keybox Info'),
+            ]
+        )
+    else:
+        root = VSplit(
+            [
+                Frame(Window(menu_control), title='Valid Keyboxes'),
+                Frame(Window(preview), title='Keybox Info'),
+            ]
         )
 
-        print('Keybox successfully installed')
+    app = Application(layout=Layout(root), key_bindings=kb, full_screen=True)
+    return app.run()
+
+
+if __name__ == '__main__':
+    selected_file = select_file(glob('*.xml', root_dir=folder))
+
+    if selected_file is None:
+        print('Exiting')
     else:
-        try:
-            # Connect to the 1st device (throws exception if there are zero or multiple)
-            device = adb.device()
+        print(f'Installing {selected_file}')
+        selected = Path(f'{folder}/{selected_file}')
 
-            # Copy the selected keybox to the tmp folder
-            device.sync.push(selected, key_file)
-
-            # Also copy the installer script
-            device.sync.push(
-                Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}'
+        if is_android:
+            install = (
+                Path(f'scripts/{runner["android"]}').absolute(),
+                selected.absolute(),
+            )
+            subprocess.run(
+                ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
+                stdout=sys.stdout,
             )
 
-            # Run the main installer script
-            with device.shell(
-                f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True
-            ) as stream:
-                print(stream.read_until_close())
-
-            # Remove the scripts (the keybox was moved already)
-            device.shell(f'rm {tmp_folder}/{runner["pc"]}')
-        except AdbError as e:
-            sys.exit(str(e))
-        else:
             print('Keybox successfully installed')
+        else:
+            try:
+                # Connect to the 1st device (throws exception if there are zero or multiple)
+                device = adb.device()
+
+                # Copy the selected keybox to the tmp folder
+                device.sync.push(selected, key_file)
+
+                # Also copy the installer script
+                device.sync.push(
+                    Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}'
+                )
+
+                # Run the main installer script
+                with device.shell(
+                    f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True
+                ) as stream:
+                    print(stream.read_until_close())
+
+                # Remove the scripts (the keybox was moved already)
+                device.shell(f'rm {tmp_folder}/{runner["pc"]}')
+            except AdbError as e:
+                sys.exit(str(e))
+            else:
+                print('Keybox successfully installed')

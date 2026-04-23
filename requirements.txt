@@ -2,5 +2,5 @@ asyncstdlib
 beautifulsoup4
 cryptography
 httpx[http2,brotli]
-inquirer
+prompt_toolkit
 tqdm
