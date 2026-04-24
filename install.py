@@ -1,9 +1,10 @@
 from glob import glob
 from pathlib import Path
 from prompt_toolkit.application import Application, get_app
+from prompt_toolkit.filters import Condition, Filter
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
-from prompt_toolkit.layout import Layout, HSplit, VSplit, Window
+from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
@@ -108,9 +109,6 @@ def select_file(keyboxes: list[str]) -> str | None:
             for idx, file in enumerate(keyboxes)
         ]
 
-    def on_continue():
-        get_app().exit(result=keyboxes[selected_index])
-
     menu_control = Window(FormattedTextControl(text=file_list))
     preview = Window(
         FormattedTextControl(
@@ -120,7 +118,16 @@ def select_file(keyboxes: list[str]) -> str | None:
             focusable=False,
         )
     )
-    continue_button = Button(text='Continue', handler=on_continue)
+
+    can_continue: Filter = Condition(lambda: is_android or device is not None)
+    continue_button = ConditionalContainer(
+        Button(
+            text='Continue',
+            handler=lambda: get_app().exit(result=keyboxes[selected_index]),
+        ),
+        can_continue,
+        Button(text='No Device Found'),
+    )
     device_info = Window(FormattedTextControl(text=get_device))
 
     def move(delta: int):
@@ -136,7 +143,7 @@ def select_file(keyboxes: list[str]) -> str | None:
     def _(event: KeyPressEvent):
         move(1)
 
-    @kb.add('enter')
+    @kb.add('enter', filter=can_continue)
     def _(event: KeyPressEvent):
         event.app.exit(result=keyboxes[selected_index])
 
