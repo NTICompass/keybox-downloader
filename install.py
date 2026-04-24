@@ -11,6 +11,7 @@ from prompt_toolkit.widgets import Frame, Button
 from typing import Callable
 from utils.certs import Certs
 from xml.etree.ElementTree import Element
+import asyncio
 import sys
 import xml.etree.ElementTree as ET
 
@@ -36,35 +37,57 @@ certs = Certs()
 files: dict[str, Element] = {}
 
 
-def get_device() -> str:
+async def get_prop(prop: str | None = None) -> str:
+    global device
+
+    if is_android and prop is not None:
+        proc = await asyncio.create_subprocess_shell(
+            f'getprop {prop}',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout, stderr = await proc.communicate()
+
+        return stdout.decode().strip() if stdout else ''
+    elif not is_android:
+        try:
+            if device is None:
+                # Connect to the 1st device (throws exception if there are zero or multiple)
+                device = adb.device()
+
+            if device is not None:
+                return str(
+                    device.getprop(prop) if prop is not None else device.prop
+                ).strip()
+            else:
+                raise RuntimeError('No device found')
+        except (AdbError, RuntimeError):
+            return ''
+    else:
+        return ''
+
+
+async def get_device() -> str:
     global device
 
     if is_android:
-        name = subprocess.run(
-            ['getprop', 'ro.system.build.fingerprint'],
-            capture_output=True,
-            text=True,
+        return await get_prop('ro.system.build.fingerprint')
+    else:
+        manufacturer, fingerprint = await asyncio.gather(
+            get_prop('ro.product.manufacturer'),
+            get_prop('ro.system.build.fingerprint'),
+        )
+        props = '\n'.join(
+            [
+                await get_prop('ro.vendor.asus.product.mkt_name')
+                if manufacturer == 'asus'
+                else await get_prop(),
+                fingerprint,
+            ]
         )
 
-        return name.stdout
-    else:
-        try:
-            # Connect to the 1st device (throws exception if there are zero or multiple)
-            device = adb.device()
-
-            if device is not None:
-                return '\n'.join(
-                    [
-                        device.getprop('ro.vendor.asus.product.mkt_name')
-                        if device.getprop('ro.product.manufacturer') == 'asus'
-                        else str(device.prop),
-                        device.getprop('ro.system.build.fingerprint'),
-                    ]
-                )
-            else:
-                raise RuntimeError('device is None')
-        except (AdbError, RuntimeError):
-            return 'No device found, press "r" to re-try'
+        return props if props.strip() != '' else 'No device found, press "r" to re-try'
 
 
 def get_cert_serials(file: str) -> list[str]:
@@ -82,9 +105,19 @@ def get_cert_serials(file: str) -> list[str]:
     ]
 
 
-def select_file(keyboxes: list[str]) -> str | None:
+async def select_file(keyboxes: list[str]) -> str | None:
     selected_index = 0
+    device_info_text = ''
     kb = KeyBindings()
+
+    async def refresh_device(event: KeyPressEvent | None = None):
+        nonlocal device_info_text
+        device_info_text = await get_device()
+
+        if event is not None:
+            event.app.invalidate()
+        else:
+            get_app().invalidate()
 
     def file_list() -> StyleAndTextTuples:
         def handler(idx: int) -> Callable[[MouseEvent], None]:
@@ -119,20 +152,20 @@ def select_file(keyboxes: list[str]) -> str | None:
         )
     )
 
-    can_continue: Filter = Condition(lambda: is_android or device is not None)
     continue_button = ConditionalContainer(
         Button(
             text='Continue',
             handler=lambda: get_app().exit(result=keyboxes[selected_index]),
         ),
-        can_continue,
+        Condition(lambda: is_android or device is not None),
         Button(text='No Device Found'),
     )
-    device_info = Window(FormattedTextControl(text=get_device))
+
+    get_app().create_background_task(refresh_device())
+    device_info = Window(FormattedTextControl(text=lambda: device_info_text))
 
     def move(delta: int):
         nonlocal selected_index
-
         selected_index = (selected_index + delta) % len(keyboxes)
 
     @kb.add('up')
@@ -143,13 +176,13 @@ def select_file(keyboxes: list[str]) -> str | None:
     def _(event: KeyPressEvent):
         move(1)
 
-    @kb.add('enter', filter=can_continue)
+    @kb.add('enter', filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
         event.app.exit(result=keyboxes[selected_index])
 
     @kb.add('r')
     def _(event: KeyPressEvent):
-        event.app.invalidate()
+        event.app.create_background_task(refresh_device(event))
 
     @kb.add('q')
     def _(event: KeyPressEvent):
@@ -195,11 +228,11 @@ def select_file(keyboxes: list[str]) -> str | None:
     if not is_android:
         app.output.show_cursor = lambda: None
 
-    return app.run()
+    return await app.run_async()
 
 
 if __name__ == '__main__':
-    selected_file = select_file(glob('*.xml', root_dir=folder))
+    selected_file = asyncio.run(select_file(glob('*.xml', root_dir=folder)))
 
     if selected_file is None:
         print('Exiting')
@@ -221,7 +254,6 @@ if __name__ == '__main__':
         else:
             try:
                 if device is None:
-                    # Connect to the 1st device (throws exception if there are zero or multiple)
                     device = adb.device()
 
                 if device is not None:
