@@ -66,25 +66,19 @@ def get_device() -> str:
             return 'No device found, press "r" to re-try'
 
 
-def get_cert_serial(file: str) -> int:
+def get_cert_serials(file: str) -> list[str]:
     if file not in files:
         files[file] = ET.parse(Path(f'{folder}/{file}')).getroot()
 
-    serials = [
-        cert.serial_number
-        for cert in certs.get_certs(keybox=files[file])
-        if cert.signature_algorithm_oid.dotted_string == '1.2.840.10045.4.3.2'
+    all_certs = [
+        f'{cert.serial_number:x}' for cert in certs.get_certs(keybox=files[file])
     ]
-
-    return serials[0] if len(serials) > 0 else 0
-
-
-def get_cert_counts(file: str) -> str:
-    if file not in files:
-        files[file] = ET.parse(Path(f'{folder}/{file}')).getroot()
-
     ec_certs, rsa_certs = certs.get_counts(keybox=files[file])
-    return f'{ec_certs} EC certs, {rsa_certs} RSA certs'
+
+    return [
+        f'{ec_certs} EC certs, {rsa_certs} RSA certs',
+        *all_certs,
+    ]
 
 
 def select_file(keyboxes: list[str]) -> str | None:
@@ -121,7 +115,7 @@ def select_file(keyboxes: list[str]) -> str | None:
     preview = Window(
         FormattedTextControl(
             text=lambda: (
-                f'{keyboxes[selected_index]}: {get_cert_serial(keyboxes[selected_index]):x}'
+                f'{keyboxes[selected_index]}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
             ),
             focusable=False,
         )
