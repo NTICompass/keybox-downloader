@@ -29,9 +29,7 @@ class DroidWin(Downloader):
 
             for link in links:
                 self.logger.info('Downloading module ZIP file')
-                zip_dl = await self.client.get(
-                    link.attrs['href'], headers={'User-Agent': 'curl/8.18.0'}
-                )
+                zip_dl = await self.client.get(link.attrs['href'])
 
                 with ZipFile(BytesIO(zip_dl.content), 'r') as zip_file:
                     self.logger.info('Extracting keybox from ZIP file')
