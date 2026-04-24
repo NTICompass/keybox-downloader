@@ -1,5 +1,6 @@
 asyncstdlib
 beautifulsoup4
+cloudscraper
 cryptography
 httpx[http2,brotli]
 prompt_toolkit

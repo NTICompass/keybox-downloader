@@ -7,6 +7,7 @@ dependencies = [
     "adbutils>=2.12.0",
     "asyncstdlib==3.14.0",
     "beautifulsoup4>=4.14.3",
+    "cloudscraper>=1.2.71",
     "cryptography==46.0.7",
     "httpx[brotli,http2]>=0.28.1",
     "prompt-toolkit>=3.0.52",
