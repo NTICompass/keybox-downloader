@@ -19,14 +19,58 @@ is_android = hasattr(sys, 'getandroidapilevel')
 if is_android:
     import subprocess
 else:
-    from adbutils import adb, AdbError
+    from adbutils import adb, AdbError, AdbDevice
 
 folder = 'keyboxes/valid'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
+
+device: AdbDevice | None = None
+current_keybox: Element | None = None
 certs = Certs()
 files: dict[str, Element] = {}
+
+
+def get_device() -> str:
+    global device
+
+    if is_android:
+        manufacturer = subprocess.run(
+            ['getprop', 'ro.product.manufacturer'],
+            capture_output=True,
+            text=True,
+        )
+
+        if manufacturer.stdout == 'asus':
+            name = subprocess.run(
+                ['getprop', 'ro.vendor.asus.product.mkt_name'],
+                capture_output=True,
+                text=True,
+            )
+        else:
+            name = subprocess.run(
+                ['getprop', 'ro.product.device'],
+                capture_output=True,
+                text=True,
+            )
+
+        return name.stdout
+    else:
+        try:
+            # Connect to the 1st device (throws exception if there are zero or multiple)
+            device = adb.device()
+
+            if device is not None:
+                return (
+                    device.getprop('ro.vendor.asus.product.mkt_name')
+                    if device.getprop('ro.product.manufacturer') == 'asus'
+                    else str(device.prop)
+                )
+            else:
+                raise RuntimeError('device is None')
+        except (AdbError, RuntimeError):
+            return 'No device found, press "r" to re-try'
 
 
 def get_cert_serial(file: str) -> int:
@@ -90,6 +134,7 @@ def select_file(keyboxes: list[str]) -> str | None:
         )
     )
     continue_button = Button(text='Continue', handler=on_continue)
+    device_info = Window(FormattedTextControl(text=get_device))
 
     def move(delta: int):
         nonlocal selected_index
@@ -108,6 +153,10 @@ def select_file(keyboxes: list[str]) -> str | None:
     def _(event: KeyPressEvent):
         event.app.exit(result=keyboxes[selected_index])
 
+    @kb.add('r')
+    def _(event: KeyPressEvent):
+        event.app.invalidate()
+
     @kb.add('q')
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
@@ -115,7 +164,14 @@ def select_file(keyboxes: list[str]) -> str | None:
     if is_android:
         root = HSplit(
             [
-                Frame(menu_control, title='Valid Keyboxes'),
+                VSplit(
+                    [
+                        [
+                            Frame(menu_control, title='Valid Keyboxes'),
+                            Frame(device_info, title='Device Info'),
+                        ]
+                    ]
+                ),
                 Frame(preview, title='Keybox Info'),
             ]
         )
@@ -124,7 +180,12 @@ def select_file(keyboxes: list[str]) -> str | None:
             [
                 VSplit(
                     [
-                        Frame(menu_control, title='Valid Keyboxes'),
+                        HSplit(
+                            [
+                                Frame(menu_control, title='Valid Keyboxes'),
+                                Frame(device_info, title='Device Info'),
+                            ]
+                        ),
                         Frame(preview, title='Keybox Info'),
                     ]
                 ),
@@ -164,25 +225,27 @@ if __name__ == '__main__':
             print('Keybox successfully installed')
         else:
             try:
-                # Connect to the 1st device (throws exception if there are zero or multiple)
-                device = adb.device()
+                if device is None:
+                    # Connect to the 1st device (throws exception if there are zero or multiple)
+                    device = adb.device()
 
-                # Copy the selected keybox to the tmp folder
-                device.sync.push(selected, key_file)
+                if device is not None:
+                    # Copy the selected keybox to the tmp folder
+                    device.sync.push(selected, key_file)
 
-                # Also copy the installer script
-                device.sync.push(
-                    Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}'
-                )
+                    # Also copy the installer script
+                    device.sync.push(
+                        Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}'
+                    )
 
-                # Run the main installer script
-                with device.shell(
-                    f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True
-                ) as stream:
-                    print(stream.read_until_close())
+                    # Run the main installer script
+                    with device.shell(
+                        f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True
+                    ) as stream:
+                        print(stream.read_until_close())
 
-                # Remove the scripts (the keybox was moved already)
-                device.shell(f'rm {tmp_folder}/{runner["pc"]}')
+                    # Remove the scripts (the keybox was moved already)
+                    device.shell(f'rm {tmp_folder}/{runner["pc"]}')
             except AdbError as e:
                 sys.exit(str(e))
             else:
