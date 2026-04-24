@@ -18,9 +18,11 @@ is_android = hasattr(sys, 'getandroidapilevel')
 
 if is_android:
     import subprocess
+
     device = None
 else:
     from adbutils import adb, AdbError, AdbDevice
+
     device: AdbDevice | None = None
 
 folder = 'keyboxes/valid'
@@ -167,10 +169,8 @@ def select_file(keyboxes: list[str]) -> str | None:
             [
                 VSplit(
                     [
-                        [
-                            Frame(menu_control, title='Valid Keyboxes'),
-                            Frame(device_info, title='Device Info'),
-                        ]
+                        Frame(menu_control, title='Valid Keyboxes'),
+                        Frame(device_info, title='Device Info'),
                     ]
                 ),
                 Frame(preview, title='Keybox Info'),
