@@ -18,15 +18,16 @@ is_android = hasattr(sys, 'getandroidapilevel')
 
 if is_android:
     import subprocess
+    device = None
 else:
     from adbutils import adb, AdbError, AdbDevice
+    device: AdbDevice | None = None
 
 folder = 'keyboxes/valid'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 
-device: AdbDevice | None = None
 current_keybox: Element | None = None
 certs = Certs()
 files: dict[str, Element] = {}
