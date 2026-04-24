@@ -39,24 +39,11 @@ def get_device() -> str:
     global device
 
     if is_android:
-        manufacturer = subprocess.run(
-            ['getprop', 'ro.product.manufacturer'],
+        name = subprocess.run(
+            ['getprop', 'ro.system.build.fingerprint'],
             capture_output=True,
             text=True,
         )
-
-        if manufacturer.stdout.strip() == 'asus':
-            name = subprocess.run(
-                ['getprop', 'ro.vendor.asus.product.mkt_name'],
-                capture_output=True,
-                text=True,
-            )
-        else:
-            name = subprocess.run(
-                ['getprop', 'ro.product.device'],
-                capture_output=True,
-                text=True,
-            )
 
         return name.stdout
     else:
@@ -65,10 +52,13 @@ def get_device() -> str:
             device = adb.device()
 
             if device is not None:
-                return (
-                    device.getprop('ro.vendor.asus.product.mkt_name')
-                    if device.getprop('ro.product.manufacturer') == 'asus'
-                    else str(device.prop)
+                return '\n'.join(
+                    [
+                        device.getprop('ro.vendor.asus.product.mkt_name')
+                        if device.getprop('ro.product.manufacturer') == 'asus'
+                        else str(device.prop),
+                        device.getprop('ro.system.build.fingerprint'),
+                    ]
                 )
             else:
                 raise RuntimeError('device is None')
