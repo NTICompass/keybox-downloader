@@ -45,7 +45,7 @@ def get_device() -> str:
             text=True,
         )
 
-        if manufacturer.stdout == 'asus':
+        if manufacturer.stdout.strip() == 'asus':
             name = subprocess.run(
                 ['getprop', 'ro.vendor.asus.product.mkt_name'],
                 capture_output=True,
@@ -200,7 +200,10 @@ def select_file(keyboxes: list[str]) -> str | None:
         key_bindings=kb,
         mouse_support=not is_android,
     )
-    app.output.show_cursor = lambda: None
+
+    if not is_android:
+        app.output.show_cursor = lambda: None
+
     return app.run()
 
 
