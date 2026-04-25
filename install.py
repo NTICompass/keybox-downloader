@@ -1,7 +1,7 @@
 from glob import glob
 from pathlib import Path
 from prompt_toolkit.application import Application, get_app
-from prompt_toolkit.filters import Condition, Filter
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalContainer
