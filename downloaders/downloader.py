@@ -54,12 +54,10 @@ class Downloader(ABC):
         self.logger = logging.getLogger(type(self).__name__)
 
     @abstractmethod
-    def get_keybox(self) -> AsyncGenerator[Element | None]:
-        pass
+    def get_keybox(self) -> AsyncGenerator[Element | None]: ...
 
     @abstractmethod
-    def decode_keybox(self) -> str:
-        pass
+    def decode_keybox(self) -> str: ...
 
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
         for r in await asyncio.gather(
@@ -93,6 +91,7 @@ class Downloader(ABC):
                     for dl in download
                 ]
             ):
+                self.logger.info(f'Downloaded {r.url} via "CloudScraper"')
                 yield r
 
     @overload
