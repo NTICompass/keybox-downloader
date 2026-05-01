@@ -106,6 +106,10 @@ def get_cert_serials(file: str) -> list[str]:
 
 
 async def select_file(keyboxes: list[str]) -> str | None:
+    if len(keyboxes) == 0:
+        print('No valid keyboxes found')
+        return None
+
     selected_index = 0
     device_info_text = ''
     kb = KeyBindings()
