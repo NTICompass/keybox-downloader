@@ -28,3 +28,9 @@ I found another project that's basically doing the same thing as mine, but with 
 https://github.com/purainity/keybox-tools
 
 Though they do have public keys for the "hardware attestation root", which could be interesting to try to check against.
+
+---
+Can I generate my own keybox?
+https://github.com/KOWX712/Tricky-Addon-Update-Target-List/blob/main/webui/scripts/keygen.js
+
+It seems to generate a self-signed one, will that work? Is there any other way to get the signing cert?
