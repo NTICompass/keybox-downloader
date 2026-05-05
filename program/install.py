@@ -235,7 +235,7 @@ async def select_file(keyboxes: list[str]) -> str | None:
     return await app.run_async()
 
 
-if __name__ == '__main__':
+def menu():
     selected_file = asyncio.run(select_file(glob('*.xml', root_dir=folder)))
 
     if selected_file is None:
