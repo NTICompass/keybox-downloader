@@ -105,8 +105,8 @@ def get_cert_serials(file: str) -> list[str]:
     ]
 
 
-async def select_file(keyboxes: list[str]) -> str | None:
-    if len(keyboxes) == 0:
+async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
+    if not ignore_empty and len(keyboxes) == 0:
         print('No valid keyboxes found')
         return None
 
@@ -146,11 +146,13 @@ async def select_file(keyboxes: list[str]) -> str | None:
             for idx, file in enumerate(keyboxes)
         ]
 
-    menu_control = Window(FormattedTextControl(text=file_list))
+    menu_control = Window(FormattedTextControl(text=file_list, focusable=True))
     preview = Window(
         FormattedTextControl(
             text=lambda: (
                 f'{keyboxes[selected_index]}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
+                if len(keyboxes) > 0
+                else ''
             ),
             focusable=False,
         )
@@ -172,17 +174,18 @@ async def select_file(keyboxes: list[str]) -> str | None:
         nonlocal selected_index
         selected_index = (selected_index + delta) % len(keyboxes)
 
-    @kb.add('up')
+    @kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(-1)
 
-    @kb.add('down')
+    @kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(1)
 
     @kb.add('enter', filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
-        event.app.exit(result=keyboxes[selected_index])
+        if len(keyboxes) > 0:
+            event.app.exit(result=keyboxes[selected_index])
 
     @kb.add('r')
     def _(event: KeyPressEvent):
@@ -232,11 +235,16 @@ async def select_file(keyboxes: list[str]) -> str | None:
     if not is_android:
         app.output.show_cursor = lambda: None
 
+    if app.layout:
+        app.layout.focus(menu_control)
+
     return await app.run_async()
 
 
-def menu():
-    selected_file = asyncio.run(select_file(glob('*.xml', root_dir=folder)))
+def menu(ignore_empty=False):
+    selected_file = asyncio.run(
+        select_file(glob('*.xml', root_dir=folder), ignore_empty=ignore_empty)
+    )
 
     if selected_file is None:
         print('Exiting')
@@ -257,6 +265,8 @@ def menu():
             print('Keybox successfully installed')
         else:
             try:
+                global device
+
                 if device is None:
                     device = adb.device()
 
