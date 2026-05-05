@@ -1,6 +1,7 @@
+from . import get_downloaders, go
 from glob import glob
 from pathlib import Path
-from prompt_toolkit.application import Application, get_app
+from prompt_toolkit.application import Application, get_app, in_terminal
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
@@ -186,6 +187,14 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
     def _(event: KeyPressEvent):
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
+
+    @kb.add('d')
+    def _(event: KeyPressEvent):
+        async def run():
+            async with in_terminal():
+                await go(*get_downloaders())
+
+        event.app.create_background_task(run())
 
     @kb.add('r')
     def _(event: KeyPressEvent):

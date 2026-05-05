@@ -23,6 +23,7 @@ log_path = 'logs'
 backup_path = 'backups'
 logger = logging.getLogger(__name__)
 
+
 def make_folder(folder: str):
     if not os.path.exists(folder):
         os.mkdir(folder)
@@ -31,6 +32,7 @@ def make_folder(folder: str):
 def make_folders():
     for key_type in types:
         os.makedirs(f'{path}/{key_type}')
+
 
 def init():
     make_folder(log_path)
@@ -49,7 +51,9 @@ def init():
         rmtree(path)
         make_folders()
 
+
 type KeyboxFiles = dict[str, ElementTree[Element[str] | None]]
+
 
 async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
     files: KeyboxFiles = {}
@@ -95,7 +99,8 @@ async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
     return files
 
 
-async def main(*downloaders: Downloader):
+async def go(*downloaders: Downloader):
+    init()
     checker = GoogleChecker()
 
     for task in tqdm_asyncio.as_completed(
@@ -110,6 +115,6 @@ async def main(*downloaders: Downloader):
     dupe = Duplicate(path)
     dupe.check_duplicates()
 
-def go():
-    init()
-    asyncio.run(main(DroidWin(), IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()))
+
+def get_downloaders() -> list[Downloader]:
+    return [DroidWin(), IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()]

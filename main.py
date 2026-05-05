@@ -1,5 +1,6 @@
+from program import get_downloaders, go, menu
 import argparse
-from program import go, menu
+import asyncio
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -9,7 +10,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.download:
-        go()
+        asyncio.run(go(*get_downloaders()))
     elif args.install:
         menu()
     else:
