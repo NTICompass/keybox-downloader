@@ -2,6 +2,7 @@ from asyncstdlib import enumerate as a_enumerate
 from downloaders import (
     Downloader,
     DroidWin,
+    FixIntegrity,
     IntegrityBox,
     TrickyAddon,
     TSupport,
@@ -117,4 +118,11 @@ async def go(*downloaders: Downloader):
 
 
 def get_downloaders() -> list[Downloader]:
-    return [DroidWin(), IntegrityBox(), TrickyAddon(), TSupport(), YuriKey()]
+    return [
+        DroidWin(),
+        FixIntegrity(),
+        IntegrityBox(),
+        TrickyAddon(),
+        TSupport(),
+        YuriKey(),
+    ]
