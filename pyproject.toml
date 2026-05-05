@@ -8,7 +8,7 @@ dependencies = [
     "asyncstdlib==3.14.0",
     "beautifulsoup4>=4.14.3",
     "cloudscraper>=1.2.71",
-    "cryptography==47.0.0",
+    "cryptography==48.0.0",
     "httpx[brotli,http2]>=0.28.1",
     "prompt-toolkit>=3.0.52",
     "ruff==0.15.12",
