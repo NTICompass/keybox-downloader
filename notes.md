@@ -34,3 +34,6 @@ Can I generate my own keybox?
 https://github.com/KOWX712/Tricky-Addon-Update-Target-List/blob/main/webui/scripts/keygen.js
 
 It seems to generate a self-signed one, will that work? Is there any other way to get the signing cert?
+
+https://github.com/LRFP-Team/keyboxGenerator
+This lets you get "device" integrity, is that good enough?

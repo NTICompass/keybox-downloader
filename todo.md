@@ -1,0 +1,8 @@
+- [ ] Add "manifest" with date of last download
+    - [ ] Only allow downloads every 1hr (or whatever)
+- [ ] Show files as tree in main app
+    - [ ] Include revoked?
+    - [ ] Allow going back and look into backups/*.zip files
+- [ ] Call `decode_keybox()` from main program
+    - [ ] Make all downloaders follow API
+- [ ] Use PyInstaller to create Windows EXE
