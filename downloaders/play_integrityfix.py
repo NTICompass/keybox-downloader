@@ -1,6 +1,7 @@
 from . import Downloader
+from collections.abc import AsyncGenerator
 from io import BytesIO
-from typing import AsyncGenerator, TypedDict
+from typing import TypedDict
 from xml.etree.ElementTree import Element
 from zipfile import ZipFile
 import json

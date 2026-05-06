@@ -1,4 +1,5 @@
 from . import get_downloaders, go
+from collections.abc import Callable
 from glob import glob
 from pathlib import Path
 from prompt_toolkit.application import Application, get_app, in_terminal
@@ -9,7 +10,6 @@ from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalCon
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
-from typing import Callable
 from utils.certs import Certs
 from xml.etree.ElementTree import Element
 import asyncio
