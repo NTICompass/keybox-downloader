@@ -1,4 +1,3 @@
-from asyncstdlib import enumerate as a_enumerate
 from downloaders import (
     Downloader,
     DroidWin,
@@ -9,6 +8,8 @@ from downloaders import (
     TSupport,
     YuriKey,
 )
+from asyncstdlib import enumerate as a_enumerate
+from datetime import datetime, timedelta
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
@@ -16,6 +17,7 @@ from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree, Element
 import asyncio
+import json
 import logging
 import os
 
@@ -23,6 +25,7 @@ path = 'keyboxes'
 types = ('revoked', 'valid', 'aosp')
 log_path = 'logs'
 backup_path = 'backups'
+manifest_path = 'cache'
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +45,23 @@ def init():
         filename=f'{log_path}/keybox-downloader-{time():.0f}.log', level=logging.INFO
     )
     logger.info('Starting Keybox Downloader')
+
+    # Only download once every 24hrs
+    manifest_file = f'{manifest_path}/manifest.json'
+
+    if os.path.exists(manifest_path) and os.path.exists(manifest_file):
+        with open(manifest_file) as manifest_data:
+            manifest = json.load(manifest_data)
+            time_diff = datetime.now() - datetime.fromtimestamp(
+                manifest['last_checked']
+            )
+
+            if (time_diff / timedelta(hours=1)) < 24:
+                raise RuntimeError(
+                    f'Last download was less than 24hrs ago: {manifest["last_checked"]}'
+                )
+    elif not os.path.exists(manifest_path):
+        make_folder(manifest_path)
 
     if not os.path.exists(path):
         make_folders()
@@ -102,20 +122,27 @@ async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
 
 
 async def go(*downloaders: Downloader):
-    init()
-    checker = GoogleChecker()
+    try:
+        init()
+    except RuntimeError as e:
+        logger.info(e)
+    else:
+        checker = GoogleChecker()
 
-    for task in tqdm_asyncio.as_completed(
-        [asyncio.create_task(run(dl, checker)) for dl in downloaders]
-    ):
-        for file_name, xml_file in (await task).items():
-            xml_file.write(file_name, 'unicode', True)
+        for task in tqdm_asyncio.as_completed(
+            [asyncio.create_task(run(dl, checker)) for dl in downloaders]
+        ):
+            for file_name, xml_file in (await task).items():
+                xml_file.write(file_name, 'unicode', True)
 
-    await Downloader.client.aclose()
+        await Downloader.client.aclose()
 
-    logger.info('All keyboxes downloaded, comparing to find duplicates')
-    dupe = Duplicate(path)
-    dupe.check_duplicates()
+        logger.info('All keyboxes downloaded, comparing to find duplicates')
+        dupe = Duplicate(path)
+        dupe.check_duplicates()
+
+        with open(f'{manifest_path}/manifest.json', 'w') as manifest_data:
+            json.dump({'last_checked': datetime.now().timestamp()}, manifest_data)
 
 
 def get_downloaders() -> list[Downloader]:
