@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator
-from typing import overload, Literal
+from typing import overload, Literal, Self
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from xml.etree.ElementTree import Element
@@ -33,6 +33,7 @@ def build_github_url(repo: str, branch: str, file: str) -> str:
 
 
 class Downloader(ABC):
+    registry: list[type[Self]] = []
     URL: str
     URLS: list[str]
     client = AsyncClient(
@@ -52,6 +53,10 @@ class Downloader(ABC):
 
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        Downloader.registry.append(cls)
 
     @abstractmethod
     def get_keybox(self) -> AsyncGenerator[Element | None]: ...

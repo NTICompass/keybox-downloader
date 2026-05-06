@@ -1,19 +1,10 @@
-from downloaders import (
-    Downloader,
-    DroidWin,
-    FixIntegrity,
-    IntegrityBox,
-    PlayIntegrityFix,
-    TrickyAddon,
-    TSupport,
-    YuriKey,
-)
+from downloaders import Downloader
 from asyncstdlib import enumerate as a_enumerate
 from datetime import datetime, timedelta
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
-from typing import TypedDict
+from typing import TypedDict, Any, Generator
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree, Element
@@ -54,12 +45,11 @@ def init():
     logger.info('Starting Keybox Downloader')
 
     # Only download once every 24hrs
+    global manifest
     manifest_file = f'{manifest_path}/manifest.json'
 
     if os.path.exists(manifest_path) and os.path.exists(manifest_file):
         with open(manifest_file) as manifest_data:
-            global manifest
-
             manifest = json.load(manifest_data)
             time_diff = datetime.now() - datetime.fromtimestamp(
                 manifest['last_checked']
@@ -69,8 +59,9 @@ def init():
                 raise RuntimeError(
                     f'Last download was less than 24hrs ago: {manifest["last_checked"]}'
                 )
-    elif not os.path.exists(manifest_path):
+    else:
         make_folder(manifest_path)
+        manifest = {}
 
     if not os.path.exists(path):
         make_folders()
@@ -157,13 +148,5 @@ async def go(*downloaders: Downloader):
             json.dump(manifest, manifest_data)
 
 
-def get_downloaders() -> list[Downloader]:
-    return [
-        DroidWin(),
-        FixIntegrity(),
-        IntegrityBox(),
-        PlayIntegrityFix(),
-        TrickyAddon(),
-        TSupport(),
-        YuriKey(),
-    ]
+def get_downloaders() -> Generator[Downloader]:
+    return (cls() for cls in Downloader.registry)
