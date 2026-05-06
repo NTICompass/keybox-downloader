@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
+from typing import TypedDict
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree, Element
@@ -21,12 +22,18 @@ import json
 import logging
 import os
 
+
+class CacheManifest(TypedDict):
+    last_checked: int | float
+
+
 path = 'keyboxes'
 types = ('revoked', 'valid', 'aosp')
 log_path = 'logs'
 backup_path = 'backups'
 manifest_path = 'cache'
 logger = logging.getLogger(__name__)
+manifest: CacheManifest
 
 
 def make_folder(folder: str):
@@ -51,6 +58,8 @@ def init():
 
     if os.path.exists(manifest_path) and os.path.exists(manifest_file):
         with open(manifest_file) as manifest_data:
+            global manifest
+
             manifest = json.load(manifest_data)
             time_diff = datetime.now() - datetime.fromtimestamp(
                 manifest['last_checked']
@@ -142,7 +151,10 @@ async def go(*downloaders: Downloader):
         dupe.check_duplicates()
 
         with open(f'{manifest_path}/manifest.json', 'w') as manifest_data:
-            json.dump({'last_checked': datetime.now().timestamp()}, manifest_data)
+            global manifest
+
+            manifest['last_checked'] = datetime.now().timestamp()
+            json.dump(manifest, manifest_data)
 
 
 def get_downloaders() -> list[Downloader]:
