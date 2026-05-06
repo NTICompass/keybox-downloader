@@ -52,6 +52,7 @@ class DroidWin(Downloader):
 
             with ZipFile(BytesIO(zip_dl), 'r') as zip_file:
                 self.logger.info('Extracting keybox from ZIP file')
+
                 with zip_file.open('keybox.xml') as keybox_data:
                     yield ET.parse(keybox_data).getroot()
 
