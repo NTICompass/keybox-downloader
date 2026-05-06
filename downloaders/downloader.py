@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from cloudscraper import CloudScraper
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Sequence
 from typing import overload, Literal, Self
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
@@ -104,7 +104,7 @@ class Downloader(ABC):
         self,
         binary: Literal[True],
         cloudflare: bool = False,
-        download: list[str] | tuple[str] | None = None,
+        download: Sequence[str] | None = None,
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
@@ -112,14 +112,14 @@ class Downloader(ABC):
         self,
         binary: Literal[False] = False,
         cloudflare: bool = False,
-        download: list[str] | tuple[str] | None = None,
+        download: Sequence[str] | None = None,
     ) -> AsyncGenerator[str]: ...
 
     async def download_urls(
         self,
         binary: bool = False,
         cloudflare: bool = False,
-        download: list[str] | tuple[str] | None = None,
+        download: Sequence[str] | None = None,
     ) -> AsyncGenerator[str | bytes]:
         if download is None:
             try:
