@@ -192,7 +192,10 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
     def _(event: KeyPressEvent):
         async def run():
             async with in_terminal():
+                nonlocal keyboxes
+
                 await go(*get_downloaders())
+                keyboxes = glob('*.xml', root_dir=folder)
 
         event.app.create_background_task(run())
 
