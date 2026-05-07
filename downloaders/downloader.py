@@ -9,25 +9,6 @@ import asyncio
 import logging
 
 
-def fix_rsa_keys(key_xml: Element | None) -> Element | None:
-    if key_xml is None:
-        return None
-
-    not_rsa = ('xlp', 'nbs')
-
-    for algo in not_rsa:
-        try:
-            keys = key_xml.find(f'.//Key[@algorithm="{algo}"]')
-
-            if keys is not None:
-                keys.set('algorithm', 'rsa')
-            break
-        except AttributeError:
-            continue
-
-    return key_xml
-
-
 def build_github_url(repo: str, branch: str, file: str) -> str:
     return f'https://raw.githubusercontent.com/{repo}/refs/heads/{branch if len(branch) > 0 else "main"}/{file}'
 
