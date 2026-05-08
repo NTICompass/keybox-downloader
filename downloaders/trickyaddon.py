@@ -1,14 +1,14 @@
 from . import Downloader
 from base64 import b64decode
-from collections.abc import AsyncGenerator
-from xml.etree.ElementTree import Element
-import xml.etree.ElementTree as ET
+from typing import final, override
 
 
+@final
 class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
     URL = 'github:KOWX712/Tricky-Addon-Update-Target-List:keybox:.extra'
 
+    @override
     def decode(self, encoded: str) -> str:
         self.logger.info('Decoding keybox xml')
 

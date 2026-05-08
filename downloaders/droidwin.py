@@ -1,15 +1,18 @@
 from . import Downloader
 from bs4 import BeautifulSoup
 from collections.abc import AsyncGenerator
+from typing import final, override
 from xml.etree.ElementTree import Element
 import re
 
 
+@final
 class DroidWin(Downloader):
     URL = (
         'https://droidwin.com/droidwin-keybox-module-gives-you-a-new-unrevoked-keybox/'
     )
 
+    @override
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[Element[str] | None]:
@@ -51,5 +54,6 @@ class DroidWin(Downloader):
 
             yield self.unzip(zip_dl, 'keybox.xml')
 
+    @override
     def decode(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

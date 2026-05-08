@@ -1,6 +1,6 @@
 from . import Downloader
 from collections.abc import AsyncGenerator
-from typing import TypedDict
+from typing import final, override, TypedDict
 from xml.etree.ElementTree import Element
 import json
 
@@ -18,12 +18,14 @@ class GitHubRelease(TypedDict):
 
 
 # Root Phantom Fateh
+@final
 class PlayIntegrityFix(Downloader):
     # https://t.me/s/kernelsu1
     # Found via: https://t.me/s/keybox_xml
     # https://github.com/FBIVIP/Play-IntegrityFix/releases
     URL = 'https://api.github.com/repos/FBIVIP/Play-IntegrityFix/releases/latest'
 
+    @override
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[Element | None]:
@@ -44,5 +46,6 @@ class PlayIntegrityFix(Downloader):
 
                 yield self.unzip(zip_dl, 'zygisk/.@fateh7')
 
+    @override
     def decode(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

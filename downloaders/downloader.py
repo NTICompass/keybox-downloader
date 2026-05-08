@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
-from typing import overload, Literal, Self
+from typing import final, overload, Literal, Self
 from xml.etree.ElementTree import Element
 from zipfile import ZipFile
 import asyncio
@@ -36,6 +36,7 @@ class Downloader(ABC):
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
 
+    @final
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         Downloader.registry.append(cls)
@@ -49,11 +50,13 @@ class Downloader(ABC):
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
 
+    @final
     def unzip(self, zipfile: bytes, filename: str) -> Element[str]:
         with ZipFile(BytesIO(zipfile), 'r') as file, file.open(filename) as data:
             self.logger.info('Extracting keybox from ZIP file')
             return ET.parse(data).getroot()
 
+    @final
     async def get_data(self) -> AsyncGenerator[Element[str] | None]:
         async for data in self.process(self.download_urls()):
             if data is None:
@@ -68,6 +71,7 @@ class Downloader(ABC):
             else:
                 yield data
 
+    @final
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
         for r in await asyncio.gather(
             *[
@@ -88,6 +92,7 @@ class Downloader(ABC):
             else:
                 yield r
 
+    @final
     async def cloudflare_download(self, *download: str) -> AsyncGenerator[Response]:
         loop = asyncio.get_running_loop()
 
@@ -119,6 +124,7 @@ class Downloader(ABC):
         download: Sequence[str] | None = None,
     ) -> AsyncGenerator[str]: ...
 
+    @final
     async def download_urls(
         self,
         binary: bool = False,

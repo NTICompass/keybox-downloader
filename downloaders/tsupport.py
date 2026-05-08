@@ -3,12 +3,14 @@ from asyncstdlib import enumerate as a_enumerate
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
+from typing import final, override
 from xml.etree.ElementTree import Element
 import pathlib
 import re
 import xml.etree.ElementTree as ET
 
 
+@final
 class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
     URLS = [
@@ -33,6 +35,7 @@ class TSupport(Downloader):
 
     keys: str
 
+    @override
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[Element | None]:
@@ -85,6 +88,7 @@ class TSupport(Downloader):
         else:
             return None
 
+    @override
     def decode(self, encoded: str) -> str:
         # Strip off any irrelevant data
         encoded = re.sub(r'=+.+?=.\s+', '', encoded, 1, re.DOTALL)

@@ -2,6 +2,7 @@ from . import Downloader
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
+from typing import final, override
 from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element, ParseError
 import re
@@ -15,6 +16,7 @@ def get_keybox_url(keybox_script: str | bytes) -> str:
     ).decode('ascii')
 
 
+@final
 class IntegrityBox(Downloader):
     # https://t.me/MeowDump
     URLS = [
@@ -32,6 +34,7 @@ class IntegrityBox(Downloader):
         super().__init__()
         self.junk: list[str] = []
 
+    @override
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[Element[str] | None]:
@@ -75,6 +78,7 @@ class IntegrityBox(Downloader):
                     self.logger.info(f'Cannot parse "{keybox}"')
                     yield None
 
+    @override
     def decode(self, encoded: str) -> str | None:
         self.logger.info('Decoding keybox xml')
 
