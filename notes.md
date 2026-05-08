@@ -37,3 +37,7 @@ It seems to generate a self-signed one, will that work? Is there any other way t
 
 https://github.com/LRFP-Team/keyboxGenerator
 This lets you get "device" integrity, is that good enough?
+
+---
+Can I release this tool to the public?
+If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
