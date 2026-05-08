@@ -81,7 +81,7 @@ type KeyboxFiles = dict[str, ElementTree[Element[str] | None]]
 async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
     files: KeyboxFiles = {}
 
-    async for idx, keybox_file in a_enumerate(dl.get_keyboxes()):
+    async for idx, keybox_file in a_enumerate(dl()):
         keybox_idx = idx + 1
 
         if keybox_file is None:

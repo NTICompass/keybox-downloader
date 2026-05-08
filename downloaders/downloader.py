@@ -43,6 +43,21 @@ class Downloader(ABC):
         super().__init_subclass__(**kwargs)
         Downloader.registry.append(cls)
 
+    @final
+    async def __call__(self) -> AsyncGenerator[Element[str] | None]:
+        async for data in self.process(self.download_urls()):
+            if data is None:
+                yield None
+            elif isinstance(data, str):
+                try:
+                    data = self.decode(data)
+                except NotImplementedError:
+                    pass
+
+                yield ET.fromstring(data)
+            else:
+                yield data
+
     @abstractmethod
     def decode(self, encoded: str) -> str: ...
 
@@ -66,21 +81,6 @@ class Downloader(ABC):
             return self.extra_headers
         else:
             return self.extra_headers[idx]
-
-    @final
-    async def get_keyboxes(self) -> AsyncGenerator[Element[str] | None]:
-        async for data in self.process(self.download_urls()):
-            if data is None:
-                yield None
-            elif isinstance(data, str):
-                try:
-                    data = self.decode(data)
-                except NotImplementedError:
-                    pass
-
-                yield ET.fromstring(data)
-            else:
-                yield data
 
     @final
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
