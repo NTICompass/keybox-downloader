@@ -2,6 +2,7 @@ from asyncstdlib import enumerate as a_enumerate
 from collections.abc import Generator
 from datetime import datetime, timedelta
 from downloaders import Downloader
+from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
@@ -9,37 +10,33 @@ from typing import TypedDict
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree, Element
+import __main__
 import asyncio
 import json
 import logging
-import os
 
 
 class CacheManifest(TypedDict):
     last_checked: int | float
 
 
-path = 'keyboxes'
+root: Path = __main__.root
+path = root / 'keyboxes'
+log_path = root / 'logs'
+backup_path = root / 'backups'
+manifest_path = root / 'cache'
 types = ('revoked', 'valid', 'aosp')
-log_path = 'logs'
-backup_path = 'backups'
-manifest_path = 'cache'
 logger = logging.getLogger(__name__)
 manifest: CacheManifest
 
 
-def make_folder(folder: str):
-    if not os.path.exists(folder):
-        os.mkdir(folder)
-
-
 def make_folders():
     for key_type in types:
-        os.makedirs(f'{path}/{key_type}')
+        (path / key_type).mkdir()
 
 
 def init():
-    make_folder(log_path)
+    log_path.mkdir(exist_ok=True)
     logging.basicConfig(
         filename=f'{log_path}/keybox-downloader-{time():.0f}.log', level=logging.INFO
     )
@@ -47,9 +44,9 @@ def init():
 
     # Only download once every 24hrs
     global manifest
-    manifest_file = f'{manifest_path}/manifest.json'
+    manifest_file = manifest_path / 'manifest.json'
 
-    if os.path.exists(manifest_path) and os.path.exists(manifest_file):
+    if manifest_path.exists() and manifest_file.exists():
         with open(manifest_file) as manifest_data:
             manifest = json.load(manifest_data)
             time_diff = datetime.now() - datetime.fromtimestamp(
@@ -61,15 +58,15 @@ def init():
                     f'Last download was less than 24hrs ago: {manifest["last_checked"]}'
                 )
     else:
-        make_folder(manifest_path)
+        manifest_path.mkdir(exist_ok=True)
         manifest = {}
 
-    if not os.path.exists(path):
+    if not path.exists():
         make_folders()
     else:
         logger.info('Backing up existing keyboxes')
 
-        make_folder(backup_path)
+        backup_path.mkdir(exist_ok=True)
         make_archive(f'{backup_path}/keyboxes-{time():.0f}', 'zip', path)
         rmtree(path)
         make_folders()
@@ -139,7 +136,7 @@ async def go(*downloaders: Downloader):
         await Downloader.client.aclose()
 
         logger.info('All keyboxes downloaded, comparing to find duplicates')
-        dupe = Duplicate(path)
+        dupe = Duplicate(str(path))
         dupe.check_duplicates()
 
         with open(f'{manifest_path}/manifest.json', 'w') as manifest_data:
