@@ -33,6 +33,7 @@ class Downloader(ABC):
         },
     )
     cloudflare_client = CloudScraper()
+    extra_headers: dict[str, str] | list[dict[str, str]] | None = None
 
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
@@ -58,6 +59,15 @@ class Downloader(ABC):
             return ET.parse(data).getroot()
 
     @final
+    def get_headers(self, idx: int) -> dict[str, str]:
+        if self.extra_headers is None:
+            return {}
+        elif isinstance(self.extra_headers, dict):
+            return self.extra_headers
+        else:
+            return self.extra_headers[idx]
+
+    @final
     async def get_data(self) -> AsyncGenerator[Element[str] | None]:
         async for data in self.process(self.download_urls()):
             if data is None:
@@ -79,9 +89,10 @@ class Downloader(ABC):
                 self.client.get(
                     build_github_url(*dl.split(':', 4)[1:])
                     if dl.startswith('github:')
-                    else dl
+                    else dl,
+                    headers=self.get_headers(idx),
                 )
-                for dl in download
+                for idx, dl in enumerate(download)
             ]
         ):
             try:
@@ -102,8 +113,14 @@ class Downloader(ABC):
         with ThreadPoolExecutor(max_workers=2) as executor:
             for r in await asyncio.gather(
                 *[
-                    loop.run_in_executor(executor, self.cloudflare_client.get, dl)
-                    for dl in download
+                    loop.run_in_executor(
+                        executor,
+                        lambda url: self.cloudflare_client.get(
+                            url, headers=self.get_headers(idx)
+                        ),
+                        dl,
+                    )
+                    for idx, dl in enumerate(download)
                 ]
             ):
                 self.logger.info(f'Downloaded {r.url} via "CloudScraper"')

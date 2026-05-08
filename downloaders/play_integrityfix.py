@@ -1,8 +1,10 @@
 from . import Downloader
 from collections.abc import AsyncGenerator
+from dotenv import load_dotenv
 from typing import final, override, TypedDict
 from xml.etree.ElementTree import Element
 import json
+import os
 
 
 # https://docs.github.com/en/rest/releases/releases?apiVersion=2026-03-10
@@ -26,11 +28,23 @@ class PlayIntegrityFix(Downloader):
     URL = 'https://api.github.com/repos/FBIVIP/Play-IntegrityFix/releases/latest'
 
     @override
+    def __init__(self):
+        super().__init__()
+        load_dotenv()
+
+        github_token = os.getenv('GITHUB_TOKEN')
+
+        if github_token:
+            self.extra_headers = {'Authorization': f'Bearer {github_token}'}
+
+    @override
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[Element | None]:
         self.logger.info('Searching for latest release')
+
         releases: GitHubRelease = json.loads(await anext(downloaded))
+        self.extra_headers = None
 
         for release in releases['assets']:
             if release['content_type'] == 'application/zip':

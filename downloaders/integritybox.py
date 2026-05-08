@@ -30,6 +30,7 @@ class IntegrityBox(Downloader):
         'github:freekeybox/mona::meow.tar',
     ]
 
+    @override
     def __init__(self):
         super().__init__()
         self.junk: list[str] = []
