@@ -38,7 +38,7 @@ class IntegrityBox(Downloader):
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Element[str] | None]:
+    ) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading keybox scripts')
 
         # Also download the keybox from the webapp, which is probably the same

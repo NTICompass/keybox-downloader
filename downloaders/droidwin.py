@@ -15,7 +15,7 @@ class DroidWin(Downloader):
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Element[str] | None]:
+    ) -> AsyncGenerator[Element | None]:
         self.logger.info('Downloading webpage')
 
         cloudflare = False

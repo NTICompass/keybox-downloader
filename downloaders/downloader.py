@@ -44,7 +44,7 @@ class Downloader(ABC):
         Downloader.registry.append(cls)
 
     @final
-    async def __call__(self) -> AsyncGenerator[Element[str] | None]:
+    async def __call__(self) -> AsyncGenerator[Element | None]:
         async for data in self.process(self.download_urls()):
             if data is None:
                 yield None
@@ -63,12 +63,12 @@ class Downloader(ABC):
 
     def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[str | Element[str] | None]:
+    ) -> AsyncGenerator[str | Element | None]:
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
 
     @final
-    def unzip(self, zipfile: bytes, filename: str) -> Element[str]:
+    def unzip(self, zipfile: bytes, filename: str) -> Element:
         with ZipFile(BytesIO(zipfile), 'r') as file, file.open(filename) as data:
             self.logger.info('Extracting keybox from ZIP file')
             return ET.parse(data).getroot()

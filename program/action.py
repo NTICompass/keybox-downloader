@@ -75,7 +75,7 @@ def init():
         make_folders()
 
 
-type KeyboxFiles = dict[str, ElementTree[Element[str] | None]]
+type KeyboxFiles = dict[str, ElementTree[Element | None]]
 
 
 async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
