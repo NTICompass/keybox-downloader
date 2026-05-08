@@ -68,7 +68,7 @@ class Downloader(ABC):
             return self.extra_headers[idx]
 
     @final
-    async def get_data(self) -> AsyncGenerator[Element[str] | None]:
+    async def get_keyboxes(self) -> AsyncGenerator[Element[str] | None]:
         async for data in self.process(self.download_urls()):
             if data is None:
                 yield None
