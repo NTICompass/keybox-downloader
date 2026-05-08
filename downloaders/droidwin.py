@@ -58,5 +58,5 @@ class DroidWin(Downloader):
                 with zip_file.open('keybox.xml') as keybox_data:
                     yield ET.parse(keybox_data).getroot()
 
-    def decode_keybox(self, encoded: str) -> str:
+    def decode(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

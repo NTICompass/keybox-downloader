@@ -43,7 +43,7 @@ class TSupport(Downloader):
 
             if dl is not None and len(dl.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
-                self.keys = self.decode_keybox(dl)
+                self.keys = self.decode(dl)
                 yield self.build_keybox()
             else:
                 yield None
@@ -85,7 +85,7 @@ class TSupport(Downloader):
         else:
             return None
 
-    def decode_keybox(self, encoded: str) -> str:
+    def decode(self, encoded: str) -> str:
         # Strip off any irrelevant data
         encoded = re.sub(r'=+.+?=.\s+', '', encoded, 1, re.DOTALL)
 

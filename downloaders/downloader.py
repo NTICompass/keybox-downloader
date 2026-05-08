@@ -39,7 +39,7 @@ class Downloader(ABC):
         Downloader.registry.append(cls)
 
     @abstractmethod
-    def decode_keybox(self, encoded: str) -> str: ...
+    def decode(self, encoded: str) -> str: ...
 
     def process(
         self, downloaded: AsyncGenerator[str]
@@ -53,7 +53,7 @@ class Downloader(ABC):
                 yield None
             elif isinstance(data, str):
                 try:
-                    data = self.decode_keybox(data)
+                    data = self.decode(data)
                 except NotImplementedError:
                     pass
 

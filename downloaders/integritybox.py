@@ -53,7 +53,7 @@ class IntegrityBox(Downloader):
             (await self.client.get(download_url)).text,
             encoded_keybox,
         ):
-            keyboxes.append(self.decode_keybox(encoded))
+            keyboxes.append(self.decode(encoded))
 
         # Output keyboxes as XML
         for idx, keybox in enumerate(keyboxes):
@@ -75,7 +75,7 @@ class IntegrityBox(Downloader):
                     self.logger.info(f'Cannot parse "{keybox}"')
                     yield None
 
-    def decode_keybox(self, encoded: str) -> str | None:
+    def decode(self, encoded: str) -> str | None:
         self.logger.info('Decoding keybox xml')
 
         # Decode base64 ten times!

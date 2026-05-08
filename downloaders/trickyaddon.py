@@ -9,7 +9,7 @@ class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
     URL = 'github:KOWX712/Tricky-Addon-Update-Target-List:keybox:.extra'
 
-    def decode_keybox(self, encoded: str) -> str:
+    def decode(self, encoded: str) -> str:
         self.logger.info('Decoding keybox xml')
 
         # First decode the hex bytes

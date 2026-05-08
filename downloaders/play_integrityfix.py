@@ -51,5 +51,5 @@ class PlayIntegrityFix(Downloader):
                     with zip_file.open('zygisk/.@fateh7') as keybox_data:
                         yield ET.parse(keybox_data).getroot()
 
-    def decode_keybox(self, encoded: str) -> str:
+    def decode(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

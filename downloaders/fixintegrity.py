@@ -9,5 +9,5 @@ class FixIntegrity(Downloader):
     # https://github.com/GueRapii/TrickBox
     URL = 'github:GueRapii/randommodulesfiles::file.enc'
 
-    def decode_keybox(self, encoded: str) -> str:
+    def decode(self, encoded: str) -> str:
         return b64decode(encoded).decode('ascii')
