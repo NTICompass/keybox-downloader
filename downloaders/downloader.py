@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
 from requests import Response as CloudflareResponse
-from typing import final, overload, Literal, Self
+from typing import final, overload, ClassVar, Literal, Self
 from xml.etree.ElementTree import Element
 from zipfile import ZipFile
 import asyncio
@@ -22,7 +22,7 @@ class Downloader(ABC):
     URL: str
     URLS: list[str]
     current_url: HTTP_URL | str
-    client = AsyncClient(
+    client: ClassVar[AsyncClient] = AsyncClient(
         http2=True,
         follow_redirects=True,
         timeout=None,
@@ -32,7 +32,7 @@ class Downloader(ABC):
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36',
         },
     )
-    cloudflare_client = CloudScraper()
+    cloudflare_client: ClassVar[CloudScraper] = CloudScraper()
     extra_headers: dict[str, str] | list[dict[str, str]] | None = None
 
     def __init__(self):
@@ -115,10 +115,11 @@ class Downloader(ABC):
                 *[
                     loop.run_in_executor(
                         executor,
-                        lambda url: self.cloudflare_client.get(
+                        lambda url, idx: self.cloudflare_client.get(
                             url, headers=self.get_headers(idx)
                         ),
                         dl,
+                        idx,
                     )
                     for idx, dl in enumerate(download)
                 ]
