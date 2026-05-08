@@ -79,7 +79,7 @@ class TSupport(Downloader):
                 'DeviceID',
                 f'{"HW" if key_id == "Hardware Attestation" else "SW"}'
                 f'{"PVT" if keybox_metadata["TYPE"] == "PRIVATE" else "PUB"}'
-                f'_{pathlib.Path(self.current_url.path).stem}',
+                f'_{pathlib.Path(self.current_url if isinstance(self.current_url, str) else self.current_url.path).stem}',
             )
             keybox_element.append(ecdsa_key)
             keybox_element.append(rsa_key)

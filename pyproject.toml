@@ -11,6 +11,7 @@ dependencies = [
     "cryptography==48.0.0",
     "httpx[brotli,http2]>=0.28.1",
     "prompt-toolkit>=3.0.52",
+    "requests==2.33.1",
     "ruff==0.15.12",
     "tqdm==4.67.3",
 ]

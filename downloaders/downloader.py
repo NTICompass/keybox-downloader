@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
+from requests import Response as CloudflareResponse
 from typing import final, overload, Literal, Self
 from xml.etree.ElementTree import Element
 from zipfile import ZipFile
@@ -20,7 +21,7 @@ class Downloader(ABC):
     registry: list[type[Self]] = []
     URL: str
     URLS: list[str]
-    current_url: HTTP_URL
+    current_url: HTTP_URL | str
     client = AsyncClient(
         http2=True,
         follow_redirects=True,
@@ -93,15 +94,15 @@ class Downloader(ABC):
                 yield r
 
     @final
-    async def cloudflare_download(self, *download: str) -> AsyncGenerator[Response]:
+    async def cloudflare_download(
+        self, *download: str
+    ) -> AsyncGenerator[CloudflareResponse]:
         loop = asyncio.get_running_loop()
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             for r in await asyncio.gather(
                 *[
-                    loop.run_in_executor(
-                        executor, lambda url: self.cloudflare_client.get(url), dl
-                    )
+                    loop.run_in_executor(executor, self.cloudflare_client.get, dl)
                     for dl in download
                 ]
             ):
