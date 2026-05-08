@@ -13,13 +13,15 @@ class DroidWin(Downloader):
         'https://droidwin.com/droidwin-keybox-module-gives-you-a-new-unrevoked-keybox/'
     )
 
-    async def get_keybox(self) -> AsyncGenerator[Element | None]:
+    async def process(
+        self, downloaded: AsyncGenerator[str]
+    ) -> AsyncGenerator[Element[str] | None]:
         self.logger.info('Downloading webpage')
 
         cloudflare = False
 
         try:
-            html = await anext(self.download_urls())
+            html = await anext(downloaded)
         except StopAsyncIteration:
             """
             This means that the httpx returned an error downloading the website
@@ -56,5 +58,5 @@ class DroidWin(Downloader):
                 with zip_file.open('keybox.xml') as keybox_data:
                     yield ET.parse(keybox_data).getroot()
 
-    def decode_keybox(self) -> str:
+    def decode_keybox(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

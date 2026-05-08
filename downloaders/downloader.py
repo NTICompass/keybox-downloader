@@ -5,6 +5,7 @@ from typing import overload, Literal, Self
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from xml.etree.ElementTree import Element
+import xml.etree.ElementTree as ET
 import asyncio
 import logging
 
@@ -17,6 +18,7 @@ class Downloader(ABC):
     registry: list[type[Self]] = []
     URL: str
     URLS: list[str]
+    current_url: HTTP_URL
     client = AsyncClient(
         http2=True,
         follow_redirects=True,
@@ -29,9 +31,6 @@ class Downloader(ABC):
     )
     cloudflare_client = CloudScraper()
 
-    encoded: str
-    current_url: HTTP_URL
-
     def __init__(self):
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -39,11 +38,28 @@ class Downloader(ABC):
         super().__init_subclass__(**kwargs)
         Downloader.registry.append(cls)
 
-    @abstractmethod
-    def get_keybox(self) -> AsyncGenerator[Element | None]: ...
+    async def process(
+        self, downloaded: AsyncGenerator[str]
+    ) -> AsyncGenerator[str | Element[str] | None]:
+        self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
+
+        async for download in downloaded:
+            yield download
 
     @abstractmethod
-    def decode_keybox(self) -> str: ...
+    def decode_keybox(self, encoded: str) -> str: ...
+
+    async def get_keyboxes(self) -> AsyncGenerator[Element[str] | None]:
+        async for keyboxData in self.process(self.download_urls()):
+            if isinstance(keyboxData, str):
+                try:
+                    yield ET.fromstring(self.decode_keybox(keyboxData))
+                except NotImplementedError:
+                    yield ET.fromstring(keyboxData)
+            elif keyboxData is not None:
+                yield keyboxData
+            else:
+                yield None
 
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
         for r in await asyncio.gather(

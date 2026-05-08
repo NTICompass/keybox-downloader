@@ -9,23 +9,11 @@ class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
     URL = 'github:KOWX712/Tricky-Addon-Update-Target-List:keybox:.extra'
 
-    async def get_keybox(self) -> AsyncGenerator[Element | None]:
-        self.logger.info('Downloading encoded keybox')
-        self.encoded = str(await anext(self.download_urls()))
-
-        yield (
-            ET.fromstring(self.decode_keybox())
-            if self.encoded is not None and len(self.encoded.strip()) > 0
-            else None
-        )
-
-    def decode_keybox(self) -> str:
+    def decode_keybox(self, encoded: str) -> str:
         self.logger.info('Decoding keybox xml')
 
         # First decode the hex bytes
-        encoded = bytes.fromhex(
-            self.encoded if self.encoded is not None else ''
-        ).decode('ascii')
+        encoded = bytes.fromhex(encoded).decode('ascii')
 
         # Then base64 decode
         return b64decode(encoded).decode('ascii')

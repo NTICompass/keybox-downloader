@@ -33,16 +33,17 @@ class TSupport(Downloader):
 
     keys: str
 
-    async def get_keybox(self) -> AsyncGenerator[Element | None]:
+    async def process(
+        self, downloaded: AsyncGenerator[str]
+    ) -> AsyncGenerator[Element | None]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
-        async for idx, dl in a_enumerate(self.download_urls()):
+        async for idx, dl in a_enumerate(downloaded):
             self.logger.info(f'Downloading encoded keybox #{idx + 1}')
-            self.encoded = str(dl)
 
-            if self.encoded is not None and len(self.encoded.strip()) > 0:
+            if dl is not None and len(dl.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
-                self.keys = self.decode_keybox()
+                self.keys = self.decode_keybox(dl)
                 yield self.build_keybox()
             else:
                 yield None
@@ -67,7 +68,7 @@ class TSupport(Downloader):
             keybox_element = ET.SubElement(keybox_xml, 'Keybox')
 
             try:
-                key_id = keybox_metadata["ID"]
+                key_id = keybox_metadata['ID']
             except KeyError:
                 key_id = ''
 
@@ -84,9 +85,9 @@ class TSupport(Downloader):
         else:
             return None
 
-    def decode_keybox(self) -> str:
+    def decode_keybox(self, encoded: str) -> str:
         # Strip off any irrelevant data
-        encoded = re.sub(r'=+.+?=.\s+', '', self.encoded, 1, re.DOTALL)
+        encoded = re.sub(r'=+.+?=.\s+', '', encoded, 1, re.DOTALL)
 
         # Some files are rot13+base64, some are just base64
         try:

@@ -27,9 +27,11 @@ class PlayIntegrityFix(Downloader):
     # https://github.com/FBIVIP/Play-IntegrityFix/releases
     URL = 'https://api.github.com/repos/FBIVIP/Play-IntegrityFix/releases/latest'
 
-    async def get_keybox(self) -> AsyncGenerator[Element | None]:
+    async def process(
+        self, downloaded: AsyncGenerator[str]
+    ) -> AsyncGenerator[Element | None]:
         self.logger.info('Searching for latest release')
-        releases: GitHubRelease = json.loads(await anext(self.download_urls()))
+        releases: GitHubRelease = json.loads(await anext(downloaded))
 
         for release in releases['assets']:
             if release['content_type'] == 'application/zip':
@@ -49,5 +51,5 @@ class PlayIntegrityFix(Downloader):
                     with zip_file.open('zygisk/.@fateh7') as keybox_data:
                         yield ET.parse(keybox_data).getroot()
 
-    def decode_keybox(self) -> str:
+    def decode_keybox(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

@@ -30,15 +30,16 @@ class IntegrityBox(Downloader):
 
     def __init__(self):
         super().__init__()
-
         self.junk: list[str] = []
 
-    async def get_keybox(self) -> AsyncGenerator[Element | None]:
+    async def process(
+        self, downloaded: AsyncGenerator[str]
+    ) -> AsyncGenerator[Element[str] | None]:
         self.logger.info('Downloading keybox scripts')
 
         # Also download the keybox from the webapp, which is probably the same
         keybox_script, cleanup_script, encoded_keybox, web_keybox = [
-            data async for data in self.download_urls()
+            data async for data in downloaded
         ]
 
         download_url = get_keybox_url(keybox_script)
@@ -52,8 +53,7 @@ class IntegrityBox(Downloader):
             (await self.client.get(download_url)).text,
             encoded_keybox,
         ):
-            self.encoded = str(encoded)
-            keyboxes.append(self.decode_keybox())
+            keyboxes.append(self.decode_keybox(encoded))
 
         # Output keyboxes as XML
         for idx, keybox in enumerate(keyboxes):
@@ -75,13 +75,8 @@ class IntegrityBox(Downloader):
                     self.logger.info(f'Cannot parse "{keybox}"')
                     yield None
 
-    def decode_keybox(self) -> str | None:
+    def decode_keybox(self, encoded: str) -> str | None:
         self.logger.info('Decoding keybox xml')
-
-        if self.encoded is None or len(self.encoded.strip()) == 0:
-            return None
-
-        encoded = self.encoded
 
         # Decode base64 ten times!
         for i in range(10):
