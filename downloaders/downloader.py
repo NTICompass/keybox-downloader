@@ -38,16 +38,14 @@ class Downloader(ABC):
         super().__init_subclass__(**kwargs)
         Downloader.registry.append(cls)
 
-    async def process(
+    @abstractmethod
+    def decode_keybox(self, encoded: str) -> str: ...
+
+    def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[str | Element[str] | None]:
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
-
-        async for download in downloaded:
-            yield download
-
-    @abstractmethod
-    def decode_keybox(self, encoded: str) -> str: ...
+        return downloaded
 
     async def get_data(self) -> AsyncGenerator[Element[str] | None]:
         async for data in self.process(self.download_urls()):
