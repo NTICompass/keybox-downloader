@@ -15,7 +15,7 @@ class TSupport(Downloader):
     # https://t.me/s/citraintegritytrick
     URLS = [
         # The keybox from the module (Actually just the AOSP keybox)
-        #'github:Citra-Standalone/Citra-Standalone::bin.tar',
+        'github:Citra-Standalone/Citra-Standalone::bin.tar',
         # Extra keybox files
         'github:Citra-Standalone/Citra-Standalone::zipball/bin.tar',
         'github:Citra-Standalone/Citra-Standalone::zipball/bin1.tar',
