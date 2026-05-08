@@ -49,17 +49,19 @@ class Downloader(ABC):
     @abstractmethod
     def decode_keybox(self, encoded: str) -> str: ...
 
-    async def get_keyboxes(self) -> AsyncGenerator[Element[str] | None]:
-        async for keyboxData in self.process(self.download_urls()):
-            if isinstance(keyboxData, str):
-                try:
-                    yield ET.fromstring(self.decode_keybox(keyboxData))
-                except NotImplementedError:
-                    yield ET.fromstring(keyboxData)
-            elif keyboxData is not None:
-                yield keyboxData
-            else:
+    async def get_data(self) -> AsyncGenerator[Element[str] | None]:
+        async for data in self.process(self.download_urls()):
+            if data is None:
                 yield None
+            elif isinstance(data, str):
+                try:
+                    data = self.decode_keybox(data)
+                except NotImplementedError:
+                    pass
+
+                yield ET.fromstring(data)
+            else:
+                yield data
 
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
         for r in await asyncio.gather(
