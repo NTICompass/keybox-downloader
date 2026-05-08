@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pyinstaller",
     "python-dotenv[cli]",
     "ruff",
 ]
