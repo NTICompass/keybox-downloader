@@ -441,33 +441,42 @@ name = "keybox-downloader"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "adbutils" },
     { name = "asyncstdlib" },
     { name = "beautifulsoup4" },
     { name = "cloudscraper" },
     { name = "cryptography" },
     { name = "httpx", extra = ["brotli", "http2"] },
     { name = "prompt-toolkit" },
-    { name = "python-dotenv", extra = ["cli"] },
+    { name = "python-dotenv" },
     { name = "requests" },
-    { name = "ruff" },
     { name = "tqdm" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "python-dotenv", extra = ["cli"] },
+    { name = "ruff" },
+]
+pc = [
+    { name = "adbutils" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "adbutils", specifier = ">=2.12.0" },
+    { name = "adbutils", marker = "extra == 'pc'", specifier = ">=2.12.0" },
     { name = "asyncstdlib", specifier = "==3.14.0" },
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
     { name = "cloudscraper", specifier = ">=1.2.71" },
     { name = "cryptography", specifier = "==48.0.0" },
     { name = "httpx", extras = ["brotli", "http2"], specifier = ">=0.28.1" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
-    { name = "python-dotenv", extras = ["cli"], specifier = ">=1.2.2" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "python-dotenv", extras = ["cli"], marker = "extra == 'dev'", specifier = ">=1.2.2" },
     { name = "requests", specifier = "==2.33.1" },
-    { name = "ruff", specifier = "==0.15.12" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.15.12" },
     { name = "tqdm", specifier = "==4.67.3" },
 ]
+provides-extras = ["dev", "pc"]
 
 [[package]]
 name = "packaging"

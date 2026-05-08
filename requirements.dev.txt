@@ -1,3 +1,0 @@
--r requirements.pc.txt
-python-dotenv[cli]
-ruff

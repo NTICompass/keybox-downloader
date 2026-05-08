@@ -1,18 +1,26 @@
 [project]
 name = "keybox-downloader"
-version = "0.1.0"
+version = "0.99.9"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = ">=3.12"
 dependencies = [
-    "adbutils>=2.12.0",
-    "asyncstdlib==3.14.0",
-    "beautifulsoup4>=4.14.3",
-    "cloudscraper>=1.2.71",
-    "cryptography==48.0.0",
-    "httpx[brotli,http2]>=0.28.1",
-    "prompt-toolkit>=3.0.52",
-    "python-dotenv[cli]>=1.2.2",
-    "requests==2.33.1",
-    "ruff==0.15.12",
-    "tqdm==4.67.3",
+    "asyncstdlib",
+    "beautifulsoup4",
+    "cloudscraper",
+    "cryptography",
+    "httpx[brotli,http2]",
+    "prompt-toolkit",
+    "python-dotenv",
+    "requests",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "python-dotenv[cli]",
+    "ruff",
+]
+
+pc = [
+    "adbutils",
 ]
