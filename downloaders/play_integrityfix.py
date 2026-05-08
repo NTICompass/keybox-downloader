@@ -1,11 +1,8 @@
 from . import Downloader
 from collections.abc import AsyncGenerator
-from io import BytesIO
 from typing import TypedDict
 from xml.etree.ElementTree import Element
-from zipfile import ZipFile
 import json
-import xml.etree.ElementTree as ET
 
 
 # https://docs.github.com/en/rest/releases/releases?apiVersion=2026-03-10
@@ -45,11 +42,7 @@ class PlayIntegrityFix(Downloader):
                     )
                 )
 
-                with ZipFile(BytesIO(zip_dl), 'r') as zip_file:
-                    self.logger.info('Extracting keybox from ZIP file')
-
-                    with zip_file.open('zygisk/.@fateh7') as keybox_data:
-                        yield ET.parse(keybox_data).getroot()
+                yield self.unzip(zip_dl, 'zygisk/.@fateh7')
 
     def decode(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')

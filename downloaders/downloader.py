@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
-from typing import overload, Literal, Self
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
+from io import BytesIO
+from typing import overload, Literal, Self
 from xml.etree.ElementTree import Element
-import xml.etree.ElementTree as ET
+from zipfile import ZipFile
 import asyncio
 import logging
+import xml.etree.ElementTree as ET
 
 
 def build_github_url(repo: str, branch: str, file: str) -> str:
@@ -46,6 +48,11 @@ class Downloader(ABC):
     ) -> AsyncGenerator[str | Element[str] | None]:
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
+
+    def unzip(self, zipfile: bytes, filename: str) -> Element[str]:
+        with ZipFile(BytesIO(zipfile), 'r') as file, file.open(filename) as data:
+            self.logger.info('Extracting keybox from ZIP file')
+            return ET.parse(data).getroot()
 
     async def get_data(self) -> AsyncGenerator[Element[str] | None]:
         async for data in self.process(self.download_urls()):

@@ -1,11 +1,8 @@
 from . import Downloader
 from bs4 import BeautifulSoup
 from collections.abc import AsyncGenerator
-from io import BytesIO
 from xml.etree.ElementTree import Element
-from zipfile import ZipFile
 import re
-import xml.etree.ElementTree as ET
 
 
 class DroidWin(Downloader):
@@ -52,11 +49,7 @@ class DroidWin(Downloader):
                 )
             )
 
-            with ZipFile(BytesIO(zip_dl), 'r') as zip_file:
-                self.logger.info('Extracting keybox from ZIP file')
-
-                with zip_file.open('keybox.xml') as keybox_data:
-                    yield ET.parse(keybox_data).getroot()
+            yield self.unzip(zip_dl, 'keybox.xml')
 
     def decode(self, encoded: str) -> str:
         raise NotImplementedError('Keybox not encoded')
