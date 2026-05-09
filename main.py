@@ -4,8 +4,10 @@ import sys
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     # Inside a PyInstaller bundle
     root = Path(sys._MEIPASS)
+    exe_root = Path(sys.executable).parent
 else:
     root = Path(__file__).parent
+    exe_root = root
 
 from program import get_downloaders, go, menu
 import argparse

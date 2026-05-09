@@ -20,7 +20,7 @@ class CacheManifest(TypedDict):
     last_checked: int | float
 
 
-root: Path = __main__.root
+root: Path = __main__.exe_root
 path = root / 'keyboxes'
 log_path = root / 'logs'
 backup_path = root / 'backups'

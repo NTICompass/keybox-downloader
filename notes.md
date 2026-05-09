@@ -41,3 +41,7 @@ This lets you get "device" integrity, is that good enough?
 ---
 Can I release this tool to the public?
 If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
+
+```
+pyinstaller.exe --add-data "scripts:scripts" --onefile --noupx .\main.py
+```
