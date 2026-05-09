@@ -29,7 +29,7 @@ else:
     device: AdbDevice | None = None
 
 root: Path = __main__.root
-folder: Path = __main__.exe_root / 'keyboxes/valid'
+folder: Path = __main__.exe_root / 'keyboxes'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
@@ -92,14 +92,14 @@ async def get_device() -> str:
         return props if props.strip() != '' else 'No device found, press "r" to re-try'
 
 
-def get_cert_serials(file: str) -> list[str]:
-    if file not in files:
-        files[file] = ET.parse(folder / file).getroot()
+def get_cert_serials(file: Path) -> list[str]:
+    if file.name not in files:
+        files[file.name] = ET.parse(file).getroot()
 
     all_certs = [
-        f'{cert.serial_number:x}' for cert in certs.get_certs(keybox=files[file])
+        f'{cert.serial_number:x}' for cert in certs.get_certs(keybox=files[file.name])
     ]
-    ec_certs, rsa_certs = certs.get_counts(keybox=files[file])
+    ec_certs, rsa_certs = certs.get_counts(keybox=files[file.name])
 
     return [
         f'{ec_certs} EC certs, {rsa_certs} RSA certs',
@@ -142,7 +142,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             # (style, text, handler)
             (
                 'class:selected' if idx == selected_index else '',
-                f'{"->" if idx == selected_index else "  "} {file}\n',
+                f'{"->" if idx == selected_index else "  "} {file.parent.name} / {file.name}\n',
                 handler(idx),
             )
             for idx, file in enumerate(keyboxes)
@@ -152,7 +152,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     preview = Window(
         FormattedTextControl(
             text=lambda: (
-                f'{keyboxes[selected_index]}: {"\n".join(get_cert_serials(keyboxes[selected_index].name))}'
+                f'{keyboxes[selected_index].parent.name} / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
                 if len(keyboxes) > 0
                 else ''
             ),
@@ -196,7 +196,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 nonlocal keyboxes
 
                 await go(*get_downloaders())
-                keyboxes = list(folder.glob('*.xml'))
+                keyboxes = list(folder.rglob('*.xml'))
 
         event.app.create_background_task(run())
 
@@ -256,7 +256,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
 def menu(ignore_empty=False):
     selected_file = asyncio.run(
-        select_file(list(folder.glob('*.xml')), ignore_empty=ignore_empty)
+        select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty)
     )
 
     if selected_file is None:
