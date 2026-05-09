@@ -12,6 +12,7 @@ from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
 from utils.certs import Certs
 from xml.etree.ElementTree import Element
+import __main__
 import asyncio
 import sys
 import xml.etree.ElementTree as ET
@@ -28,7 +29,8 @@ else:
 
     device: AdbDevice | None = None
 
-folder = 'keyboxes/valid'
+root: Path = __main__.root
+folder = f'{root}/keyboxes/valid'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
