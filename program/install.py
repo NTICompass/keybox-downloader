@@ -1,6 +1,5 @@
 from . import get_downloaders, go
 from collections.abc import Callable
-from glob import glob
 from pathlib import Path
 from prompt_toolkit.application import Application, get_app, in_terminal
 from prompt_toolkit.filters import Condition
@@ -30,7 +29,7 @@ else:
     device: AdbDevice | None = None
 
 root: Path = __main__.root
-folder = f'{root}/keyboxes/valid'
+folder: Path = __main__.exe_root / 'keyboxes/valid'
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
@@ -95,7 +94,7 @@ async def get_device() -> str:
 
 def get_cert_serials(file: str) -> list[str]:
     if file not in files:
-        files[file] = ET.parse(Path(f'{folder}/{file}')).getroot()
+        files[file] = ET.parse(folder / file).getroot()
 
     all_certs = [
         f'{cert.serial_number:x}' for cert in certs.get_certs(keybox=files[file])
@@ -108,7 +107,7 @@ def get_cert_serials(file: str) -> list[str]:
     ]
 
 
-async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
+async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     if not ignore_empty and len(keyboxes) == 0:
         print('No valid keyboxes found')
         return None
@@ -153,7 +152,7 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
     preview = Window(
         FormattedTextControl(
             text=lambda: (
-                f'{keyboxes[selected_index]}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
+                f'{keyboxes[selected_index]}: {"\n".join(get_cert_serials(keyboxes[selected_index].name))}'
                 if len(keyboxes) > 0
                 else ''
             ),
@@ -197,7 +196,7 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
                 nonlocal keyboxes
 
                 await go(*get_downloaders())
-                keyboxes = glob('*.xml', root_dir=folder)
+                keyboxes = list(folder.glob('*.xml'))
 
         event.app.create_background_task(run())
 
@@ -210,7 +209,7 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
         event.app.exit(result=None)
 
     if is_android:
-        root = HSplit(
+        root_win = HSplit(
             [
                 VSplit(
                     [
@@ -222,7 +221,7 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
             ]
         )
     else:
-        root = HSplit(
+        root_win = HSplit(
             [
                 VSplit(
                     [
@@ -240,7 +239,7 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
         )
 
     app = Application(
-        layout=Layout(root, focused_element=menu_control),
+        layout=Layout(root_win, focused_element=menu_control),
         full_screen=True,
         key_bindings=kb,
         mouse_support=not is_android,
@@ -257,18 +256,18 @@ async def select_file(keyboxes: list[str], ignore_empty=False) -> str | None:
 
 def menu(ignore_empty=False):
     selected_file = asyncio.run(
-        select_file(glob('*.xml', root_dir=folder), ignore_empty=ignore_empty)
+        select_file(list(folder.glob('*.xml')), ignore_empty=ignore_empty)
     )
 
     if selected_file is None:
         print('Exiting')
     else:
         print(f'Installing {selected_file}')
-        selected = Path(f'{folder}/{selected_file}')
+        selected = folder / selected_file
 
         if is_android:
             install = (
-                Path(f'scripts/{runner["android"]}').absolute(),
+                (root / f'scripts/{runner["android"]}').absolute(),
                 selected.absolute(),
             )
             subprocess.run(
@@ -290,7 +289,7 @@ def menu(ignore_empty=False):
 
                     # Also copy the installer script
                     device.sync.push(
-                        Path(f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}'
+                        root / f'scripts/{runner["pc"]}', f'{tmp_folder}/{runner["pc"]}'
                     )
 
                     # Run the main installer script

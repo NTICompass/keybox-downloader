@@ -3,4 +3,17 @@
   <component name="RuffConfiguration">
     <option name="enabled" value="true" />
   </component>
+  <component name="RuffModuleSettingsStorage">
+    <option name="moduleSettings">
+      <map>
+        <entry key="keybox-downloader">
+          <value>
+            <RuffModuleSettingsData>
+              <option name="enabled" value="true" />
+            </RuffModuleSettingsData>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
 </project>
