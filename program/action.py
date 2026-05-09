@@ -31,6 +31,8 @@ manifest: CacheManifest
 
 
 def make_folders():
+    path.mkdir(exist_ok=True)
+
     for key_type in types:
         (path / key_type).mkdir()
 
