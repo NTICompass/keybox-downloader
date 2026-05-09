@@ -2,6 +2,7 @@ from . import get_downloaders, go
 from collections.abc import Callable
 from pathlib import Path
 from prompt_toolkit.application import Application, get_app, in_terminal
+from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
@@ -148,7 +149,13 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             for idx, file in enumerate(keyboxes)
         ]
 
-    menu_control = Window(FormattedTextControl(text=file_list, focusable=True))
+    menu_control = Window(
+        FormattedTextControl(
+            text=file_list,
+            focusable=True,
+            get_cursor_position=lambda: Point(0, selected_index),
+        )
+    )
     preview = Window(
         FormattedTextControl(
             text=lambda: (
