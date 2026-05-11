@@ -7,7 +7,7 @@ from downloaders.downloader import Downloader
 from json import JSONDecodeError
 from pathlib import Path
 from time import time
-from typing import final, overload, ClassVar, Literal, Self, TypedDict
+from typing import final, overload, ClassVar, Literal, Self, TypedDict, NotRequired
 from xml.etree.ElementTree import Element
 import __main__
 import json
@@ -17,13 +17,21 @@ import json
 Thanks to https://github.com/Ante0/YetAnotherKeyboxChecker
 and https://github.com/Transwarpcom/Check-Keybox-Certificate-Revocation-Status
 
-Also see https://developer.android.com/privacy-and-security/security-key-attestation
+Also see https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
 """
 
 
 class Attestation(TypedDict):
-    status: str  # REVOKED
-    reason: str  # KEY_COMPROMISE
+    status: Literal['REVOKED', 'SUSPENDED']
+    reason: NotRequired[
+        Literal[
+            'UNSPECIFIED',
+            'KEY_COMPROMISE',
+            'CA_COMPROMISE',
+            'SUPERSEDED',
+            'SOFTWARE_FLAW',
+        ]
+    ]
 
 
 class AttestationList(TypedDict):
