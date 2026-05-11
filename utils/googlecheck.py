@@ -3,6 +3,7 @@ from collections import Counter
 from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
+from typing import TypedDict
 from xml.etree.ElementTree import Element
 
 
@@ -14,18 +15,31 @@ Also see https://developer.android.com/privacy-and-security/security-key-attesta
 """
 
 
+class Attestation(TypedDict):
+    status: str  # REVOKED
+    reason: str  # KEY_COMPROMISE
+
+
+class AttestationList(TypedDict):
+    entries: dict[str, Attestation]
+
+
 class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
     AOSP_CERTS = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
     revoked: set[str]
-    status_list: dict
+    status_list: AttestationList
+
+    def __init__(self):
+        super().__init__()
+
+        self.logger.info('Downloading revoked keybox list from Google')
+        self.downloading = Downloader.client.get(self.URL)
 
     async def is_keybox_valid(self, xml: Element) -> bool:
-        # This is done here and not in `__init__` because of the `await`
         if not hasattr(self, 'status_list'):
-            self.logger.info('Downloading revoked keybox list from Google')
-            self.status_list = (await Downloader.client.get(self.URL)).json()
+            self.status_list = (await self.downloading).json()
 
             self.revoked = {
                 key
