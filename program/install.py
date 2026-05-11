@@ -11,6 +11,7 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
 from utils.certs import Certs
+from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import Element
 import __main__
 import asyncio
@@ -37,6 +38,7 @@ runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 
 current_keybox: Element | None = None
 certs = Certs()
+checker = GoogleChecker()
 files: dict[str, Element] = {}
 
 
@@ -93,12 +95,13 @@ async def get_device() -> str:
         return props if props.strip() != '' else 'No device found, press "r" to re-try'
 
 
-def get_cert_serials(file: Path) -> list[str]:
+def get_cert_serials(file: Path, valid: dict[str, bool]) -> list[str]:
     if file.name not in files:
         files[file.name] = ET.parse(file).getroot()
 
     all_certs = [
-        f'{cert.serial_number:x}' for cert in certs.get_certs(keybox=files[file.name])
+        f'{cert.serial_number:x} ({"Valid" if valid[f"{cert.serial_number:x}"] else "Revoked"})'
+        for cert in certs.get_certs(keybox=files[file.name])
     ]
     ec_certs, rsa_certs = certs.get_counts(keybox=files[file.name])
 
@@ -108,6 +111,13 @@ def get_cert_serials(file: Path) -> list[str]:
     ]
 
 
+async def check_cert_valid(file: Path) -> dict[str, bool]:
+    if file.name not in files:
+        files[file.name] = ET.parse(file).getroot()
+
+    return await checker.is_keybox_valid(files[file.name], True)
+
+
 async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     if not ignore_empty and len(keyboxes) == 0:
         print('No valid keyboxes found')
@@ -115,6 +125,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     selected_index = 0
     device_info_text = ''
+    keybox_info_text = ''
     kb = KeyBindings()
 
     async def refresh_device(event: KeyPressEvent | None = None):
@@ -124,6 +135,19 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         if event is not None:
             event.app.invalidate()
         else:
+            get_app().invalidate()
+
+    async def keybox_info(event: KeyPressEvent | None = None):
+        nonlocal keybox_info_text
+
+        valid_serials = await check_cert_valid(keyboxes[selected_index])
+        keybox_info_text = (
+            f'{keyboxes[selected_index].parent.name} / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index], valid_serials))}'
+            if len(keyboxes) > 0
+            else ''
+        )
+
+        if event is None:
             get_app().invalidate()
 
     def file_list() -> StyleAndTextTuples:
@@ -149,6 +173,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             for idx, file in enumerate(keyboxes)
         ]
 
+    get_app().create_background_task(keybox_info())
+    get_app().create_background_task(refresh_device())
+
     menu_control = Window(
         FormattedTextControl(
             text=file_list,
@@ -157,14 +184,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         )
     )
     preview = Window(
-        FormattedTextControl(
-            text=lambda: (
-                f'{keyboxes[selected_index].parent.name} / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
-                if len(keyboxes) > 0
-                else ''
-            ),
-            focusable=False,
-        )
+        FormattedTextControl(text=lambda: keybox_info_text, focusable=False)
     )
 
     continue_button = ConditionalContainer(
@@ -176,20 +196,20 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         Button(text='No Device Found'),
     )
 
-    get_app().create_background_task(refresh_device())
     device_info = Window(FormattedTextControl(text=lambda: device_info_text))
 
-    def move(delta: int):
+    def move(delta: int, event: KeyPressEvent):
         nonlocal selected_index
         selected_index = (selected_index + delta) % len(keyboxes)
+        event.app.create_background_task(keybox_info(event))
 
     @kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
-        move(-1)
+        move(-1, event)
 
     @kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
-        move(1)
+        move(1, event)
 
     @kb.add('enter', filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):

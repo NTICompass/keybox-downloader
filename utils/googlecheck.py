@@ -3,7 +3,7 @@ from collections import Counter
 from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
-from typing import TypedDict
+from typing import final, overload, Literal, TypedDict
 from xml.etree.ElementTree import Element
 
 
@@ -24,6 +24,7 @@ class AttestationList(TypedDict):
     entries: dict[str, Attestation]
 
 
+@final
 class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
     AOSP_CERTS = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
@@ -37,7 +38,21 @@ class GoogleChecker(Certs):
         self.logger.info('Downloading revoked keybox list from Google')
         self.downloading = Downloader.client.get(self.URL)
 
-    async def is_keybox_valid(self, xml: Element) -> bool:
+    @overload
+    async def is_keybox_valid(
+        self, xml: Element, per_key: Literal[True]
+    ) -> dict[str, bool]: ...
+
+    @overload
+    async def is_keybox_valid(
+        self, xml: Element, per_key: Literal[False] = False
+    ) -> bool: ...
+
+    async def is_keybox_valid(
+        self, xml: Element, per_key=False
+    ) -> bool | dict[str, bool]:
+        keys: dict[str, bool] = {}
+
         if not hasattr(self, 'status_list'):
             self.status_list = (await self.downloading).json()
 
@@ -65,10 +80,12 @@ class GoogleChecker(Certs):
             )
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
 
-            if found:
+            if per_key:
+                keys[parsed_serials[0]] = False if found else True
+            elif found:
                 return False
 
-        return True
+        return keys if per_key else True
 
     def is_aosp_keybox(self, xml: Element) -> bool:
         return (
