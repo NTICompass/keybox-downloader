@@ -68,7 +68,10 @@ class GoogleChecker(Certs):
                 data = await Downloader.client.get(cls.URL)
                 cls.status_list = data.json()
 
+                cached_status.seek(0)
+                cached_status.truncate()
                 json.dump(cls.status_list, cached_status)
+
                 manifest.attestation_date = datetime.now().timestamp()
 
             cls.revoked = {
