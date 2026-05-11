@@ -140,7 +140,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         else:
             get_app().invalidate()
 
-    async def keybox_info(event: KeyPressEvent | None = None):
+    async def keybox_info(event: KeyPressEvent | MouseEvent | None = None):
         nonlocal keybox_info_text
 
         valid_serials = await check_cert_valid(keyboxes[selected_index])
@@ -163,6 +163,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     and mouse_event.event_type == MouseEventType.MOUSE_UP
                 ):
                     selected_index = idx
+                    get_app().create_background_task(keybox_info(mouse_event))
 
             return click
 
