@@ -15,8 +15,10 @@ import asyncio
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--download', dest='download', action='store_true')
-    parser.add_argument('-i', '--install', dest='install', action='store_true')
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument('-d', '--download', dest='download', action='store_true')
+    group.add_argument('-i', '--install', dest='install', action='store_true')
 
     args = parser.parse_args()
 
