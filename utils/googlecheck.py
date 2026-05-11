@@ -1,10 +1,16 @@
 from .certs import Certs
 from collections import Counter
 from cryptography import x509
+from datetime import datetime, timedelta
 from downloaders.downloader import Downloader
+from json import JSONDecodeError
+from pathlib import Path
 from time import time
+from types_def import CacheManifest
 from typing import final, overload, ClassVar, Literal, Self, TypedDict
 from xml.etree.ElementTree import Element
+import __main__
+import json
 
 
 """
@@ -29,19 +35,58 @@ class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
     AOSP_CERTS = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
+    root: Path = __main__.exe_root
+    cache_folder = root / 'cache'
+    cached = cache_folder / 'attestation.json'
+    manifest = cache_folder / 'manifest.json'
+
     revoked: ClassVar[set[str]]
     status_list: ClassVar[AttestationList]
 
     @classmethod
     async def init(cls):
-        data = await Downloader.client.get(cls.URL)
-        cls.status_list = data.json()
+        cls.cache_folder.mkdir(exist_ok=True)
+        cls.cached.touch(exist_ok=True)
+        cls.manifest.touch(exist_ok=True)
 
-        cls.revoked = {
-            key
-            for key, status in cls.status_list['entries'].items()
-            if status['status'] == 'REVOKED'
-        }
+        with (
+            open(cls.cached, 'r+') as cached_status,
+            open(cls.manifest, 'r+') as cache_manifest,
+        ):
+            manifest_data: CacheManifest
+            do_download = False
+
+            try:
+                manifest_data = json.load(cache_manifest)
+            except JSONDecodeError:
+                manifest_data = {}
+
+            try:
+                cls.status_list = json.load(cached_status)
+            except JSONDecodeError:
+                do_download = True
+
+            if not do_download:
+                time_diff = datetime.now() - datetime.fromtimestamp(
+                    manifest_data['attestation_date']
+                )
+
+                if (time_diff / timedelta(hours=1)) >= 24:
+                    do_download = True
+
+            if do_download:
+                data = await Downloader.client.get(cls.URL)
+                cls.status_list = data.json()
+
+                manifest_data['attestation_date'] = datetime.now().timestamp()
+                json.dump(manifest_data, cache_manifest)
+                json.dump(cls.status_list, cached_status)
+
+            cls.revoked = {
+                key
+                for key, status in cls.status_list['entries'].items()
+                if status['status'] == 'REVOKED'
+            }
 
     @classmethod
     async def get_instance(cls) -> Self:

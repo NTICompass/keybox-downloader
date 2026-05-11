@@ -6,7 +6,7 @@ from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
-from typing import TypedDict
+from types_def import CacheManifest
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree, Element
@@ -14,10 +14,6 @@ import __main__
 import asyncio
 import json
 import logging
-
-
-class CacheManifest(TypedDict):
-    last_checked: int | float
 
 
 root: Path = __main__.exe_root
