@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import ClassVar
 import __main__
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, fields
 
 
 @dataclass
@@ -23,7 +23,7 @@ class Manifest:
         with open(self._manifest_file, 'r') as file:
             try:
                 for k, v in json.load(file).items():
-                    super().__setattr__(k, v)
+                    object.__setattr__(self, k, v)
             except JSONDecodeError:
                 pass
             finally:
@@ -37,4 +37,11 @@ class Manifest:
 
     def save(self):
         with open(self._manifest_file, 'w') as file:
-            json.dump(asdict(self), file)
+            json.dump(
+                {
+                    f.name: getattr(self, f.name)
+                    for f in fields(self)
+                    if not f.name.startswith('_')
+                },
+                file,
+            )
