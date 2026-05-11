@@ -1,4 +1,5 @@
 from asyncstdlib import enumerate as a_enumerate
+from cache_data import Manifest
 from collections.abc import Generator
 from datetime import datetime, timedelta
 from downloaders import Downloader
@@ -6,13 +7,11 @@ from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
-from types_def import CacheManifest
 from utils.duplicate import Duplicate
 from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import ElementTree, Element
 import __main__
 import asyncio
-import json
 import logging
 
 
@@ -20,10 +19,9 @@ root: Path = __main__.exe_root
 path = root / 'keyboxes'
 log_path = root / 'logs'
 backup_path = root / 'backups'
-manifest_path = root / 'cache'
 types = ('revoked', 'valid', 'aosp')
 logger = logging.getLogger(__name__)
-manifest: CacheManifest
+manifest: Manifest
 
 
 def make_folders():
@@ -40,26 +38,17 @@ def init():
     )
     logger.info('Starting Keybox Downloader')
 
-    # Only download once every 24hrs
     global manifest
-    manifest_file = manifest_path / 'manifest.json'
+    manifest = Manifest()
 
-    if manifest_path.exists() and manifest_file.exists():
-        with open(manifest_file) as manifest_data:
-            manifest = json.load(manifest_data)
+    # Only download once every 24hrs
+    if manifest.last_checked > 0:
+        time_diff = datetime.now() - datetime.fromtimestamp(manifest.last_checked)
 
-            if 'last_checked' in manifest:
-                time_diff = datetime.now() - datetime.fromtimestamp(
-                    manifest['last_checked']
-                )
-
-                if (time_diff / timedelta(hours=1)) < 24:
-                    raise RuntimeError(
-                        f'Last download was less than 24hrs ago: {manifest["last_checked"]}'
-                    )
-    else:
-        manifest_path.mkdir(exist_ok=True)
-        manifest = {}
+        if (time_diff / timedelta(hours=1)) < 24:
+            raise RuntimeError(
+                f'Last download was less than 24hrs ago: {manifest.last_checked}'
+            )
 
     if not path.exists():
         make_folders()
@@ -139,11 +128,7 @@ async def go(*downloaders: Downloader):
         dupe = Duplicate(str(path))
         dupe.check_duplicates()
 
-        with open(f'{manifest_path}/manifest.json', 'w') as manifest_data:
-            global manifest
-
-            manifest['last_checked'] = datetime.now().timestamp()
-            json.dump(manifest, manifest_data)
+        manifest.last_checked = datetime.now().timestamp()
 
 
 def get_downloaders() -> Generator[Downloader]:

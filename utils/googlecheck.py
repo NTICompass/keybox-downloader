@@ -1,4 +1,5 @@
 from .certs import Certs
+from cache_data import Manifest
 from collections import Counter
 from cryptography import x509
 from datetime import datetime, timedelta
@@ -6,7 +7,6 @@ from downloaders.downloader import Downloader
 from json import JSONDecodeError
 from pathlib import Path
 from time import time
-from types_def import CacheManifest
 from typing import final, overload, ClassVar, Literal, Self, TypedDict
 from xml.etree.ElementTree import Element
 import __main__
@@ -38,7 +38,6 @@ class GoogleChecker(Certs):
     root: Path = __main__.exe_root
     cache_folder = root / 'cache'
     cached = cache_folder / 'attestation.json'
-    manifest = cache_folder / 'manifest.json'
 
     revoked: ClassVar[set[str]]
     status_list: ClassVar[AttestationList]
@@ -47,28 +46,19 @@ class GoogleChecker(Certs):
     async def init(cls):
         cls.cache_folder.mkdir(exist_ok=True)
         cls.cached.touch(exist_ok=True)
-        cls.manifest.touch(exist_ok=True)
 
-        with (
-            open(cls.cached, 'r+') as cached_status,
-            open(cls.manifest, 'r+') as cache_manifest,
-        ):
-            manifest_data: CacheManifest
+        with open(cls.cached, 'r+') as cached_status:
+            manifest = Manifest()
             do_download = False
-
-            try:
-                manifest_data = json.load(cache_manifest)
-            except JSONDecodeError:
-                manifest_data = {}
 
             try:
                 cls.status_list = json.load(cached_status)
             except JSONDecodeError:
                 do_download = True
 
-            if not do_download:
+            if not do_download and manifest.attestation_date > 0:
                 time_diff = datetime.now() - datetime.fromtimestamp(
-                    manifest_data['attestation_date']
+                    manifest.attestation_date
                 )
 
                 if (time_diff / timedelta(hours=1)) >= 24:
@@ -78,9 +68,8 @@ class GoogleChecker(Certs):
                 data = await Downloader.client.get(cls.URL)
                 cls.status_list = data.json()
 
-                manifest_data['attestation_date'] = datetime.now().timestamp()
-                json.dump(manifest_data, cache_manifest)
                 json.dump(cls.status_list, cached_status)
+                manifest.attestation_date = datetime.now().timestamp()
 
             cls.revoked = {
                 key
