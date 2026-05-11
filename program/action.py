@@ -47,14 +47,16 @@ def init():
     if manifest_path.exists() and manifest_file.exists():
         with open(manifest_file) as manifest_data:
             manifest = json.load(manifest_data)
-            time_diff = datetime.now() - datetime.fromtimestamp(
-                manifest['last_checked']
-            )
 
-            if (time_diff / timedelta(hours=1)) < 24:
-                raise RuntimeError(
-                    f'Last download was less than 24hrs ago: {manifest["last_checked"]}'
+            if 'last_checked' in manifest:
+                time_diff = datetime.now() - datetime.fromtimestamp(
+                    manifest['last_checked']
                 )
+
+                if (time_diff / timedelta(hours=1)) < 24:
+                    raise RuntimeError(
+                        f'Last download was less than 24hrs ago: {manifest["last_checked"]}'
+                    )
     else:
         manifest_path.mkdir(exist_ok=True)
         manifest = {}
