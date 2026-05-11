@@ -176,7 +176,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             for idx, file in enumerate(keyboxes)
         ]
 
-    get_app().create_background_task(keybox_info())
+    if len(keyboxes) > 0:
+        get_app().create_background_task(keybox_info())
+
     get_app().create_background_task(refresh_device())
 
     menu_control = Window(
