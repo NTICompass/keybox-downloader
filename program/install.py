@@ -38,7 +38,7 @@ runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 
 current_keybox: Element | None = None
 certs = Certs()
-checker = GoogleChecker()
+checker: GoogleChecker
 files: dict[str, Element] = {}
 
 
@@ -123,10 +123,13 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         print('No valid keyboxes found')
         return None
 
+    global checker
+
     selected_index = 0
     device_info_text = ''
     keybox_info_text = ''
     kb = KeyBindings()
+    checker = GoogleChecker()
 
     async def refresh_device(event: KeyPressEvent | None = None):
         nonlocal device_info_text
