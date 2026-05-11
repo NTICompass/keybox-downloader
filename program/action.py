@@ -127,7 +127,7 @@ async def go(*downloaders: Downloader):
     except RuntimeError as e:
         logger.info(e)
     else:
-        checker = GoogleChecker()
+        checker = await GoogleChecker.get_instance()
 
         for task in tqdm_asyncio.as_completed(
             [asyncio.create_task(run(dl, checker)) for dl in downloaders]

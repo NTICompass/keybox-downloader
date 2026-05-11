@@ -3,7 +3,7 @@ from collections import Counter
 from cryptography import x509
 from downloaders.downloader import Downloader
 from time import time
-from typing import final, overload, Literal, TypedDict
+from typing import final, overload, ClassVar, Literal, Self, TypedDict
 from xml.etree.ElementTree import Element
 
 
@@ -29,14 +29,26 @@ class GoogleChecker(Certs):
     URL = f'https://android.googleapis.com/attestation/status?{time():.0f}'
     AOSP_CERTS = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
-    revoked: set[str]
-    status_list: AttestationList
+    revoked: ClassVar[set[str]]
+    status_list: ClassVar[AttestationList]
 
-    def __init__(self):
-        super().__init__()
+    @classmethod
+    async def init(cls):
+        data = await Downloader.client.get(cls.URL)
+        cls.status_list = data.json()
 
-        self.logger.info('Downloading revoked keybox list from Google')
-        self.downloading = Downloader.client.get(self.URL)
+        cls.revoked = {
+            key
+            for key, status in cls.status_list['entries'].items()
+            if status['status'] == 'REVOKED'
+        }
+
+    @classmethod
+    async def get_instance(cls) -> Self:
+        instance = cls()
+        await cls.init()
+
+        return instance
 
     @overload
     async def is_keybox_valid(
@@ -54,13 +66,9 @@ class GoogleChecker(Certs):
         keys: dict[str, bool] = {}
 
         if not hasattr(self, 'status_list'):
-            self.status_list = (await self.downloading).json()
-
-            self.revoked = {
-                key
-                for key, status in self.status_list['entries'].items()
-                if status['status'] == 'REVOKED'
-            }
+            raise RuntimeError(
+                'Please load attestation status with GoogleChecker.init()'
+            )
 
         for cert in self.get_certs(log_valid=True, key=self.load_certs(xml)):
             issuer_serial = {

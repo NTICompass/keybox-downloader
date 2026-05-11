@@ -129,7 +129,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     device_info_text = ''
     keybox_info_text = ''
     kb = KeyBindings()
-    checker = GoogleChecker()
+    checker = await GoogleChecker.get_instance()
 
     async def refresh_device(event: KeyPressEvent | None = None):
         nonlocal device_info_text
