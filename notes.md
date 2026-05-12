@@ -21,6 +21,8 @@ No keybox download, just links to Telegram: https://t.me/s/IntegrityBox
 How can I download files from Telegram? They have an API, but then I'd need to make an account.
 Maybe use something like telegram@totallysecure.email?
 
+Use: https://codeberg.org/Lonami/Telethon
+
 What about other Telegram channels, what else can I find? I think I remember https://t.me/evokeroot
 
 Also, I just found https://t.me/s/HidingRootDetections
