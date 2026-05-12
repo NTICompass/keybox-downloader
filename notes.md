@@ -23,6 +23,8 @@ Maybe use something like telegram@totallysecure.email?
 
 What about other Telegram channels, what else can I find? I think I remember https://t.me/evokeroot
 
+Also, I just found https://t.me/s/HidingRootDetections
+
 ---
 I found another project that's basically doing the same thing as mine, but with only 3 sources.
 https://github.com/purainity/keybox-tools
