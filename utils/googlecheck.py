@@ -127,18 +127,14 @@ class GoogleChecker(Certs):
             )
 
             self.logger.info('Parsed cert {}, issuer {}'.format(*parsed_serials))
-
             found = (parsed_serials[0] and parsed_serials[0] in self.revoked) or (
                 parsed_serials[1] and parsed_serials[1] in self.revoked
             )
+
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
+            keys[parsed_serials[0]] = False if found else True
 
-            if per_key:
-                keys[parsed_serials[0]] = False if found else True
-            elif found:
-                return False
-
-        return keys if per_key else True
+        return keys if per_key else all(keys.values())
 
     def is_aosp_keybox(self, xml: Element) -> bool:
         return (
