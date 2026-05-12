@@ -91,14 +91,8 @@ async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
                     [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
                 )
 
-        valid_keybox, key_type = await checker.is_keybox_valid(keybox_file)
-
-        # Check if it's the AOSP keybox before saving
-        save_path = (
-            f'{path}/{KeyType.AOSP}'
-            if valid_keybox and checker.is_aosp_keybox(keybox_file)
-            else f'{path}/{key_type}'
-        )
+        key_type = await checker.is_keybox_valid(keybox_file)
+        save_path = f'{path}/{key_type}'
 
         logger.info(f'Saving keybox #{keybox_idx:d}')
         files[f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'] = (

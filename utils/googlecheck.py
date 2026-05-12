@@ -104,11 +104,11 @@ class GoogleChecker(Certs):
     @overload
     async def is_keybox_valid(
         self, xml: Element, per_key: Literal[False] = False
-    ) -> tuple[bool, KeyType]: ...
+    ) -> KeyType: ...
 
     async def is_keybox_valid(
         self, xml: Element, per_key=False
-    ) -> tuple[bool, KeyType] | dict[str, bool]:
+    ) -> KeyType | dict[str, bool]:
         keys: dict[str, bool] = {}
 
         if not hasattr(self, 'status_list'):
@@ -138,17 +138,12 @@ class GoogleChecker(Certs):
         if per_key:
             return keys
         else:
-            valid = all(keys.values())
-            key_type: KeyType
-
-            if valid:
-                key_type = KeyType.VALID
+            if all(keys.values()):
+                return KeyType.AOSP if self.is_aosp_keybox(xml) else KeyType.VALID
             elif next(iter(keys.values())):
-                key_type = KeyType.SEMI_VALID
+                return KeyType.SEMI_VALID
             else:
-                key_type = KeyType.REVOKED
-
-            return valid, key_type
+                return KeyType.REVOKED
 
     def is_aosp_keybox(self, xml: Element) -> bool:
         return (
