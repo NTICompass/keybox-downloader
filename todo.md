@@ -8,6 +8,6 @@
 - [x] Call `decode_keybox()` from main program
     - [x] Make all downloaders follow API
 - [x] Use PyInstaller to create Windows EXE
-- [ ] Add extra "types" to keyboxes
-    - [ ] Create "semi-valid" for key with valid EC, but invalid RSA
-    - [ ] `is_keybox_valid` will need to return a tuple `(bool, int)`
+- [x] Add extra "types" to keyboxes
+    - [x] Create "semi-valid" for key with valid EC, but invalid RSA
+    - [x] `is_keybox_valid` will need to return a tuple `(bool, int)`

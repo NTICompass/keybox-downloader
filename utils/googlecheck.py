@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from downloaders.downloader import Downloader
 from json import JSONDecodeError
 from pathlib import Path
+from program.keytype import KeyType
 from time import time
 from typing import final, overload, ClassVar, Literal, Self, TypedDict, NotRequired
 from xml.etree.ElementTree import Element
@@ -103,11 +104,11 @@ class GoogleChecker(Certs):
     @overload
     async def is_keybox_valid(
         self, xml: Element, per_key: Literal[False] = False
-    ) -> bool: ...
+    ) -> tuple[bool, KeyType]: ...
 
     async def is_keybox_valid(
         self, xml: Element, per_key=False
-    ) -> bool | dict[str, bool]:
+    ) -> tuple[bool, KeyType] | dict[str, bool]:
         keys: dict[str, bool] = {}
 
         if not hasattr(self, 'status_list'):
@@ -134,7 +135,20 @@ class GoogleChecker(Certs):
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
             keys[parsed_serials[0]] = False if found else True
 
-        return keys if per_key else all(keys.values())
+        if per_key:
+            return keys
+        else:
+            valid = all(keys.values())
+            key_type: KeyType
+
+            if valid:
+                key_type = KeyType.VALID
+            elif next(iter(keys.values())):
+                key_type = KeyType.SEMI_VALID
+            else:
+                key_type = KeyType.REVOKED
+
+            return valid, key_type
 
     def is_aosp_keybox(self, xml: Element) -> bool:
         return (

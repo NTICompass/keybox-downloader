@@ -230,6 +230,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
                 await go(*get_downloaders())
                 keyboxes = list(folder.rglob('*.xml'))
+                await keybox_info(event)
 
         event.app.create_background_task(run())
 

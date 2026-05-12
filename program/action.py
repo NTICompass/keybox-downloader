@@ -1,3 +1,4 @@
+from .keytype import KeyType
 from asyncstdlib import enumerate as a_enumerate
 from cache_data import Manifest
 from collections.abc import Generator
@@ -19,7 +20,6 @@ root: Path = __main__.exe_root
 path = root / 'keyboxes'
 log_path = root / 'logs'
 backup_path = root / 'backups'
-types = ('revoked', 'valid', 'aosp')
 logger = logging.getLogger(__name__)
 manifest: Manifest
 
@@ -27,7 +27,7 @@ manifest: Manifest
 def make_folders():
     path.mkdir(exist_ok=True)
 
-    for key_type in types:
+    for key_type in KeyType:
         (path / key_type).mkdir()
 
 
@@ -91,13 +91,13 @@ async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
                     [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
                 )
 
-        valid_keybox = await checker.is_keybox_valid(keybox_file)
+        valid_keybox, key_type = await checker.is_keybox_valid(keybox_file)
 
         # Check if it's the AOSP keybox before saving
         save_path = (
-            f'{path}/aosp'
+            f'{path}/{KeyType.AOSP}'
             if valid_keybox and checker.is_aosp_keybox(keybox_file)
-            else f'{path}/{types[int(valid_keybox)]}'
+            else f'{path}/{key_type}'
         )
 
         logger.info(f'Saving keybox #{keybox_idx:d}')
