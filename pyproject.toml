@@ -11,7 +11,7 @@ dependencies = [
     "httpx[brotli,http2]",
     "prompt-toolkit",
     "python-dotenv",
-    "requests",
+    "requests==2.34.0",
     "tqdm",
 ]
 
