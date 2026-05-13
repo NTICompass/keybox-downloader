@@ -49,3 +49,8 @@ If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
 ```
 pyinstaller.exe --add-data "scripts:scripts" --onefile --noupx .\main.py
 ```
+
+---
+With `uv`: `uv sync`
+
+With `pip` (Android): `pip install .[build]`
