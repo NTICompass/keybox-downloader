@@ -50,6 +50,20 @@ If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
 pyinstaller.exe --add-data "scripts:scripts" --onefile --noupx .\main.py
 ```
 
+This works on Android..... kind of.
+
+`/sdcard/` is `noexec`, so the binary needs to be in `/data/local/tmp`
+I also need to include the following libs from termux:
+
+- `/data/data/com.termux/files/usr/lib/libz.so.1.3.2` (`ln -s libz.so.1 libz.so.1.3.2`)
+- `/data/data/com.termux/files/usr/lib/libandroid-support.so`
+
+Then you can run with:
+`LD_LIBRARY_PATH=$PWD ./main`
+
+This works over `adb shell`, but not in Termius. It works in Termux.
+What other local terminal emulators could I try?
+
 ---
 With `uv`: `uv sync`
 
