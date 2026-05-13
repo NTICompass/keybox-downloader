@@ -46,8 +46,9 @@ async def get_prop(prop: str | None = None) -> str:
     global device
 
     if is_android and prop is not None:
-        proc = await asyncio.create_subprocess_shell(
-            f'getprop {prop}',
+        proc = await asyncio.create_subprocess_exec(
+            '/system/bin/getprop',
+            prop,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
