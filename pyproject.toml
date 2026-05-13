@@ -11,17 +11,34 @@ dependencies = [
     "httpx[brotli,http2]",
     "prompt-toolkit",
     "python-dotenv",
-    "requests==2.34.0",
+    "requests",
     "tqdm",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pyinstaller",
     "python-dotenv[cli]",
     "ruff",
 ]
 
 pc = [
     "adbutils",
+]
+
+build = [
+    "pyinstaller",
+]
+
+[tool.setuptools.packages.find]
+include = [
+    "program*",
+    "downloaders*",
+    "utils*",
+    "cache_data*",
+]
+exclude = [
+    "logs*",
+    "cache*",
+    "backups*",
+    "keyboxes*",
 ]
