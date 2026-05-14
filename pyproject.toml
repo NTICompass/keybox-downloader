@@ -4,29 +4,29 @@ version = "0.99.9"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = ">=3.12"
 dependencies = [
-    "asyncstdlib",
-    "beautifulsoup4",
-    "cloudscraper",
-    "cryptography",
-    "httpx[brotli,http2]",
-    "prompt-toolkit",
-    "python-dotenv",
+    "asyncstdlib==3.14.0",
+    "beautifulsoup4==4.14.3",
+    "cloudscraper==1.2.71",
+    "cryptography==48.0.0",
+    "httpx[brotli,http2]==0.28.1",
+    "prompt-toolkit==3.0.52",
+    "python-dotenv==1.2.2",
     "requests==2.34.1",
-    "tqdm",
+    "tqdm==4.67.3",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "python-dotenv[cli]",
-    "ruff",
+    "python-dotenv[cli]==1.2.2",
+    "ruff==0.15.12",
 ]
 
 pc = [
-    "adbutils",
+    "adbutils==2.12.0",
 ]
 
 build = [
-    "pyinstaller",
+    "pyinstaller==6.20.0",
 ]
 
 [tool.setuptools.packages.find]
