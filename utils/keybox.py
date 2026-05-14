@@ -10,14 +10,17 @@ import logging
 
 @dataclass
 class Keybox:
-    file: ElementTree | None = None
-    root: Element | None = None
+    file: ElementTree = field(
+        default_factory=lambda: ElementTree(Element('AndroidAttestation'))
+    )
+    root: Element = field(default_factory=lambda: Element('AndroidAttestation'))
 
     _cert_data: dict[int, list[Certificate]] = field(init=False, repr=False)
     _cert_counts: dict[int, tuple[int, int]] = field(init=False, repr=False)
     _logger: Logger = field(init=False, repr=False)
 
     def __post_init__(self):
+        # TODO: Fix this as neither can be `None`
         if self.file is not None and self.root is None:
             self.root = self.file.getroot()
         elif self.root is not None and self.file is None:
@@ -32,24 +35,20 @@ class Keybox:
 
     @property
     def type(self) -> KeyType:
+        # TODO: Add logic
         return KeyType.VALID
 
     @property
     def device_id(self) -> str | None:
-        if self.root is not None:
-            device = self.root.find('.//Keybox[@DeviceID]')
-            return device.get('DeviceID') if device is not None else None
-
-        return None
+        device = self.root.find('.//Keybox[@DeviceID]')
+        return device.get('DeviceID') if device is not None else None
 
     @device_id.setter
     def device_id(self, value: str):
-        if self.root is not None:
-            device = self.root.find('.//Keybox')
+        device = self.root.find('.//Keybox')
 
-            if device is not None:
-                device.set('DeviceID', value)
+        if device is not None:
+            device.set('DeviceID', value)
 
     def save(self, file: Path):
-        if self.file is not None:
-            self.file.write(file, 'unicode', True)
+        self.file.write(file, 'unicode', True)
