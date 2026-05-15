@@ -1,8 +1,10 @@
 from . import Downloader
 from collections.abc import AsyncGenerator
 from dotenv import load_dotenv
+from pathlib import Path
 from program.keybox import Keybox
-from typing import final, override, TypedDict
+from typing import final, override, TypedDict, ClassVar
+import __main__
 import json
 import os
 
@@ -27,10 +29,12 @@ class PlayIntegrityFix(Downloader):
     # https://github.com/FBIVIP/Play-IntegrityFix/releases
     URL = 'https://api.github.com/repos/FBIVIP/Play-IntegrityFix/releases/latest'
 
+    env_file: ClassVar[Path] = __main__.exe_root / '.env'
+
     @override
     def __init__(self):
         super().__init__()
-        load_dotenv()
+        load_dotenv(self.env_file if self.env_file.exists() else None)
 
         github_token = os.getenv('GITHUB_TOKEN')
 
