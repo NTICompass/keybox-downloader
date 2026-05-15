@@ -59,8 +59,8 @@ def init():
         make_folders()
 
 
-async def run(dl: Downloader) -> dict[str, Keybox]:
-    files: dict[str, Keybox] = {}
+async def run(dl: Downloader) -> dict[Path, Keybox]:
+    files: dict[Path, Keybox] = {}
 
     async for idx, keybox_file in a_enumerate(dl()):
         keybox_idx = idx + 1
@@ -69,11 +69,8 @@ async def run(dl: Downloader) -> dict[str, Keybox]:
             logger.info(f'Skipping empty keybox #{keybox_idx:d}')
             continue
 
-        logger.info(f'Checking keybox #{keybox_idx:d}')
-        save_path = f'{path}/{keybox_file.key_type}'
-
-        logger.info(f'Saving keybox #{keybox_idx:d}')
-        files[f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'] = keybox_file
+        logger.info(f'Checking/Saving keybox #{keybox_idx:d}')
+        files[path / keybox_file.key_type] = keybox_file
 
     return files
 
@@ -90,9 +87,8 @@ async def go(*downloaders: Downloader):
         for task in tqdm_asyncio.as_completed(
             [asyncio.create_task(run(dl)) for dl in downloaders]
         ):
-            for file_name, xml_file in (await task).items():
-                logger.info(f'Saving keybox to {file_name}')
-                xml_file.save(path)
+            for folder, xml_file in (await task).items():
+                xml_file.save(folder)
                 keyboxes.append(xml_file)
 
         await Downloader.client.aclose()

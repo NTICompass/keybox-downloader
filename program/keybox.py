@@ -171,7 +171,10 @@ class Keybox:
         return groups
 
     def save(self, folder: Path):
-        ElementTree(self.root).write(folder / self.meta.name, 'unicode', True)
+        file_name = folder / self.meta.name
+        self.logger.info(f'Saving keybox to {file_name}')
+
+        ElementTree(self.root).write(file_name, 'unicode', True)
 
     def __load_certs(self):
         self.logger.info('Loading certs from keybox')
