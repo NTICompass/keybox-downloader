@@ -6,13 +6,14 @@ from cryptography.x509.base import Certificate
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from downloaders import Downloader
-from io import BytesIO
+from io import IOBase
 from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
 from time import time
 from typing import final, ClassVar, Literal, TypedDict, NotRequired, Self
 from xml.etree.ElementTree import Element, ElementTree
+from zipfile import Path as ZipPath
 import __main__
 import json
 import logging
@@ -23,7 +24,7 @@ import xml.etree.ElementTree as ET
 class KeyboxMetadata:
     file_idx: int
     source: type[Downloader]
-    original: Path
+    original: Path | ZipPath | None = None
 
     @property
     def name(self) -> str:
@@ -74,19 +75,34 @@ class Keybox:
 
     def __init__(
         self,
-        keybox_data: Element | Path | BytesIO | str,
+        keybox_data: Element | Path | IOBase | str | bytes,
         metadata: KeyboxMetadata,
     ):
         if isinstance(keybox_data, Element):
             self.root = keybox_data
-        elif isinstance(keybox_data, (Path, BytesIO)):
+        elif isinstance(keybox_data, (Path, IOBase)):
             self.root = ET.parse(keybox_data).getroot()
-        elif isinstance(keybox_data, str):
+        elif isinstance(keybox_data, (str, bytes)):
             self.root = ET.fromstring(keybox_data)
+
+        # Fix certs, remove excess new lines
+        for cert in self.root.iterfind('.//Keybox//Certificate[@format="pem"]'):
+            if cert.text:
+                # From: https://stackoverflow.com/a/17610612
+                cert.text = '\n'.join(
+                    [ll.rstrip() for ll in cert.text.splitlines() if ll.strip()]
+                )
+
+        # Probably fix the private keys, too
+        for key in self.root.iterfind('.//Keybox//PrivateKey[@format="pem"]'):
+            if key.text:
+                key.text = '\n'.join(
+                    [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
+                )
 
         self.meta = metadata
         self.logger = logging.getLogger(
-            f'{type(self).__name__}.{self.meta.original.stem}'
+            f'{type(self).__name__}.{self.meta.original.stem if self.meta.original is not None else ""}'
         )
 
         self.__load_certs()
@@ -129,7 +145,7 @@ class Keybox:
                 if status['status'] == 'REVOKED'
             }
 
-    type KeyboxGroup = dict[frozenset[tuple[int, int]], list[str]]
+    type KeyboxGroup = defaultdict[frozenset[tuple[int, int]], list[str]]
 
     @classmethod
     def group(cls, *keyboxes: Self) -> KeyboxGroup:
@@ -139,7 +155,15 @@ class Keybox:
             key = frozenset(keybox.serials.items())
             name = keybox.device_id
 
-            groups[key].append(name if name is not None else str(keybox.meta.original))
+            groups[key].append(
+                name
+                if name is not None
+                else str(
+                    keybox.meta.original.stem
+                    if keybox.meta.original is not None
+                    else ''
+                )
+            )
 
         return groups
 

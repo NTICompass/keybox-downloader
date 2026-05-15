@@ -3,6 +3,7 @@ from asyncstdlib import enumerate as a_enumerate
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
+from program import Keybox, KeyboxMetadata
 from typing import final, override
 from xml.etree.ElementTree import Element
 import pathlib
@@ -38,7 +39,7 @@ class TSupport(Downloader):
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Element | None]:
+    ) -> AsyncGenerator[Keybox | None]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
         async for idx, dl in a_enumerate(downloaded):
@@ -47,7 +48,13 @@ class TSupport(Downloader):
             if dl is not None and len(dl.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode(dl)
-                yield self.build_keybox()
+                keybox_xml = self.build_keybox()
+
+                yield (
+                    Keybox(keybox_xml, KeyboxMetadata(source=type(self), file_idx=idx))
+                    if keybox_xml is not None
+                    else None
+                )
             else:
                 yield None
 

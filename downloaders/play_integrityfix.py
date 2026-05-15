@@ -1,8 +1,8 @@
 from . import Downloader
 from collections.abc import AsyncGenerator
 from dotenv import load_dotenv
+from program import Keybox
 from typing import final, override, TypedDict
-from xml.etree.ElementTree import Element
 import json
 import os
 
@@ -40,7 +40,7 @@ class PlayIntegrityFix(Downloader):
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Element | None]:
+    ) -> AsyncGenerator[Keybox | None]:
         self.logger.info('Searching for latest release')
 
         releases: GitHubRelease = json.loads(await anext(downloaded))

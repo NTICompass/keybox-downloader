@@ -2,6 +2,7 @@ from . import Downloader
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
+from program import Keybox, KeyboxMetadata
 from typing import final, override
 from xml.etree.ElementTree import Element, ParseError
 import re
@@ -36,7 +37,7 @@ class IntegrityBox(Downloader):
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Element | None]:
+    ) -> AsyncGenerator[Keybox | None]:
         self.logger.info('Downloading keybox scripts')
 
         # Also download the keybox from the webapp, which is probably the same
@@ -64,15 +65,16 @@ class IntegrityBox(Downloader):
             else:
                 # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
                 try:
-                    xml = ET.fromstring(keybox)
-                    keybox_id = xml.find('.//Keybox[@DeviceID]')
+                    kb = Keybox(
+                        keybox,
+                        KeyboxMetadata(source=type(self), file_idx=idx),
+                    )
 
+                    keybox_id = kb.device_id
                     if keybox_id is not None:
-                        keybox_id.set(
-                            'DeviceID', f'{keybox_id.get("DeviceID")} {idx + 1:d}'
-                        )
+                        kb.device_id = f'{keybox_id} {idx + 1:d}'
 
-                    yield xml
+                    yield kb
                 except ParseError:
                     self.logger.info(f'Cannot parse "{keybox}"')
                     yield None

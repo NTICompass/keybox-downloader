@@ -1,3 +1,4 @@
+from . import Keybox
 from .keytype import KeyType
 from asyncstdlib import enumerate as a_enumerate
 from cache_data import Manifest
@@ -8,9 +9,6 @@ from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
-from utils.duplicate import Duplicate
-from utils.googlecheck import GoogleChecker
-from xml.etree.ElementTree import ElementTree, Element
 import __main__
 import asyncio
 import logging
@@ -61,11 +59,8 @@ def init():
         make_folders()
 
 
-type KeyboxFiles = dict[str, ElementTree[Element | None]]
-
-
-async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
-    files: KeyboxFiles = {}
+async def run(dl: Downloader) -> dict[str, Keybox]:
+    files: dict[str, Keybox] = {}
 
     async for idx, keybox_file in a_enumerate(dl()):
         keybox_idx = idx + 1
@@ -75,29 +70,10 @@ async def run(dl: Downloader, checker: GoogleChecker) -> KeyboxFiles:
             continue
 
         logger.info(f'Checking keybox #{keybox_idx:d}')
-
-        # Fix certs, remove excess new lines
-        for cert in keybox_file.iterfind('.//Keybox//Certificate[@format="pem"]'):
-            if cert.text:
-                # From: https://stackoverflow.com/a/17610612
-                cert.text = '\n'.join(
-                    [ll.rstrip() for ll in cert.text.splitlines() if ll.strip()]
-                )
-
-        # Probably fix the private keys, too
-        for key in keybox_file.iterfind('.//Keybox//PrivateKey[@format="pem"]'):
-            if key.text:
-                key.text = '\n'.join(
-                    [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
-                )
-
-        key_type = await checker.is_keybox_valid(keybox_file)
-        save_path = f'{path}/{key_type}'
+        save_path = f'{path}/{keybox_file.key_type}'
 
         logger.info(f'Saving keybox #{keybox_idx:d}')
-        files[f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'] = (
-            ElementTree(keybox_file)
-        )
+        files[f'{save_path}/{type(dl).__name__ + f"_{keybox_idx:d}"}.xml'] = keybox_file
 
     return files
 
@@ -108,19 +84,23 @@ async def go(*downloaders: Downloader):
     except RuntimeError as e:
         logger.info(e)
     else:
-        checker = await GoogleChecker.get_instance()
+        await Keybox.init_attestation()
+        keyboxes: list[Keybox] = []
 
         for task in tqdm_asyncio.as_completed(
-            [asyncio.create_task(run(dl, checker)) for dl in downloaders]
+            [asyncio.create_task(run(dl)) for dl in downloaders]
         ):
             for file_name, xml_file in (await task).items():
-                xml_file.write(file_name, 'unicode', True)
+                logger.info(f'Saving keybox to {file_name}')
+                xml_file.save(path)
+                keyboxes.append(xml_file)
 
         await Downloader.client.aclose()
 
         logger.info('All keyboxes downloaded, comparing to find duplicates')
-        dupe = Duplicate(str(path))
-        dupe.check_duplicates()
+        groups = Keybox.group(*keyboxes)
+
+        logger.info(groups)
 
         manifest.last_checked = datetime.now().timestamp()
 

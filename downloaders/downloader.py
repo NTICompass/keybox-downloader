@@ -1,17 +1,17 @@
 from abc import ABC, abstractmethod
+from asyncstdlib import enumerate as a_enumerate
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
+from program import Keybox, KeyboxMetadata
 from requests import Response as CloudflareResponse
 from typing import final, overload, ClassVar, Literal, Self
-from xml.etree.ElementTree import Element
-from zipfile import ZipFile
+from zipfile import Path as ZipPath
 import asyncio
 import logging
 import re
-import xml.etree.ElementTree as ET
 
 
 def build_github_url(repo: str, branch: str, file: str) -> str:
@@ -45,8 +45,8 @@ class Downloader(ABC):
         Downloader.registry.append(cls)
 
     @final
-    async def __call__(self) -> AsyncGenerator[Element | None]:
-        async for data in self.process(self.download_urls()):
+    async def __call__(self) -> AsyncGenerator[Keybox | None]:
+        async for idx, data in a_enumerate(self.process(self.download_urls())):
             if data is None:
                 yield None
             elif isinstance(data, str):
@@ -55,7 +55,7 @@ class Downloader(ABC):
                 except NotImplementedError:
                     pass
 
-                yield ET.fromstring(data)
+                yield Keybox(data, KeyboxMetadata(source=type(self), file_idx=idx))
             else:
                 yield data
 
@@ -64,15 +64,20 @@ class Downloader(ABC):
 
     def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[str | Element | None]:
+    ) -> AsyncGenerator[str | Keybox | None]:
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
 
     @final
-    def unzip(self, zipfile: bytes, filename: str) -> Element:
-        with ZipFile(BytesIO(zipfile), 'r') as file, file.open(filename) as data:
+    def unzip(self, zipfile: bytes, filename: str) -> Keybox:
+        zip_file = ZipPath(BytesIO(zipfile), at=filename)
+
+        with zip_file.open('r') as data:
             self.logger.info('Extracting keybox from ZIP file')
-            return ET.parse(data).getroot()
+            return Keybox(
+                data,
+                KeyboxMetadata(source=type(self), original=zip_file, file_idx=1),
+            )
 
     @final
     def get_var_from_shell(self, script: str | bytes, var: list[str]) -> dict[str, str]:

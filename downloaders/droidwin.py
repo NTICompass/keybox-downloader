@@ -1,8 +1,8 @@
 from . import Downloader
 from bs4 import BeautifulSoup
 from collections.abc import AsyncGenerator
+from program import Keybox
 from typing import final, override
-from xml.etree.ElementTree import Element
 import re
 
 
@@ -15,7 +15,7 @@ class DroidWin(Downloader):
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Element | None]:
+    ) -> AsyncGenerator[Keybox | None]:
         self.logger.info('Downloading webpage')
 
         cloudflare = False
