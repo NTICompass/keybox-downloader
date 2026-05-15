@@ -124,7 +124,7 @@ class Keybox:
             except JSONDecodeError:
                 do_download = True
 
-            if not do_download and manifest.attestation_date > 0:
+            if not do_download and manifest.attestation_date >= 0:
                 time_diff = datetime.now() - datetime.fromtimestamp(
                     manifest.attestation_date
                 )
