@@ -1,6 +1,6 @@
 from .keytype import KeyType
 from cache_data import Manifest
-from collections import Counter
+from collections import defaultdict, Counter
 from cryptography import x509
 from cryptography.x509.base import Certificate
 from dataclasses import dataclass
@@ -11,7 +11,7 @@ from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
 from time import time
-from typing import final, ClassVar, Literal, TypedDict, NotRequired
+from typing import final, ClassVar, Literal, TypedDict, NotRequired, Self
 from xml.etree.ElementTree import Element, ElementTree
 import __main__
 import json
@@ -68,7 +68,7 @@ class Keybox:
     _URL: ClassVar[str] = (
         f'https://android.googleapis.com/attestation/status?{time():.0f}'
     )
-    _AOSP_CERTS: ClassVar[Counter] = Counter(
+    _AOSP_CERTS: ClassVar[Counter[int]] = Counter(
         (0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C)
     )
 
@@ -129,6 +129,20 @@ class Keybox:
                 if status['status'] == 'REVOKED'
             }
 
+    type KeyboxGroup = dict[frozenset[tuple[int, int]], list[str]]
+
+    @classmethod
+    def group(cls, *keyboxes: Self) -> KeyboxGroup:
+        groups: cls.KeyboxGroup = defaultdict(list)
+
+        for keybox in keyboxes:
+            key = frozenset(keybox.serials.items())
+            name = keybox.device_id
+
+            groups[key].append(name if name is not None else str(keybox.meta.original))
+
+        return groups
+
     def save(self, folder: Path):
         ElementTree(self.root).write(folder / self.meta.name, 'unicode', True)
 
@@ -164,9 +178,7 @@ class Keybox:
             self._cert_data = []
 
     def __is_aosp_keybox(self) -> bool:
-        return (
-            Counter(cert.serial_number for cert in self._cert_data) == self._AOSP_CERTS
-        )
+        return self.serials == self._AOSP_CERTS
 
     def __check_cert_validity(self):
         if not hasattr(self, '_status_list'):
@@ -200,6 +212,10 @@ class Keybox:
 
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
             self._cert_valid[cert.serial_number] = False if found else True
+
+    @property
+    def serials(self) -> Counter[int]:
+        return Counter(cert.serial_number for cert in self._cert_data)
 
     @property
     def key_type(self) -> KeyType:
