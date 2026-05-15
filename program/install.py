@@ -12,11 +12,9 @@ from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalCon
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
-from xml.etree.ElementTree import Element
 import __main__
 import asyncio
 import sys
-import xml.etree.ElementTree as ET
 
 
 is_android = hasattr(sys, 'getandroidapilevel')
