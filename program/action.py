@@ -10,7 +10,6 @@ from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
 import __main__
-import asyncio
 import logging
 
 
@@ -84,9 +83,7 @@ async def go(*downloaders: Downloader):
         await Keybox.init_attestation(Downloader.client)
         keyboxes: list[Keybox] = []
 
-        for task in tqdm_asyncio.as_completed(
-            [asyncio.create_task(run(dl)) for dl in downloaders]
-        ):
+        for task in tqdm_asyncio.as_completed([run(dl) for dl in downloaders]):
             for folder, xml_file in (await task).items():
                 xml_file.save(folder)
                 keyboxes.append(xml_file)
