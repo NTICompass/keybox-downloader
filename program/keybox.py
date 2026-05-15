@@ -1,13 +1,20 @@
 from .keytype import KeyType
+from cache_data import Manifest
+from collections import Counter
 from cryptography import x509
 from cryptography.x509.base import Certificate
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from downloaders import Downloader
 from io import BytesIO
+from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
-from typing import final
+from time import time
+from typing import final, ClassVar, Literal, TypedDict, NotRequired
 from xml.etree.ElementTree import Element, ElementTree
+import __main__
+import json
 import logging
 import xml.etree.ElementTree as ET
 
@@ -23,6 +30,24 @@ class KeyboxMetadata:
         return f'{self.source.__name__}_{self.file_idx:d}.xml'
 
 
+# See: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
+class Attestation(TypedDict):
+    status: Literal['REVOKED', 'SUSPENDED']
+    reason: NotRequired[
+        Literal[
+            'UNSPECIFIED',
+            'KEY_COMPROMISE',
+            'CA_COMPROMISE',
+            'SUPERSEDED',
+            'SOFTWARE_FLAW',
+        ]
+    ]
+
+
+class AttestationList(TypedDict):
+    entries: dict[str, Attestation]
+
+
 @final
 class Keybox:
     root: Element
@@ -31,6 +56,21 @@ class Keybox:
 
     _cert_data: list[Certificate]
     _cert_counts: tuple[int, int]
+    _cert_valid = dict[int, bool]
+
+    revoked: ClassVar[set[str]]
+    status_list: ClassVar[AttestationList]
+
+    _root: ClassVar[Path] = __main__.exe_root
+    _cache_folder: ClassVar[Path] = _root / 'cache'
+    _cached: ClassVar[Path] = _cache_folder / 'attestation.json'
+
+    _URL: ClassVar[str] = (
+        f'https://android.googleapis.com/attestation/status?{time():.0f}'
+    )
+    _AOSP_CERTS: ClassVar[Counter] = Counter(
+        (0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C)
+    )
 
     def __init__(
         self,
@@ -50,6 +90,44 @@ class Keybox:
         )
 
         self.__load_certs()
+
+    @classmethod
+    async def init_attestation(cls):
+        cls._cache_folder.mkdir(exist_ok=True)
+        cls._cached.touch(exist_ok=True)
+
+        with open(cls._cached, 'r+') as cached_status:
+            manifest = Manifest()
+            do_download = False
+
+            try:
+                cls.status_list = json.load(cached_status)
+            except JSONDecodeError:
+                do_download = True
+
+            if not do_download and manifest.attestation_date > 0:
+                time_diff = datetime.now() - datetime.fromtimestamp(
+                    manifest.attestation_date
+                )
+
+                if (time_diff / timedelta(hours=1)) >= 24:
+                    do_download = True
+
+            if do_download:
+                data = await Downloader.client.get(cls._URL)
+                cls.status_list = data.json()
+
+                cached_status.seek(0)
+                cached_status.truncate()
+                json.dump(cls.status_list, cached_status)
+
+                manifest.attestation_date = datetime.now().timestamp()
+
+            cls.revoked = {
+                key
+                for key, status in cls.status_list['entries'].items()
+                if status['status'] == 'REVOKED'
+            }
 
     def save(self, folder: Path):
         ElementTree(self.root).write(folder / self.meta.name, 'unicode', True)
@@ -85,10 +163,61 @@ class Keybox:
         except ValueError:
             self._cert_data = []
 
+    def __is_aosp_keybox(self) -> bool:
+        return (
+            Counter(cert.serial_number for cert in self._cert_data) == self._AOSP_CERTS
+        )
+
+    def __check_cert_validity(self):
+        if not hasattr(self, '_status_list'):
+            raise RuntimeError(
+                f'Please load attestation status with "await {type(self).__name__}.init_attestation()"'
+            )
+
+        self._cert_valid: dict[int, bool] = {}
+
+        for cert in self._cert_data:
+            self.logger.info(
+                f'Valid between {cert.not_valid_before_utc:%a %b %d %Y, %I:%M%p} '
+                f'and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}'
+            )
+
+            issuer_serial = {
+                attr.value.lower()
+                for attr in cert.issuer
+                if attr.oid == x509.NameOID.SERIAL_NUMBER
+            }
+            parsed_serials = (
+                f'{cert.serial_number:x}',
+                str(issuer_serial.pop()) if len(issuer_serial) > 0 else None,
+            )
+
+            self.logger.info('Parsed cert {}, issuer {}'.format(*parsed_serials))
+            found = (parsed_serials[0] and parsed_serials[0] in self.revoked) or (
+                parsed_serials[1] and parsed_serials[1] in self.revoked
+            )
+
+            self.logger.info('Cert is revoked' if found else 'Cert is valid')
+            self._cert_valid[cert.serial_number] = False if found else True
+
     @property
     def key_type(self) -> KeyType:
-        # TODO: Add logic
-        return KeyType.VALID
+        if not hasattr(self, '_cert_valid'):
+            self.__check_cert_validity()
+
+        if all(self._cert_valid.values()):
+            return KeyType.AOSP if self.__is_aosp_keybox() else KeyType.VALID
+        elif next(iter(self._cert_valid.values())):
+            return KeyType.SEMI_VALID
+        else:
+            return KeyType.REVOKED
+
+    @property
+    def keys_valid(self) -> dict[str, bool]:
+        if not hasattr(self, '_cert_valid'):
+            self.__check_cert_validity()
+
+        return {f'{key:x}': valid for key, valid in self._cert_valid.items()}
 
     @property
     def device_id(self) -> str | None:
