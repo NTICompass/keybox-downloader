@@ -3,17 +3,9 @@ from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
 from typing import final, override
-from utils.shellvar import get_var_from_shell
 from xml.etree.ElementTree import Element, ParseError
 import re
 import xml.etree.ElementTree as ET
-
-
-def get_keybox_url(keybox_script: str | bytes) -> str:
-    keybox_vars = get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
-    return b64decode(
-        keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
-    ).decode('ascii')
 
 
 @final
@@ -35,6 +27,12 @@ class IntegrityBox(Downloader):
         super().__init__()
         self.junk: list[str] = []
 
+    def get_keybox_url(self, keybox_script: str | bytes) -> str:
+        keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
+        return b64decode(
+            keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
+        ).decode('ascii')
+
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]
@@ -46,8 +44,8 @@ class IntegrityBox(Downloader):
             data async for data in downloaded
         ]
 
-        download_url = get_keybox_url(keybox_script)
-        junk_vars = get_var_from_shell(cleanup_script, ['X'])
+        download_url = self.get_keybox_url(keybox_script)
+        junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
         self.junk = junk_vars['X'].split(',')
 
         keyboxes: list[str | bytes | None] = [web_keybox]

@@ -10,6 +10,7 @@ from xml.etree.ElementTree import Element
 from zipfile import ZipFile
 import asyncio
 import logging
+import re
 import xml.etree.ElementTree as ET
 
 
@@ -72,6 +73,10 @@ class Downloader(ABC):
         with ZipFile(BytesIO(zipfile), 'r') as file, file.open(filename) as data:
             self.logger.info('Extracting keybox from ZIP file')
             return ET.parse(data).getroot()
+
+    @final
+    def get_var_from_shell(self, script: str | bytes, var: list[str]) -> dict[str, str]:
+        return dict(re.findall(rf'(?<! )({"|".join(var)})="(.+?)"', str(script)))
 
     @final
     def get_headers(self, idx: int) -> dict[str, str]:

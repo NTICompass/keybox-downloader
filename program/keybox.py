@@ -187,6 +187,7 @@ class Keybox:
                 for attr in cert.issuer
                 if attr.oid == x509.NameOID.SERIAL_NUMBER
             }
+
             parsed_serials = (
                 f'{cert.serial_number:x}',
                 str(issuer_serial.pop()) if len(issuer_serial) > 0 else None,
