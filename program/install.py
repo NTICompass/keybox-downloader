@@ -12,21 +12,21 @@ from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalCon
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
+from typing import TYPE_CHECKING
 import __main__
 import asyncio
 import sys
 
+if TYPE_CHECKING:
+    from adbutils import AdbDevice
 
+device: AdbDevice | None = None
 is_android = hasattr(sys, 'getandroidapilevel')
 
 if is_android:
     import subprocess
-
-    device = None
 else:
-    from adbutils import adb, AdbError, AdbDevice
-
-    device: AdbDevice | None = None
+    from adbutils import adb, AdbError
 
 root: Path = __main__.root
 folder: Path = __main__.exe_root / 'keyboxes'
