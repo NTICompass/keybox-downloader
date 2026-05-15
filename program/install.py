@@ -1,4 +1,4 @@
-from . import get_downloaders, go
+from .action import get_downloaders, go
 from collections.abc import Callable
 from pathlib import Path
 from prompt_toolkit.application import Application, get_app, in_terminal

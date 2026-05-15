@@ -1,4 +1,4 @@
-from . import Keybox
+from .keybox import Keybox
 from .keytype import KeyType
 from asyncstdlib import enumerate as a_enumerate
 from cache_data import Manifest
@@ -84,7 +84,7 @@ async def go(*downloaders: Downloader):
     except RuntimeError as e:
         logger.info(e)
     else:
-        await Keybox.init_attestation()
+        await Keybox.init_attestation(Downloader.client)
         keyboxes: list[Keybox] = []
 
         for task in tqdm_asyncio.as_completed(

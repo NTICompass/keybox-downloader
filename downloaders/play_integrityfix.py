@@ -1,7 +1,7 @@
 from . import Downloader
 from collections.abc import AsyncGenerator
 from dotenv import load_dotenv
-from program import Keybox
+from program.keybox import Keybox
 from typing import final, override, TypedDict
 import json
 import os

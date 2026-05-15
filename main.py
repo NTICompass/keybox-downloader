@@ -9,7 +9,8 @@ else:
     root = Path(__file__).parent
     exe_root = root
 
-from program import get_downloaders, go, menu
+from program.action import get_downloaders, go
+from program.install import menu
 import argparse
 import asyncio
 

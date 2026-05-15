@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
-from program import Keybox, KeyboxMetadata
+from program.keybox import Keybox, KeyboxMetadata
 from requests import Response as CloudflareResponse
 from typing import final, overload, ClassVar, Literal, Self
 from zipfile import Path as ZipPath

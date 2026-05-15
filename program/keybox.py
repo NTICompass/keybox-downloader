@@ -5,19 +5,22 @@ from cryptography import x509
 from cryptography.x509.base import Certificate
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from downloaders import Downloader
+from httpx import AsyncClient
 from io import IOBase
 from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
 from time import time
-from typing import final, ClassVar, Literal, TypedDict, NotRequired, Self
+from typing import final, ClassVar, Literal, TypedDict, NotRequired, Self, TYPE_CHECKING
 from xml.etree.ElementTree import Element, ElementTree
 from zipfile import Path as ZipPath
 import __main__
 import json
 import logging
 import xml.etree.ElementTree as ET
+
+if TYPE_CHECKING:
+    from downloaders import Downloader
 
 
 @dataclass
@@ -108,7 +111,7 @@ class Keybox:
         self.__load_certs()
 
     @classmethod
-    async def init_attestation(cls):
+    async def init_attestation(cls, dl: AsyncClient):
         cls._cache_folder.mkdir(exist_ok=True)
         cls._cached.touch(exist_ok=True)
 
@@ -130,7 +133,7 @@ class Keybox:
                     do_download = True
 
             if do_download:
-                data = await Downloader.client.get(cls._URL)
+                data = await dl.get(cls._URL)
                 cls.status_list = data.json()
 
                 cached_status.seek(0)

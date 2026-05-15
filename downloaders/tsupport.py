@@ -3,7 +3,7 @@ from asyncstdlib import enumerate as a_enumerate
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
-from program import Keybox, KeyboxMetadata
+from program.keybox import Keybox, KeyboxMetadata
 from typing import final, override
 from xml.etree.ElementTree import Element
 import pathlib

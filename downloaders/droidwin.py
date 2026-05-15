@@ -1,7 +1,7 @@
 from . import Downloader
 from bs4 import BeautifulSoup
 from collections.abc import AsyncGenerator
-from program import Keybox
+from program.keybox import Keybox
 from typing import final, override
 import re
 
