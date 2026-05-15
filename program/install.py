@@ -1,6 +1,8 @@
 from .action import get_downloaders, go
 from collections.abc import Callable
+from downloaders import Downloader
 from pathlib import Path
+from program.keybox import Keybox
 from prompt_toolkit.application import Application, get_app, in_terminal
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
@@ -10,8 +12,6 @@ from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalCon
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
-from utils.certs import Certs
-from utils.googlecheck import GoogleChecker
 from xml.etree.ElementTree import Element
 import __main__
 import asyncio
@@ -36,10 +36,8 @@ tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
 runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 
-current_keybox: Element | None = None
-certs = Certs()
-checker: GoogleChecker
-files: dict[str, Element] = {}
+current_keybox: Keybox | None = None
+files: dict[str, Keybox] = {}
 
 
 async def get_prop(prop: str | None = None) -> str:
@@ -96,15 +94,15 @@ async def get_device() -> str:
         return props if props.strip() != '' else 'No device found, press "r" to re-try'
 
 
-def get_cert_serials(file: Path, valid: dict[str, bool]) -> list[str]:
+def get_cert_serials(file: Path) -> list[str]:
     if file.name not in files:
-        files[file.name] = ET.parse(file).getroot()
+        files[file.name] = Keybox(file)
 
     all_certs = [
-        f'{cert.serial_number:x} ({"Valid" if valid[f"{cert.serial_number:x}"] else "Revoked"})'
-        for cert in certs.get_certs(keybox=files[file.name])
+        f'{cert} ({"Valid" if valid else "Revoked"})'
+        for cert, valid in files[file.name].keys_valid.items()
     ]
-    ec_certs, rsa_certs = certs.get_counts(keybox=files[file.name])
+    ec_certs, rsa_certs = files[file.name].key_counts
 
     return [
         f'{ec_certs} EC certs, {rsa_certs} RSA certs',
@@ -112,25 +110,17 @@ def get_cert_serials(file: Path, valid: dict[str, bool]) -> list[str]:
     ]
 
 
-async def check_cert_valid(file: Path) -> dict[str, bool]:
-    if file.name not in files:
-        files[file.name] = ET.parse(file).getroot()
-
-    return await checker.is_keybox_valid(files[file.name], True)
-
-
 async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     if not ignore_empty and len(keyboxes) == 0:
         print('No valid keyboxes found')
         return None
 
-    global checker
+    await Keybox.init_attestation(Downloader.client)
 
     selected_index = 0
     device_info_text = ''
     keybox_info_text = ''
     kb = KeyBindings()
-    checker = await GoogleChecker.get_instance()
 
     async def refresh_device(event: KeyPressEvent | None = None):
         nonlocal device_info_text
@@ -144,9 +134,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     async def keybox_info(event: KeyPressEvent | MouseEvent | None = None):
         nonlocal keybox_info_text
 
-        valid_serials = await check_cert_valid(keyboxes[selected_index])
         keybox_info_text = (
-            f'{keyboxes[selected_index].parent.name} / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index], valid_serials))}'
+            f'{keyboxes[selected_index].parent.name} / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
             if len(keyboxes) > 0
             else ''
         )

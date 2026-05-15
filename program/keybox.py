@@ -25,13 +25,13 @@ if TYPE_CHECKING:
 
 @dataclass
 class KeyboxMetadata:
-    file_idx: int
-    source: type[Downloader]
+    file_idx: int = 0
+    source: type[Downloader] | None = None
     original: Path | ZipPath | None = None
 
     @property
     def name(self) -> str:
-        return f'{self.source.__name__}_{self.file_idx:d}.xml'
+        return f'{self.source.__name__ if self.source is not None else "keybox"}_{self.file_idx:d}.xml'
 
 
 # See: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
@@ -79,7 +79,7 @@ class Keybox:
     def __init__(
         self,
         keybox_data: Element | Path | IOBase | str | bytes,
-        metadata: KeyboxMetadata,
+        metadata: KeyboxMetadata | None = None,
     ):
         if isinstance(keybox_data, Element):
             self.root = keybox_data
@@ -103,7 +103,7 @@ class Keybox:
                     [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
                 )
 
-        self.meta = metadata
+        self.meta = metadata if metadata is not None else KeyboxMetadata()
         self.logger = logging.getLogger(
             f'{type(self).__name__}.{self.meta.original.stem if self.meta.original is not None else ""}'
         )
@@ -265,6 +265,10 @@ class Keybox:
             self.__check_cert_validity()
 
         return {f'{key:x}': valid for key, valid in self._cert_valid.items()}
+
+    @property
+    def key_counts(self) -> tuple[int, int]:
+        return self._cert_counts
 
     @property
     def device_id(self) -> str | None:
