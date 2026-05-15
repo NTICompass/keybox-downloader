@@ -60,7 +60,7 @@ class Keybox:
 
     _cert_data: list[Certificate]
     _cert_counts: tuple[int, int]
-    _cert_valid = dict[int, bool]
+    _cert_valid: dict[int, bool]
 
     revoked: ClassVar[set[str]]
     status_list: ClassVar[AttestationList]
@@ -208,7 +208,7 @@ class Keybox:
         return self.serials == self._AOSP_CERTS
 
     def __check_cert_validity(self):
-        if not hasattr(self, '_status_list'):
+        if not hasattr(self, 'status_list'):
             raise RuntimeError(
                 f'Please load attestation status with "await {type(self).__name__}.init_attestation()"'
             )
