@@ -11,7 +11,7 @@ dependencies = [
     "httpx[brotli,http2]==0.28.1",
     "prompt-toolkit==3.0.52",
     "python-dotenv==1.2.2",
-    "requests==2.34.1",
+    "requests==2.34.2",
     "tqdm==4.67.3",
 ]
 
