@@ -55,8 +55,10 @@ class DroidWin(Downloader):
     async def do_download[T: str | bytes](
         self, dl: Callable[[], AsyncGenerator[T]]
     ) -> T:
+        gen = dl()
+
         try:
-            data = await anext(dl())
+            data = await anext(gen)
         except StopAsyncIteration:
             """
             This means that the httpx returned an error downloading the website
@@ -65,7 +67,12 @@ class DroidWin(Downloader):
             self.logger.info('Hit CloudFlare challenge, trying to solve it')
 
             self.cloudflare = True
-            data = await anext(dl())
+            await gen.aclose()
+            gen = dl()
+
+            data = await anext(gen)
+        finally:
+            await gen.aclose()
 
         return data
 
