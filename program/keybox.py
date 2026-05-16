@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .keytype import KeyType
 from cache_data import Manifest
 from collections import defaultdict, Counter

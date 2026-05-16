@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .action import get_downloaders, go
 from collections.abc import Callable
 from downloaders import Downloader
