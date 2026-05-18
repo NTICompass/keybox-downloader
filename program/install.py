@@ -1,4 +1,3 @@
-from __future__ import annotations
 from .action import get_downloaders, go
 from collections.abc import Callable
 from downloaders import Downloader
@@ -13,21 +12,23 @@ from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalCon
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
-from typing import TYPE_CHECKING
 import __main__
 import asyncio
 import sys
 
-if TYPE_CHECKING:
-    from adbutils import AdbDevice
-
-device: AdbDevice | None = None
 is_android = hasattr(sys, 'getandroidapilevel')
 
-if is_android:
-    import subprocess
-else:
-    from adbutils import adb, AdbError
+try:
+    from adbutils import adb, AdbDevice, AdbError
+
+    device: AdbDevice | None
+except ImportError:
+    if is_android:
+        import subprocess
+    else:
+        raise RuntimeError('adbutils is required on PC')
+finally:
+    device = None
 
 root: Path = __main__.root
 folder: Path = __main__.exe_root / 'keyboxes'
@@ -53,7 +54,7 @@ async def get_prop(prop: str | None = None) -> str:
         stdout, stderr = await proc.communicate()
 
         return stdout.decode().strip() if stdout else ''
-    elif not is_android:
+    elif not is_android and adb is not None:
         try:
             if device is None:
                 # Connect to the 1st device (throws exception if there are zero or multiple)
@@ -299,7 +300,7 @@ def menu(ignore_empty=False):
             )
 
             print('Keybox successfully installed')
-        else:
+        elif adb is not None:
             try:
                 global device
 
