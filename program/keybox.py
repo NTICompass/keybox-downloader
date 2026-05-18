@@ -1,11 +1,11 @@
 from __future__ import annotations
-from .keytype import KeyType
 from cache_data import Manifest
 from collections import defaultdict, Counter
 from cryptography import x509
 from cryptography.x509.base import Certificate
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import StrEnum, auto
 from httpx import AsyncClient
 from io import IOBase
 from json import JSONDecodeError
@@ -22,6 +22,13 @@ import xml.etree.ElementTree as ET
 
 if TYPE_CHECKING:
     from downloaders import Downloader
+
+
+class KeyType(StrEnum):
+    VALID = auto()
+    SEMI_VALID = auto()
+    REVOKED = auto()
+    AOSP = auto()
 
 
 @dataclass

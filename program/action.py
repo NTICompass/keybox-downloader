@@ -1,5 +1,4 @@
-from .keybox import Keybox
-from .keytype import KeyType
+from .keybox import Keybox, KeyType
 from asyncstdlib import enumerate as a_enumerate
 from cache_data import Manifest
 from collections.abc import Generator
