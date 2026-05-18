@@ -1,4 +1,3 @@
-from __future__ import annotations
 from cache_data import Manifest
 from collections import defaultdict, Counter
 from cryptography import x509
@@ -19,7 +18,6 @@ from typing import (
     TypedDict,
     NotRequired,
     Self,
-    TYPE_CHECKING,
     override,
 )
 from xml.etree.ElementTree import Element, ElementTree, ParseError
@@ -28,9 +26,6 @@ import __main__
 import json
 import logging
 import xml.etree.ElementTree as ET
-
-if TYPE_CHECKING:
-    from downloaders import Downloader
 
 
 class KeyType(StrEnum):
@@ -43,12 +38,14 @@ class KeyType(StrEnum):
 @dataclass
 class KeyboxMetadata:
     file_idx: int = 0
-    source: type[Downloader] | None = None
+    source: str = ''
     original: Path | ZipPath | None = None
 
     @property
     def name(self) -> str:
-        return f'{self.source.__name__ if self.source is not None else "keybox"}_{self.file_idx:d}.xml'
+        return (
+            f'{self.source if len(self.source) > 0 else "keybox"}_{self.file_idx:d}.xml'
+        )
 
 
 class KeyboxError(SyntaxError):

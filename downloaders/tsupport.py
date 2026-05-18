@@ -51,7 +51,10 @@ class TSupport(Downloader):
                 keybox_xml = self.build_keybox()
 
                 yield (
-                    Keybox(keybox_xml, KeyboxMetadata(source=type(self), file_idx=idx))
+                    Keybox(
+                        keybox_xml,
+                        KeyboxMetadata(source=type(self).__name__, file_idx=idx),
+                    )
                     if keybox_xml is not None
                     else None
                 )

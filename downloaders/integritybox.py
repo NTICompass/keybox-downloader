@@ -64,7 +64,7 @@ class IntegrityBox(Downloader):
                 try:
                     kb = Keybox(
                         keybox,
-                        KeyboxMetadata(source=type(self), file_idx=idx),
+                        KeyboxMetadata(source=type(self).__name__, file_idx=idx),
                     )
 
                     keybox_id = kb.device_id

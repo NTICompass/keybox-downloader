@@ -55,7 +55,9 @@ class Downloader(ABC):
                 except NotImplementedError:
                     pass
 
-                yield Keybox(data, KeyboxMetadata(source=type(self), file_idx=idx))
+                yield Keybox(
+                    data, KeyboxMetadata(source=type(self).__name__, file_idx=idx)
+                )
             else:
                 yield data
 
@@ -76,7 +78,9 @@ class Downloader(ABC):
             self.logger.info('Extracting keybox from ZIP file')
             return Keybox(
                 data,
-                KeyboxMetadata(source=type(self), original=zip_file, file_idx=1),
+                KeyboxMetadata(
+                    source=type(self).__name__, original=zip_file, file_idx=1
+                ),
             )
 
     @final
