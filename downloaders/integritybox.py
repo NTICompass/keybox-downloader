@@ -2,11 +2,9 @@ from . import Downloader
 from base64 import b64decode
 from codecs import decode
 from collections.abc import AsyncGenerator
-from program.keybox import Keybox, KeyboxMetadata
+from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from typing import final, override
-from xml.etree.ElementTree import Element, ParseError
 import re
-import xml.etree.ElementTree as ET
 
 
 @final
@@ -63,7 +61,6 @@ class IntegrityBox(Downloader):
             if keybox is None:
                 yield None
             else:
-                # parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
                 try:
                     kb = Keybox(
                         keybox,
@@ -75,8 +72,8 @@ class IntegrityBox(Downloader):
                         kb.device_id = f'{keybox_id} {idx + 1:d}'
 
                     yield kb
-                except ParseError:
-                    self.logger.info(f'Cannot parse "{keybox}"')
+                except KeyboxError as e:
+                    self.logger.info(e.msg)
                     yield None
 
     @override

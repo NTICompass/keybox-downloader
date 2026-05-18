@@ -12,8 +12,17 @@ from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
 from time import time
-from typing import final, ClassVar, Literal, TypedDict, NotRequired, Self, TYPE_CHECKING
-from xml.etree.ElementTree import Element, ElementTree
+from typing import (
+    final,
+    ClassVar,
+    Literal,
+    TypedDict,
+    NotRequired,
+    Self,
+    TYPE_CHECKING,
+    override,
+)
+from xml.etree.ElementTree import Element, ElementTree, ParseError
 from zipfile import Path as ZipPath
 import __main__
 import json
@@ -40,6 +49,13 @@ class KeyboxMetadata:
     @property
     def name(self) -> str:
         return f'{self.source.__name__ if self.source is not None else "keybox"}_{self.file_idx:d}.xml'
+
+
+class KeyboxError(SyntaxError):
+    @override
+    def __init__(self, msg: str, orig_err: ParseError):
+        super().__init__(msg)
+        self.original_error: ParseError = orig_err
 
 
 # See: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
@@ -94,7 +110,10 @@ class Keybox:
         elif isinstance(keybox_data, (Path, IOBase)):
             self.root = ET.parse(keybox_data).getroot()
         elif isinstance(keybox_data, (str, bytes)):
-            self.root = ET.fromstring(keybox_data)
+            try:
+                self.root = ET.fromstring(keybox_data)
+            except ParseError as e:
+                raise KeyboxError(f'Cannot parse "{keybox_data}"', e)
 
         # Fix certs, remove excess new lines
         for cert in self.root.iterfind('.//Keybox//Certificate[@format="pem"]'):
