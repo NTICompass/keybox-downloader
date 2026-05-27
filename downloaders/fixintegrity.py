@@ -9,6 +9,7 @@ class FixIntegrity(Downloader):
     # https://t.me/s/randommodules
     # https://github.com/GueRapii/FixIntegrity
     # https://github.com/GueRapii/TrickBox
+    # https://t.me/s/CollectionByCharlie
     URL = 'github:GueRapii/randommodulesfiles::file.enc'
 
     @override
