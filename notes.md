@@ -11,6 +11,19 @@ Info (via https://t.me/s/arcintalknotes):
 >1. It cannot lock the spoofing to the bootloader, so a keybox is still required to perform bootloader spoofing.
 >2. It is highly dependent on the server of the device owner used for attestation. If the server errors out,
     disconnects, or reaches its limit, you won't be able to get integrity.
+
+From [Specter](https://github.com/dpejoh/specter/commit/784fbc71aa4cc93484226f754b5be75cf97ae778):
+
+```bash
+RKA_HOST="rp.mhmrdd.me"
+RKA_TCP=59416
+RKA_TOKEN="${RKA_TOKEN:-yurikey-5b70e270d6d69cd399c59ca3d62ccf6e}"
+```
+
+See also: https://github.com/dpejoh/specter/blob/v1.4.2/src/features/rka.sh
+
+Even more info: https://github.com/vocolboy/RemoteKeyAttestation
+
 ---
 
 New "page" for IntegrityBox:  https://integritybox2.vercel.app/
