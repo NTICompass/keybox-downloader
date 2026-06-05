@@ -59,6 +59,18 @@ PlayIntegrityFork, so what could it be doing?
 I think `inject` does something with the built-in keystore and `keymint` may create a key, but's just gonna be
 self-signed.
 
+The file `LICENSE.2` references "Oh My Keymint"!
+That could be this: https://github.com/qwq233/OhMyKeymint
+
+The `injector.toml` file matches the one in that repo.
+
+So yeah, it seems the "Play-IntegrityFix" modules just re-packages "OhMyKeymint" and assumes that's good enough.
+Yep, even the `README.md` is exactly the same, except they _tried_ to replace the names.
+
+It's just "OhMyKeymint" with a sketchy `fateh7_enc_armv7` ELF added as well as `autopif4.sh` from PlayIntregityFork.
+
+I would never use Fateh7's module, but what does "OhMyKeymint" do? Can I use that to get "strong integrity"?
+
 ---
 Can I release this tool to the public?
 If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
