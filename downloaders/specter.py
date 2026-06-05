@@ -35,6 +35,7 @@ class Catalog(TypedDict):
 @final
 class Specter(Downloader):
     # https://github.com/dpejoh/specter/
+    # https://specter.dpejoh.com/reference/config.html
     URL = 'https://rawbin.netlify.app/key/catalog'
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
