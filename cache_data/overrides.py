@@ -8,9 +8,11 @@ class Overrides[T: type](BaseData):
     enabled: dict[str, bool] = field(default_factory=dict)
     _manifest_json = 'overrides.json'
 
-    def toggle(self, cls: T, value: bool):
+    def toggle(self, cls: T, value: bool, save=True):
         self.enabled[cls.__name__] = value
-        self.save()
+
+        if save:
+            self.save()
 
     def is_enabled(self, cls: T) -> bool:
         return self.enabled[cls.__name__] if cls.__name__ in self.enabled else False
