@@ -57,8 +57,8 @@ def init():
         make_folders()
 
 
-async def run(dl: Downloader) -> dict[Path, Keybox]:
-    files: dict[Path, Keybox] = {}
+async def run(dl: Downloader) -> list[tuple[Path, Keybox]]:
+    files: list[tuple[Path, Keybox]] = []
 
     async for idx, keybox_file in a_enumerate(dl()):
         keybox_idx = idx + 1
@@ -68,7 +68,7 @@ async def run(dl: Downloader) -> dict[Path, Keybox]:
             continue
 
         logger.info(f'Checking/Saving keybox #{keybox_idx:d}')
-        files[path / keybox_file.key_type] = keybox_file
+        files.append((path / keybox_file.key_type, keybox_file))
 
     return files
 
@@ -83,7 +83,7 @@ async def go(*downloaders: Downloader):
         keyboxes: list[Keybox] = []
 
         for task in tqdm_asyncio.as_completed([run(dl) for dl in downloaders]):
-            for folder, xml_file in (await task).items():
+            for folder, xml_file in await task:
                 xml_file.save(folder)
                 keyboxes.append(xml_file)
 
