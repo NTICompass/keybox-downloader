@@ -24,6 +24,13 @@ See also: https://github.com/dpejoh/specter/blob/v1.4.2/src/features/rka.sh
 
 Even more info: https://github.com/vocolboy/RemoteKeyAttestation
 
+Also: https://t.me/meetstrong/132
+> Public RKA Server is determined to close on June 21, 2026
+> No new tokens will be issued.
+
+Is that `rp.mhmrdd.me` or another server? How can I set up my own server?
+Is this at all legit?
+
 ---
 
 New "page" for IntegrityBox:  https://integritybox2.vercel.app/
