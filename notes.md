@@ -43,6 +43,23 @@ https://github.com/LRFP-Team/keyboxGenerator
 This lets you get "device" integrity, is that good enough?
 
 ---
+In https://github.com/FBIVIP/Play-IntegrityFix/releases, there is no longer just a `keybox.xml` (well, there is, but
+it's an AOSP keybox).
+What there is... is 3 ELF files:
+
+- fateh7_enc_armv7
+- libs/arm64-v8a/inject
+- libs/arm64-v8a/keymint
+
+What are these doing?
+
+It's not generating a keybox, is it? The module purposely removes Tricky Store and
+PlayIntegrityFork, so what could it be doing?
+
+I think `inject` does something with the built-in keystore and `keymint` may create a key, but's just gonna be
+self-signed.
+
+---
 Can I release this tool to the public?
 If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
 
