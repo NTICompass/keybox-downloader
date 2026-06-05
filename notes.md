@@ -72,6 +72,13 @@ It's just "OhMyKeymint" with a sketchy `fateh7_enc_armv7` ELF added as well as `
 I would never use Fateh7's module, but what does "OhMyKeymint" do? Can I use that to get "strong integrity"?
 
 ---
+I found a "fork" of the "original" YuriKey called "Specter":
+https://github.com/dpejoh/specter
+
+Need to figure out where this gets its keyboxes from, it wants a file called `kb_provider.val`.
+Or it falls back to `$CATALOG_URL`, which is in `https://github.com/dpejoh/specter/blob/main/src/lib/urls.sh`
+
+---
 Can I release this tool to the public?
 If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
 
