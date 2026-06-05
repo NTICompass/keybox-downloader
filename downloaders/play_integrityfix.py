@@ -21,9 +21,10 @@ class GitHubRelease(TypedDict):
     assets: list[GitHubAsset]
 
 
-# Root Phantom Fateh
+# Root Phantom Fateh (@fateh7)
 @final
 class PlayIntegrityFix(Downloader):
+    # https://t.me/ProfessorRoot_DZ
     # https://t.me/s/kernelsu1
     # Found via: https://t.me/s/keybox_xml
     # https://github.com/FBIVIP/Play-IntegrityFix/releases
@@ -62,7 +63,7 @@ class PlayIntegrityFix(Downloader):
                     )
                 )
 
-                yield self.unzip(zip_dl, 'zygisk/.@fateh7')
+                yield self.unzip(zip_dl, 'keybox.xml')
 
     @override
     def decode(self, encoded: str) -> str:
