@@ -54,18 +54,26 @@ class Specter(Downloader):
         self.logger.info('Downloading catalog')
 
         cat: Catalog = json.loads(await anext(downloaded))
-        valid_keys = [
-            f'{self.KEYBOX_URL}/{entry["source"]}/{entry["version"]}'
+        other_keys = [
+            f'{entry["source"]} v{entry["version"]}'
             for entry in cat['entries']
             if not entry['revoked']
+            and cat['working']['source'] != entry['source']
+            and cat['working']['version'] != entry['version']
         ]
 
         self.logger.info(
-            f'Downloading "working" keybox: {cat["working"]["source"]} v{cat["working"]["version"]} as well as other non-revoked keyboxes'
+            f'"Working" keybox is {cat["working"]["source"]} v{cat["working"]["version"]}'
         )
+        self.logger.info(f'Other keys are {", ".join(other_keys)}')
 
-        # Manually downloading the current "working" key
-        async for data in self.download_urls(download=valid_keys):
+        async for data in self.download_urls(
+            download=[
+                f'{self.KEYBOX_URL}/{entry["source"]}/{entry["version"]}'
+                for entry in cat['entries']
+                if not entry['revoked']
+            ]
+        ):
             yield data
 
     @override
