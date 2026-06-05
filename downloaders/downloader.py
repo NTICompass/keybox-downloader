@@ -20,8 +20,11 @@ def build_github_url(repo: str, branch: str, file: str) -> str:
 
 class Downloader(ABC):
     registry: list[type[Self]] = []
+
     URL: str
     URLS: list[str]
+    ENABLED = True
+
     current_url: HTTP_URL | str
     client: ClassVar[AsyncClient] = AsyncClient(
         http2=True,
@@ -42,7 +45,9 @@ class Downloader(ABC):
     @final
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        Downloader.registry.append(cls)
+
+        if cls.ENABLED:
+            Downloader.registry.append(cls)
 
     @final
     async def __call__(self) -> AsyncGenerator[Keybox | None]:

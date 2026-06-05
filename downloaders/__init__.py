@@ -2,6 +2,7 @@ from .downloader import Downloader
 from .droidwin import DroidWin
 from .fixintegrity import FixIntegrity
 from .integritybox import IntegrityBox
+from .play_integrityfix import PlayIntegrityFix
 from .specter import Specter
 from .trickyaddon import TrickyAddon
 from .tsupport import TSupport
@@ -12,8 +13,9 @@ __all__ = [
     'DroidWin',
     'FixIntegrity',
     'IntegrityBox',
+    'PlayIntegrityFix',
     'Specter',
-    'TrickyAddon',
     'TSupport',
+    'TrickyAddon',
     'YuriKey',
 ]
