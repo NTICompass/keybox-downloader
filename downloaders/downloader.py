@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from asyncstdlib import enumerate as a_enumerate
+from cache_data import Overrides
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
 from concurrent.futures import ThreadPoolExecutor
@@ -19,7 +20,8 @@ def build_github_url(repo: str, branch: str, file: str) -> str:
 
 
 class Downloader(ABC):
-    registry: list[type[Self]] = []
+    registry: ClassVar[list[type[Self]]] = []
+    overrides: ClassVar[Overrides[type[Self]]] = Overrides()
 
     URL: str
     URLS: list[str]
@@ -46,7 +48,7 @@ class Downloader(ABC):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        if cls.ENABLED:
+        if Downloader.overrides.is_enabled(cls) or cls.ENABLED:
             Downloader.registry.append(cls)
 
     @final
