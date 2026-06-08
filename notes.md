@@ -124,3 +124,17 @@ What other local terminal emulators could I try?
 With `uv`: `uv sync`
 
 With `pip` (Android): `pip install .[build]`
+
+---
+Add "options" panel to toggle on/off downloaders (via `overrides.py`)
+Add "description" for each downloader to be shown here.
+
+Also show program version:
+
+```python
+from importlib.metadata import version
+
+APP_VERSION = version("keybox-downloader")
+```
+
+Needs `pyinstaller --copy-metadata` during build.
