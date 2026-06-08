@@ -17,6 +17,11 @@ class DroidWin(Downloader):
         super().__init__()
         self.cloudflare = False
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'Droidwin Keybox Module'
+
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]

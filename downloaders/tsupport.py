@@ -36,6 +36,11 @@ class TSupport(Downloader):
 
     keys: str
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'TSupport Advance module (Citra-Standalone @ GitHub, @citraintegritytrick on Telegram)'
+
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]

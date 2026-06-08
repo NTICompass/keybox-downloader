@@ -8,6 +8,11 @@ class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
     URL = 'github:KOWX712/Tricky-Addon-Update-Target-List:keybox:.extra'
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'Tricky Addon - Update Target List module (KOWX712 @ GitHub)'
+
     @override
     def decode(self, encoded: str) -> str:
         self.logger.info('Decoding keybox xml')

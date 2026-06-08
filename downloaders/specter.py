@@ -50,6 +50,11 @@ class Specter(Downloader):
         # 🏳️‍⚧️ PRIDE
         self.trans = str.maketrans(self.SHUFFLED, self.ALPHABET)
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
+
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]

@@ -3,7 +3,7 @@ from base64 import b64decode
 from typing import final, override
 
 
-# Also called TrickyBox
+# Also called TrickyBox/TrickBox
 @final
 class FixIntegrity(Downloader):
     # https://t.me/s/randommodules
@@ -11,6 +11,11 @@ class FixIntegrity(Downloader):
     # https://github.com/GueRapii/TrickBox
     # https://t.me/s/CollectionByCharlie
     URL = 'github:GueRapii/randommodulesfiles::file.enc'
+
+    @property
+    @override
+    def description(self) -> str:
+        return 'FixIntegrity or TrickBox module (GueRapii @ GitHub)'
 
     @override
     def decode(self, encoded: str) -> str:

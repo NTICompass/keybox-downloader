@@ -26,6 +26,11 @@ class IntegrityBox(Downloader):
         super().__init__()
         self.junk: list[str] = []
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'IntegrityBox module (Mona/MEOWna @ GitHub)'
+
     def get_keybox_url(self, keybox_script: str | bytes) -> str:
         keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
         return b64decode(

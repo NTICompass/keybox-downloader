@@ -44,6 +44,11 @@ class PlayIntegrityFix(Downloader):
         if github_token:
             self.extra_headers = {'Authorization': f'Bearer {github_token}'}
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'PlayIntegrity module (FBIVIP @ GitHub, aka "Root Phantom Fateh", aka @fateh7)'
+
     @override
     async def process(
         self, downloaded: AsyncGenerator[str]

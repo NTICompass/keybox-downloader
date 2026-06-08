@@ -98,4 +98,4 @@ async def go(*downloaders: Downloader):
 
 
 def get_downloaders() -> Generator[Downloader]:
-    return (cls() for cls in Downloader.registry)
+    return (cls() for cls in Downloader.enabled)

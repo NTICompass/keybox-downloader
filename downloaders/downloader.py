@@ -20,7 +20,8 @@ def build_github_url(repo: str, branch: str, file: str) -> str:
 
 
 class Downloader(ABC):
-    registry: ClassVar[list[type[Self]]] = []
+    enabled: ClassVar[set[type[Self]]] = set()
+    disabled: ClassVar[set[type[Self]]] = set()
     overrides: ClassVar[Overrides[type[Self]]] = Overrides()
 
     URL: str
@@ -49,7 +50,9 @@ class Downloader(ABC):
         super().__init_subclass__(**kwargs)
 
         if Downloader.overrides.is_enabled(cls) or cls.ENABLED:
-            Downloader.registry.append(cls)
+            Downloader.enabled.add(cls)
+        else:
+            Downloader.disabled.add(cls)
 
     @final
     async def __call__(self) -> AsyncGenerator[Keybox | None]:
@@ -70,6 +73,10 @@ class Downloader(ABC):
 
     @abstractmethod
     def decode(self, encoded: str) -> str: ...
+
+    @property
+    @abstractmethod
+    def description(self) -> str: ...
 
     def process(
         self, downloaded: AsyncGenerator[str]

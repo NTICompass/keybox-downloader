@@ -9,6 +9,11 @@ class YuriKey(Downloader):
     # https://t.me/s/yuriservice
     URL = 'github:Yurii0307/yurikey::key'
 
+    @property
+    @override
+    def description(self) -> str:
+        return 'YuriKey module (Yurii0307 @ GitHub)'
+
     @override
     def decode(self, encoded: str) -> str:
         return b64decode(encoded).decode('ascii')
