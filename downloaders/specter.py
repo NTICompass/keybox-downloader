@@ -5,7 +5,7 @@ from typing import final, override, TypedDict, NotRequired
 import json
 
 
-class CatalogEntries(TypedDict):
+class CatalogEntry(TypedDict):
     source: str
     version: str
     text: str
@@ -26,7 +26,7 @@ class CatalogOverride(TypedDict):
 
 
 class Catalog(TypedDict):
-    entries: list[CatalogEntries]
+    entries: list[CatalogEntry]
     latest: dict[str, int]
     working: CatalogWorking
     autoOverride: CatalogOverride
@@ -46,6 +46,8 @@ class Specter(Downloader):
     @override
     def __init__(self):
         super().__init__()
+
+        # 🏳️‍⚧️ PRIDE
         self.trans = str.maketrans(self.SHUFFLED, self.ALPHABET)
 
     @override
