@@ -10,6 +10,7 @@ import re
 @final
 class IntegrityBox(Downloader):
     # https://t.me/MeowDump
+    DESCRIPTION = 'IntegrityBox module (Mona/MEOWna @ GitHub)'
     URLS = [
         # Key Script
         'github:MeowDump/Integrity-Box::webroot/common_scripts/key.sh',
@@ -25,11 +26,6 @@ class IntegrityBox(Downloader):
     def __init__(self):
         super().__init__()
         self.junk: list[str] = []
-
-    @property
-    @override
-    def description(self) -> str:
-        return 'IntegrityBox module (Mona/MEOWna @ GitHub)'
 
     def get_keybox_url(self, keybox_script: str | bytes) -> str:
         keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])

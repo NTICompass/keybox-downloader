@@ -13,7 +13,10 @@ import xml.etree.ElementTree as ET
 
 @final
 class TSupport(Downloader):
+    keys: str
+
     # https://t.me/s/citraintegritytrick
+    DESCRIPTION = 'TSupport Advance module (Citra-Standalone @ GitHub, @citraintegritytrick on Telegram)'
     URLS = [
         # The keybox from the module (Actually just the AOSP keybox)
         'github:Citra-Standalone/Citra-Standalone::bin.tar',
@@ -33,13 +36,6 @@ class TSupport(Downloader):
         'github:Citra-Standalone/Citra-Standalone::zipball/preview.tar',
         'github:Citra-Standalone/Citra-Standalone::zipball/sanctuary.tar',
     ]
-
-    keys: str
-
-    @property
-    @override
-    def description(self) -> str:
-        return 'TSupport Advance module (Citra-Standalone @ GitHub, @citraintegritytrick on Telegram)'
 
     @override
     async def process(

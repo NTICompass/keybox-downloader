@@ -8,6 +8,7 @@ import re
 
 @final
 class DroidWin(Downloader):
+    DESCRIPTION = 'Droidwin Keybox Module'
     URL = (
         'https://droidwin.com/droidwin-keybox-module-gives-you-a-new-unrevoked-keybox/'
     )
@@ -16,11 +17,6 @@ class DroidWin(Downloader):
     def __init__(self):
         super().__init__()
         self.cloudflare = False
-
-    @property
-    @override
-    def description(self) -> str:
-        return 'Droidwin Keybox Module'
 
     @override
     async def process(

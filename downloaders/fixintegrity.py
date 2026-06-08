@@ -10,12 +10,8 @@ class FixIntegrity(Downloader):
     # https://github.com/GueRapii/FixIntegrity
     # https://github.com/GueRapii/TrickBox
     # https://t.me/s/CollectionByCharlie
+    DESCRIPTION = 'FixIntegrity or TrickBox module (GueRapii @ GitHub)'
     URL = 'github:GueRapii/randommodulesfiles::file.enc'
-
-    @property
-    @override
-    def description(self) -> str:
-        return 'FixIntegrity or TrickBox module (GueRapii @ GitHub)'
 
     @override
     def decode(self, encoded: str) -> str:

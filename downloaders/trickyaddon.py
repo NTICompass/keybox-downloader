@@ -6,12 +6,8 @@ from typing import final, override
 @final
 class TrickyAddon(Downloader):
     # https://t.me/s/kowchannel
+    DESCRIPTION = 'Tricky Addon - Update Target List module (KOWX712 @ GitHub)'
     URL = 'github:KOWX712/Tricky-Addon-Update-Target-List:keybox:.extra'
-
-    @property
-    @override
-    def description(self) -> str:
-        return 'Tricky Addon - Update Target List module (KOWX712 @ GitHub)'
 
     @override
     def decode(self, encoded: str) -> str:

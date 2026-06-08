@@ -36,6 +36,7 @@ class Catalog(TypedDict):
 class Specter(Downloader):
     # https://github.com/dpejoh/specter/
     # https://specter.dpejoh.com/reference/config.html
+    DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
     URL = 'https://rawbin.netlify.app/key/catalog'
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
@@ -49,11 +50,6 @@ class Specter(Downloader):
 
         # 🏳️‍⚧️ PRIDE
         self.trans = str.maketrans(self.SHUFFLED, self.ALPHABET)
-
-    @property
-    @override
-    def description(self) -> str:
-        return 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
 
     @override
     async def process(

@@ -24,6 +24,7 @@ class Downloader(ABC):
     disabled: ClassVar[set[type[Self]]] = set()
     overrides: ClassVar[Overrides[type[Self]]] = Overrides()
 
+    DESCRIPTION = ''
     URL: str
     URLS: list[str]
     ENABLED = True
@@ -73,10 +74,6 @@ class Downloader(ABC):
 
     @abstractmethod
     def decode(self, encoded: str) -> str: ...
-
-    @property
-    @abstractmethod
-    def description(self) -> str: ...
 
     def process(
         self, downloaded: AsyncGenerator[str]
