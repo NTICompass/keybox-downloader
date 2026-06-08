@@ -5,20 +5,21 @@ description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = ">=3.12"
 dependencies = [
     "asyncstdlib==3.14.0",
-    "beautifulsoup4==4.14.3",
+    "beautifulsoup4==4.15.0",
     "cloudscraper==1.2.71",
     "cryptography==48.0.0",
     "httpx[brotli,http2]==0.28.1",
     "prompt-toolkit==3.0.52",
     "python-dotenv==1.2.2",
     "requests==2.34.2",
-    "tqdm==4.67.3",
+    "ruff==0.15.16",
+    "tqdm==4.68.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "python-dotenv[cli]==1.2.2",
-    "ruff==0.15.14",
+    "ruff==0.15.16",
 ]
 
 pc = [
