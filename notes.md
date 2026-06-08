@@ -91,6 +91,21 @@ It's just "OhMyKeymint" with a sketchy `fateh7_enc_armv7` ELF added as well as `
 
 I would never use Fateh7's module, but what does "OhMyKeymint" do? Can I use that to get "strong integrity"?
 
+Even more info about "OhMyKeymint" from Citra (https://t.me/s/citraintegritytrick)
+
+- https://t.me/CitraIntegrityTrick/1049
+- https://t.me/CitraIntegrityTrick/1050
+
+> OhMyKeymint distinguishes itself from TrickyStore by functioning as a comprehensive KeyMint simulator rather than a
+> mere patcher.
+>
+> However, this simulation involves a significant security trade-off by shifting the root of trust from immutable
+> hardware
+> chips to software-based files.
+>
+> Consequently, any application [...] will perceive a completely new security environment,
+> which will likely trigger a requirement for you to re-login and re-bind your device to the account.
+
 ---
 I found a "fork" of the "original" YuriKey called "Specter":
 https://github.com/dpejoh/specter
