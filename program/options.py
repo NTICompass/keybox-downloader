@@ -2,8 +2,16 @@ from asyncio import get_running_loop, Future
 from downloaders import Downloader
 from importlib.metadata import version
 from operator import itemgetter
-from prompt_toolkit.widgets import CheckboxList, Dialog, Button
+from prompt_toolkit.layout.containers import VSplit, Window
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.widgets import CheckboxList, Dialog, Button, Frame
 from typing import ClassVar
+
+
+class CheckboxSelected[T](CheckboxList):
+    @property
+    def current_item(self) -> T:
+        return self.values[self._selected_index][0]
 
 
 class Options:
@@ -14,7 +22,7 @@ class Options:
             get_running_loop().create_future()
         )
 
-        checkboxes = CheckboxList(
+        checkboxes = CheckboxSelected[type[Downloader]](
             values=sorted(
                 [(dl, dl.__name__) for dl in Downloader.enabled | Downloader.disabled],
                 key=itemgetter(1),
@@ -22,9 +30,22 @@ class Options:
             default_values=tuple(Downloader.enabled),
         )
 
+        desc_window = Window(
+            content=FormattedTextControl(
+                text=lambda: checkboxes.current_item.DESCRIPTION
+            ),
+            wrap_lines=True,
+        )
+
         self.dialog = Dialog(
             title=f'Keybox Downloader v{self.APP_VERSION}',
-            body=checkboxes,
+            body=VSplit(
+                [
+                    checkboxes,
+                    Frame(desc_window, title='Description'),
+                ],
+                padding=1,
+            ),
             buttons=[
                 Button(
                     text='Save',
