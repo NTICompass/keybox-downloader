@@ -258,20 +258,21 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         event.app.invalidate()
 
         enabled = await opts.future
-        if enabled is not None:
-            # `Downloader.enabled` is already a `set`, but for some reason PyCharm thinks it's a `list`
-            all_downloaders = set(Downloader.enabled) | Downloader.disabled
-            enabled = set(enabled)
 
-            for dl in all_downloaders:
-                overrides.toggle(dl, dl in enabled)
+        if enabled is not None:
+            dl_selected = set(enabled)
+            all_downloaders: set[type[Downloader]] = (
+                Downloader.enabled | Downloader.disabled
+            )
 
             Downloader.enabled.clear()
             Downloader.disabled.clear()
 
-            Downloader.enabled.update(enabled)
-            Downloader.disabled.update(all_downloaders - enabled)
+            Downloader.enabled.update(dl_selected)
+            Downloader.disabled.update(all_downloaders - dl_selected)
 
+            for dl in all_downloaders:
+                overrides.toggle(dl, dl in dl_selected)
             overrides.save()
 
         root_float.floats.pop()
