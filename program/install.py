@@ -131,6 +131,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     selected_index = 0
     device_info_text = ''
     keybox_info_text = ''
+    options_shown = False
     kb = KeyBindings()
 
     menu_control: Window
@@ -240,36 +241,43 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     @kb.add('o')
     async def _(event: KeyPressEvent):
-        opts = Options()
-        root_float.floats.append(Float(content=opts.dialog))
+        nonlocal options_shown
 
-        if event.app.layout:
-            event.app.layout.focus(opts.dialog)
-        event.app.invalidate()
+        if not options_shown:
+            options_shown = True
 
-        enabled = await opts.future
-        if enabled is not None:
-            # `Downloader.enabled` is already a `set`, but for some reason PyCharm thinks it's a `list`
-            all_downloaders = set(Downloader.enabled) | Downloader.disabled
-            enabled = set(enabled)
+            opts = Options()
+            root_float.floats.append(Float(content=opts.dialog))
 
-            for dl in all_downloaders:
-                overrides.toggle(dl, dl in enabled, save=False)
+            if event.app.layout:
+                event.app.layout.focus(opts.dialog)
+            event.app.invalidate()
 
-                if dl in enabled:
-                    Downloader.enabled.add(dl)
-                    Downloader.disabled.discard(dl)
-                else:
-                    Downloader.disabled.add(dl)
-                    Downloader.enabled.discard(dl)
+            enabled = await opts.future
+            if enabled is not None:
+                # `Downloader.enabled` is already a `set`, but for some reason PyCharm thinks it's a `list`
+                all_downloaders = set(Downloader.enabled) | Downloader.disabled
+                enabled = set(enabled)
 
-            overrides.save()
+                for dl in all_downloaders:
+                    overrides.toggle(dl, dl in enabled, save=False)
 
-        root_float.floats.pop()
+                    if dl in enabled:
+                        Downloader.enabled.add(dl)
+                        Downloader.disabled.discard(dl)
+                    else:
+                        Downloader.disabled.add(dl)
+                        Downloader.enabled.discard(dl)
 
-        if event.app.layout:
-            event.app.layout.focus(menu_control)
-        event.app.invalidate()
+                overrides.save()
+
+            root_float.floats.pop()
+
+            if event.app.layout:
+                event.app.layout.focus(menu_control)
+            event.app.invalidate()
+
+            options_shown = False
 
     @kb.add('r')
     def _(event: KeyPressEvent):
