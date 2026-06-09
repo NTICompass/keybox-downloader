@@ -1,4 +1,4 @@
-from asyncio import Future
+from asyncio import get_running_loop, Future
 from downloaders import Downloader
 from importlib.metadata import version
 from operator import itemgetter
@@ -10,7 +10,9 @@ class Options:
     APP_VERSION: ClassVar[str] = version('keybox-downloader')
 
     def __init__(self):
-        self.future: Future[list[type[Downloader]] | None] = Future()
+        self.future: Future[list[type[Downloader]] | None] = (
+            get_running_loop().create_future()
+        )
 
         checkboxes = CheckboxList(
             values=sorted(
