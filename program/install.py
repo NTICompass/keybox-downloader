@@ -12,7 +12,6 @@ from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import (
     KeyBindings,
     KeyPressEvent,
-    merge_key_bindings,
     ConditionalKeyBindings,
 )
 from prompt_toolkit.layout import (
@@ -26,6 +25,7 @@ from prompt_toolkit.layout import (
 )
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
+from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import Frame, Button
 import __main__
 import asyncio
@@ -138,8 +138,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     keybox_info_text = ''
     options_shown = False
 
-    main_kb = KeyBindings()
-
+    kb = KeyBindings()
+    opts: Options
     menu_control: Window
     root_float: FloatContainer
 
@@ -220,20 +220,20 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         selected_index = (selected_index + delta) % len(keyboxes)
         event.app.create_background_task(keybox_info(event))
 
-    @main_kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
+    @kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(-1, event)
 
-    @main_kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
+    @kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(1, event)
 
-    @main_kb.add('enter', filter=Condition(lambda: is_android or device is not None))
+    @kb.add('enter', filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
 
-    @main_kb.add('d')
+    @kb.add('d')
     def _(event: KeyPressEvent):
         async def run():
             async with in_terminal():
@@ -245,9 +245,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         event.app.create_background_task(run())
 
-    @main_kb.add('o')
+    @kb.add('o')
     async def _(event: KeyPressEvent):
-        nonlocal options_shown
+        nonlocal options_shown, opts
         options_shown = True
 
         opts = Options()
@@ -283,11 +283,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         options_shown = False
 
-    @main_kb.add('r')
+    @kb.add('r')
     def _(event: KeyPressEvent):
         event.app.create_background_task(refresh_device(event))
 
-    @main_kb.add('q')
+    @kb.add('q')
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
 
@@ -325,15 +325,18 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     app = Application(
         layout=Layout(root_float, focused_element=menu_control),
         full_screen=True,
-        key_bindings=merge_key_bindings(
-            [
-                ConditionalKeyBindings(
-                    main_kb, filter=Condition(lambda: not options_shown)
-                ),
-                # todo add extra key_bindings for options dialog
-            ]
+        key_bindings=ConditionalKeyBindings(
+            kb,
+            filter=Condition(lambda: not options_shown),
         ),
-        mouse_support=not is_android,
+        mouse_support=Condition(lambda: not is_android),
+        style=Style.from_dict(
+            {
+                'checkbox': 'fg:black',
+                'checkbox-checked': 'fg:red bold',
+                'checkbox-selected': 'reverse bold',
+            }
+        ),
     )
 
     if not is_android:
