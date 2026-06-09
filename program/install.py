@@ -9,7 +9,12 @@ from prompt_toolkit.application import Application, get_app, in_terminal
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
-from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
+from prompt_toolkit.key_binding import (
+    KeyBindings,
+    KeyPressEvent,
+    merge_key_bindings,
+    ConditionalKeyBindings,
+)
 from prompt_toolkit.layout import (
     Layout,
     HSplit,
@@ -132,7 +137,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     device_info_text = ''
     keybox_info_text = ''
     options_shown = False
-    kb = KeyBindings()
+
+    main_kb = KeyBindings()
 
     menu_control: Window
     root_float: FloatContainer
@@ -214,20 +220,20 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         selected_index = (selected_index + delta) % len(keyboxes)
         event.app.create_background_task(keybox_info(event))
 
-    @kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
+    @main_kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(-1, event)
 
-    @kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
+    @main_kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(1, event)
 
-    @kb.add('enter', filter=Condition(lambda: is_android or device is not None))
+    @main_kb.add('enter', filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
 
-    @kb.add('d')
+    @main_kb.add('d')
     def _(event: KeyPressEvent):
         async def run():
             async with in_terminal():
@@ -239,51 +245,48 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         event.app.create_background_task(run())
 
-    @kb.add('o')
+    @main_kb.add('o')
     async def _(event: KeyPressEvent):
         nonlocal options_shown
+        options_shown = True
 
-        if not options_shown:
-            options_shown = True
+        opts = Options()
+        root_float.floats.append(Float(content=opts.dialog))
 
-            opts = Options()
-            root_float.floats.append(Float(content=opts.dialog))
+        if event.app.layout:
+            event.app.layout.focus(opts.dialog)
+        event.app.invalidate()
 
-            if event.app.layout:
-                event.app.layout.focus(opts.dialog)
-            event.app.invalidate()
+        enabled = await opts.future
+        if enabled is not None:
+            # `Downloader.enabled` is already a `set`, but for some reason PyCharm thinks it's a `list`
+            all_downloaders = set(Downloader.enabled) | Downloader.disabled
+            enabled = set(enabled)
 
-            enabled = await opts.future
-            if enabled is not None:
-                # `Downloader.enabled` is already a `set`, but for some reason PyCharm thinks it's a `list`
-                all_downloaders = set(Downloader.enabled) | Downloader.disabled
-                enabled = set(enabled)
+            for dl in all_downloaders:
+                overrides.toggle(dl, dl in enabled)
 
-                for dl in all_downloaders:
-                    overrides.toggle(dl, dl in enabled, save=False)
+            Downloader.enabled.clear()
+            Downloader.disabled.clear()
 
-                    if dl in enabled:
-                        Downloader.enabled.add(dl)
-                        Downloader.disabled.discard(dl)
-                    else:
-                        Downloader.disabled.add(dl)
-                        Downloader.enabled.discard(dl)
+            Downloader.enabled.update(enabled)
+            Downloader.disabled.update(all_downloaders - enabled)
 
-                overrides.save()
+            overrides.save()
 
-            root_float.floats.pop()
+        root_float.floats.pop()
 
-            if event.app.layout:
-                event.app.layout.focus(menu_control)
-            event.app.invalidate()
+        if event.app.layout:
+            event.app.layout.focus(menu_control)
+        event.app.invalidate()
 
-            options_shown = False
+        options_shown = False
 
-    @kb.add('r')
+    @main_kb.add('r')
     def _(event: KeyPressEvent):
         event.app.create_background_task(refresh_device(event))
 
-    @kb.add('q')
+    @main_kb.add('q')
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
 
@@ -321,7 +324,14 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     app = Application(
         layout=Layout(root_float, focused_element=menu_control),
         full_screen=True,
-        key_bindings=kb,
+        key_bindings=merge_key_bindings(
+            [
+                ConditionalKeyBindings(
+                    main_kb, filter=Condition(lambda: not options_shown)
+                ),
+                # todo add extra key_bindings for options dialog
+            ]
+        ),
         mouse_support=not is_android,
     )
 
