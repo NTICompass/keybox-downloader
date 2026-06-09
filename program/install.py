@@ -1,4 +1,5 @@
 from .action import get_downloaders, go
+from .options import Options
 from collections.abc import Callable
 from downloaders import Downloader
 from pathlib import Path
@@ -8,7 +9,15 @@ from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
-from prompt_toolkit.layout import Layout, HSplit, VSplit, Window, ConditionalContainer
+from prompt_toolkit.layout import (
+    Layout,
+    HSplit,
+    VSplit,
+    Window,
+    ConditionalContainer,
+    Float,
+    FloatContainer,
+)
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.widgets import Frame, Button
@@ -122,6 +131,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     keybox_info_text = ''
     kb = KeyBindings()
 
+    menu_control: Window
+    root_float: FloatContainer
+
     async def refresh_device(event: KeyPressEvent | None = None):
         nonlocal device_info_text
         device_info_text = await get_device()
@@ -224,6 +236,34 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         event.app.create_background_task(run())
 
+    @kb.add('o')
+    async def _(event: KeyPressEvent):
+        opts = Options()
+        root_float.floats.append(Float(content=opts.dialog))
+
+        if event.app.layout:
+            event.app.layout.focus(opts.dialog)
+        event.app.invalidate()
+
+        enabled = await opts.future
+        if enabled is not None:
+            all_downloaders = Downloader.enabled | Downloader.disabled
+            enabled = set(enabled)
+
+            for dl in all_downloaders:
+                if dl in enabled:
+                    Downloader.enabled.add(dl)
+                    Downloader.disabled.discard(dl)
+                else:
+                    Downloader.disabled.add(dl)
+                    Downloader.enabled.discard(dl)
+
+        root_float.floats.pop()
+
+        if event.app.layout:
+            event.app.layout.focus(menu_control)
+        event.app.invalidate()
+
     @kb.add('r')
     def _(event: KeyPressEvent):
         event.app.create_background_task(refresh_device(event))
@@ -262,8 +302,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             ]
         )
 
+    root_float = FloatContainer(content=root_win, floats=[])
     app = Application(
-        layout=Layout(root_win, focused_element=menu_control),
+        layout=Layout(root_float, focused_element=menu_control),
         full_screen=True,
         key_bindings=kb,
         mouse_support=not is_android,

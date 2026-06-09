@@ -153,3 +153,5 @@ APP_VERSION = version("keybox-downloader")
 ```
 
 Needs `pyinstaller --copy-metadata` during build.
+
+Also needs `uv pip install -e .`
