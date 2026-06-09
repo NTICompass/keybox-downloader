@@ -1,5 +1,6 @@
 from .action import get_downloaders, go
 from .options import Options
+from cache_data import Overrides
 from collections.abc import Callable
 from downloaders import Downloader
 from pathlib import Path
@@ -47,6 +48,7 @@ runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 
 current_keybox: Keybox | None = None
 files: dict[str, Keybox] = {}
+overrides: Overrides[type[Downloader]] = Overrides()
 
 
 async def get_prop(prop: str | None = None) -> str:
@@ -247,16 +249,21 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         enabled = await opts.future
         if enabled is not None:
-            all_downloaders = Downloader.enabled | Downloader.disabled
+            # `Downloader.enabled` is already a `set`, but for some reason PyCharm thinks it's a `list`
+            all_downloaders = set(Downloader.enabled) | Downloader.disabled
             enabled = set(enabled)
 
             for dl in all_downloaders:
+                overrides.toggle(dl, dl in enabled, save=False)
+
                 if dl in enabled:
                     Downloader.enabled.add(dl)
                     Downloader.disabled.discard(dl)
                 else:
                     Downloader.disabled.add(dl)
                     Downloader.enabled.discard(dl)
+
+            overrides.save()
 
         root_float.floats.pop()
 
