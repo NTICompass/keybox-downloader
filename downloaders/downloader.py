@@ -49,11 +49,13 @@ class Downloader(ABC):
     @final
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        target = (
+            Downloader.enabled
+            if Downloader.overrides.is_enabled(cls) or cls.ENABLED
+            else Downloader.disabled
+        )
 
-        if Downloader.overrides.is_enabled(cls) or cls.ENABLED:
-            Downloader.enabled.add(cls)
-        else:
-            Downloader.disabled.add(cls)
+        target.add(cls)
 
     @final
     async def __call__(self) -> AsyncGenerator[Keybox | None]:

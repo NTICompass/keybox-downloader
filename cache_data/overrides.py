@@ -15,4 +15,4 @@ class Overrides[T: type](BaseData):
             self.save()
 
     def is_enabled(self, cls: T) -> bool:
-        return self.enabled[cls.__name__] if cls.__name__ in self.enabled else False
+        return self.enabled.get(cls.__name__, False)

@@ -118,7 +118,7 @@ Can I release this tool to the public?
 If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
 
 ```
-pyinstaller.exe --add-data "scripts:scripts" --onefile --noupx .\main.py
+pyinstaller.exe --copy-metadata keybox-downloader --add-data "scripts:scripts" --onefile --noupx .\main.py
 ```
 
 This works on Android..... kind of.
@@ -155,3 +155,9 @@ APP_VERSION = version("keybox-downloader")
 Needs `pyinstaller --copy-metadata` during build.
 
 Also needs `uv pip install -e .`
+
+---
+Try https://nuitka.net/ instead of PyInstaller?
+
+`python -m nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --follow-imports --include-data-dir=scripts=scripts main.py`
+(or `--mode=standalone`)

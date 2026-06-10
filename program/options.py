@@ -8,7 +8,7 @@ from prompt_toolkit.widgets import CheckboxList, Dialog, Button, Frame
 from typing import ClassVar
 
 
-class CheckboxSelected[T](CheckboxList):
+class CheckboxSelected[T](CheckboxList[T]):
     @property
     def current_item(self) -> T:
         return self.values[self._selected_index][0]
@@ -17,10 +17,11 @@ class CheckboxSelected[T](CheckboxList):
 class Options:
     APP_VERSION: ClassVar[str] = version('keybox-downloader')
 
+    future: Future[list[type[Downloader]] | None]
+    dialog: Dialog
+
     def __init__(self):
-        self.future: Future[list[type[Downloader]] | None] = (
-            get_running_loop().create_future()
-        )
+        self.future = get_running_loop().create_future()
 
         checkboxes = CheckboxSelected[type[Downloader]](
             values=sorted(
