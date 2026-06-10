@@ -168,3 +168,7 @@ cython_debug/
 /backups/
 /extra/
 /cache/
+main.bin
+/main.onefile-build/
+/main.dist/
+/main.build/
