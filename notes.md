@@ -159,5 +159,5 @@ Also needs `uv pip install -e .`
 ---
 Try https://nuitka.net/ instead of PyInstaller?
 
-`python -m nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --follow-imports --include-data-dir=scripts=scripts main.py`
-(or `--mode=standalone`)
+`python -m nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts main.py`
+(or `--mode=standalone --follow-imports`)
