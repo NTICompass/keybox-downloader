@@ -7,7 +7,7 @@ dependencies = [
     "asyncstdlib==3.14.0",
     "beautifulsoup4==4.15.0",
     "cloudscraper==1.2.71",
-    "cryptography==48.0.0",
+    "cryptography==48.0.1",
     "httpx[brotli,http2]==0.28.1",
     "prompt-toolkit==3.0.52",
     "python-dotenv==1.2.2",
@@ -27,6 +27,7 @@ pc = [
 ]
 
 build = [
+    "Nuitka==4.1.2",
     "pyinstaller==6.20.0",
 ]
 
