@@ -20,23 +20,24 @@ class Options:
 
     future: Future[list[type[Downloader]] | None]
     dialog: Dialog
+    __checkboxes: CheckboxSelected[type[Downloader]]
 
     def __init__(self, is_android: bool):
         self.future = get_running_loop().create_future()
         kb = KeyBindings()
 
-        checkboxes = CheckboxSelected[type[Downloader]](
+        self.__checkboxes = CheckboxSelected[type[Downloader]](
             values=sorted(
                 [(dl, dl.__name__) for dl in Downloader.enabled | Downloader.disabled],
                 key=itemgetter(1),
             ),
             default_values=tuple(Downloader.enabled),
         )
-        checkboxes.show_scrollbar = False
+        self.__checkboxes.show_scrollbar = False
 
         desc_window = Window(
             content=FormattedTextControl(
-                text=lambda: checkboxes.current_item.DESCRIPTION
+                text=lambda: self.__checkboxes.current_item.DESCRIPTION
             ),
             wrap_lines=True,
         )
@@ -44,7 +45,7 @@ class Options:
         if is_android:
             body = [
                 Window(content=FormattedTextControl(text='Select downloaders:')),
-                Box(body=checkboxes, width=35),
+                Box(body=self.__checkboxes, width=35),
                 Frame(body=desc_window, title='Description', width=50),
             ]
         else:
@@ -52,7 +53,7 @@ class Options:
                 Window(content=FormattedTextControl(text='Select downloaders:')),
                 VSplit(
                     [
-                        Box(body=checkboxes, width=35),
+                        Box(body=self.__checkboxes, width=35),
                         Frame(body=desc_window, title='Description', width=75),
                     ],
                     padding=1,
@@ -61,7 +62,7 @@ class Options:
 
         @kb.add('s')
         def _(event: KeyPressEvent):
-            self._save(checkboxes)
+            self._save()
 
         @kb.add('q')
         def _(event: KeyPressEvent):
@@ -71,13 +72,13 @@ class Options:
             title=f'Keybox Downloader v{self.APP_VERSION}',
             body=HSplit(children=body, key_bindings=kb),
             buttons=[
-                Button(text='Save', handler=lambda: self._save(checkboxes)),
+                Button(text='Save', handler=self._save),
                 Button(text='Cancel', handler=self._cancel),
             ],
         )
 
-    def _save(self, checkboxes: CheckboxSelected[type[Downloader]]):
-        self.future.set_result(checkboxes.current_values)
+    def _save(self):
+        self.future.set_result(self.__checkboxes.current_values)
 
     def _cancel(self):
         self.future.set_result(None)
