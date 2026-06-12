@@ -64,6 +64,7 @@ class Options:
         def _(event: KeyPressEvent):
             self.__save()
 
+        @kb.add('c')
         @kb.add('q')
         def _(event: KeyPressEvent):
             self.__cancel()

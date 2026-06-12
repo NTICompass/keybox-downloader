@@ -5,6 +5,7 @@ from collections.abc import Callable
 from downloaders import Downloader
 from pathlib import Path
 from program.keybox import Keybox
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.application import Application, get_app, in_terminal
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
@@ -220,15 +221,15 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         selected_index = (selected_index + delta) % len(keyboxes)
         event.app.create_background_task(keybox_info(event))
 
-    @kb.add('up', filter=Condition(lambda: len(keyboxes) > 0))
+    @kb.add(Keys.Up, filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(-1, event)
 
-    @kb.add('down', filter=Condition(lambda: len(keyboxes) > 0))
+    @kb.add(Keys.Down, filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
         move(1, event)
 
-    @kb.add('enter', filter=Condition(lambda: is_android or device is not None))
+    @kb.add(Keys.Enter, filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
@@ -283,6 +284,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         options_shown = False
 
+    @kb.add(Keys.F5)
     @kb.add('r')
     def _(event: KeyPressEvent):
         event.app.create_background_task(refresh_device(event))
