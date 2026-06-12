@@ -27,8 +27,13 @@ pc = [
 
 build = [
     "Nuitka==4.1.2",
+    "poethepoet==0.46.0",
     "pyinstaller==6.20.0",
 ]
+
+[tool.poe.tasks]
+build_nuitka = "nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts --include-package-data=cloudscraper main.py"
+build_pyinstaller = "pyinstaller --copy-metadata keybox-downloader --onefile --add-data \"scripts:scripts\" --noupx main.py"
 
 [tool.setuptools.packages.find]
 include = [
