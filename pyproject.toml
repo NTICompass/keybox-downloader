@@ -32,8 +32,8 @@ build = [
 ]
 
 [tool.poe.tasks]
-build_nuitka = "nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts --include-package-data=cloudscraper main.py"
-build_pyinstaller = "pyinstaller --copy-metadata keybox-downloader --onefile --add-data \"scripts:scripts\" --noupx main.py"
+build_nuitka = "nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts --include-package-data=cloudscraper --enable-plugin=upx main.py"
+build_pyinstaller = "pyinstaller --copy-metadata keybox-downloader --onefile --add-data \"scripts:scripts\" main.py"
 
 [tool.setuptools.packages.find]
 include = [
