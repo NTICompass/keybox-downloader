@@ -62,23 +62,23 @@ class Options:
 
         @kb.add('s')
         def _(event: KeyPressEvent):
-            self._save()
+            self.__save()
 
         @kb.add('q')
         def _(event: KeyPressEvent):
-            self._cancel()
+            self.__cancel()
 
         self.dialog = Dialog(
             title=f'Keybox Downloader v{self.APP_VERSION}',
             body=HSplit(children=body, key_bindings=kb),
             buttons=[
-                Button(text='Save', handler=self._save),
-                Button(text='Cancel', handler=self._cancel),
+                Button(text='Save', handler=self.__save),
+                Button(text='Cancel', handler=self.__cancel),
             ],
         )
 
-    def _save(self):
+    def __save(self):
         self.future.set_result(self.__checkboxes.current_values)
 
-    def _cancel(self):
+    def __cancel(self):
         self.future.set_result(None)
