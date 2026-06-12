@@ -161,3 +161,11 @@ Try https://nuitka.net/ instead of PyInstaller?
 
 `python -m nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts main.py`
 (or `--mode=standalone --follow-imports`)
+
+```
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/onefile_48374_741325_V8DMeT5-g0c/cloudscraper/user_agent/browsers.json'
+```
+
+Somehow `PyInstaller` doesn't get this error...
+
+`python -m nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts --include-package-data=cloudscraper main.py`
