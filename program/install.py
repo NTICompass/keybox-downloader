@@ -250,7 +250,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         nonlocal options_shown, opts
         options_shown = True
 
-        opts = Options()
+        opts = Options(is_android)
         root_float.floats.append(Float(content=opts.dialog))
 
         if event.app.layout:
@@ -314,7 +314,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                                 Frame(device_info, title='Device Info'),
                             ]
                         ),
-                        Frame(preview, title='Keybox Info'),
+                        Frame(preview, title='Keybox Info', width=100),
                     ]
                 ),
                 continue_button,

@@ -2,9 +2,10 @@ from asyncio import get_running_loop, Future
 from downloaders import Downloader
 from importlib.metadata import version
 from operator import itemgetter
-from prompt_toolkit.layout.containers import VSplit, Window
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
+from prompt_toolkit.layout.containers import VSplit, HSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.widgets import CheckboxList, Dialog, Button, Frame
+from prompt_toolkit.widgets import CheckboxList, Dialog, Button, Frame, Box
 from typing import ClassVar
 
 
@@ -20,8 +21,9 @@ class Options:
     future: Future[list[type[Downloader]] | None]
     dialog: Dialog
 
-    def __init__(self):
+    def __init__(self, is_android: bool):
         self.future = get_running_loop().create_future()
+        kb = KeyBindings()
 
         checkboxes = CheckboxSelected[type[Downloader]](
             values=sorted(
@@ -30,6 +32,7 @@ class Options:
             ),
             default_values=tuple(Downloader.enabled),
         )
+        checkboxes.show_scrollbar = False
 
         desc_window = Window(
             content=FormattedTextControl(
@@ -38,23 +41,43 @@ class Options:
             wrap_lines=True,
         )
 
+        if is_android:
+            body = [
+                Window(content=FormattedTextControl(text='Select downloaders:')),
+                Box(body=checkboxes, width=35),
+                Frame(body=desc_window, title='Description', width=50),
+            ]
+        else:
+            body = [
+                Window(content=FormattedTextControl(text='Select downloaders:')),
+                VSplit(
+                    [
+                        Box(body=checkboxes, width=35),
+                        Frame(body=desc_window, title='Description', width=75),
+                    ],
+                    padding=1,
+                ),
+            ]
+
+        @kb.add('s')
+        def _(event: KeyPressEvent):
+            self._save(checkboxes)
+
+        @kb.add('q')
+        def _(event: KeyPressEvent):
+            self._cancel()
+
         self.dialog = Dialog(
             title=f'Keybox Downloader v{self.APP_VERSION}',
-            body=VSplit(
-                [
-                    checkboxes,
-                    Frame(desc_window, title='Description'),
-                ],
-                padding=1,
-            ),
+            body=HSplit(children=body, key_bindings=kb),
             buttons=[
-                Button(
-                    text='Save',
-                    handler=lambda: self.future.set_result(checkboxes.current_values),
-                ),
-                Button(
-                    text='Cancel',
-                    handler=lambda: self.future.set_result(None),
-                ),
+                Button(text='Save', handler=lambda: self._save(checkboxes)),
+                Button(text='Cancel', handler=self._cancel),
             ],
         )
+
+    def _save(self, checkboxes: CheckboxSelected[type[Downloader]]):
+        self.future.set_result(checkboxes.current_values)
+
+    def _cancel(self):
+        self.future.set_result(None)
