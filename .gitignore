@@ -162,13 +162,14 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Don't commit the keybox xml files
+# Don't commit the keybox xml files or build files
 /keyboxes/
 /logs/
 /backups/
 /extra/
 /cache/
 main.bin
+main.exe
 /main.onefile-build/
 /main.dist/
 /main.build/

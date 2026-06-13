@@ -34,12 +34,13 @@ build = [
 [tool.poe.tasks]
 build_nuitka = """
     nuitka
-    --clang
+    --zig
     --lto=auto
     --include-distribution-metadata=keybox-downloader
     --mode=onefile
     --include-data-dir=scripts=scripts
     --include-package-data=cloudscraper
+    --onefile-no-compression
     --enable-plugin=upx
     main.py
 """
