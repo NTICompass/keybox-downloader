@@ -452,6 +452,7 @@ dependencies = [
     { name = "cloudscraper" },
     { name = "cryptography" },
     { name = "httpx", extra = ["brotli", "http2"] },
+    { name = "nuitka" },
     { name = "prompt-toolkit" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -480,7 +481,8 @@ requires-dist = [
     { name = "cloudscraper", specifier = "==1.2.71" },
     { name = "cryptography", specifier = "==49.0.0" },
     { name = "httpx", extras = ["brotli", "http2"], specifier = "==0.28.1" },
-    { name = "nuitka", marker = "extra == 'build'", specifier = "==4.1.2" },
+    { name = "nuitka", extras = ["app"], git = "https://github.com/Nuitka/Nuitka.git?rev=develop" },
+    { name = "nuitka", extras = ["app"], marker = "extra == 'build'", git = "https://github.com/Nuitka/Nuitka.git?rev=develop" },
     { name = "poethepoet", marker = "extra == 'build'", specifier = "==0.46.0" },
     { name = "prompt-toolkit", specifier = "==3.0.52" },
     { name = "pyinstaller", marker = "extra == 'build'", specifier = "==6.20.0" },
@@ -506,9 +508,8 @@ wheels = [
 
 [[package]]
 name = "nuitka"
-version = "4.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e6/2e/9ea398ca1a4fc458958fdf477ae18d3395bee8c9f8950ca6f0f039ea2585/nuitka-4.1.2.tar.gz", hash = "sha256:efc2359b171d7b63046ca8ec8dee57015c3466a9df74b68a049c2c1a7e93ecee", size = 4561050, upload-time = "2026-05-28T08:26:07.947Z" }
+version = "4.2rc2"
+source = { git = "https://github.com/Nuitka/Nuitka.git?rev=develop#ff98af55ff561799ac778a13246bfac0b218c798" }
 
 [[package]]
 name = "packaging"
