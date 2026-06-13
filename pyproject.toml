@@ -32,6 +32,7 @@ build = [
 ]
 
 [tool.poe.tasks]
+# Windows may need `--include-windows-runtime-dlls=yes`
 build_nuitka = """
     nuitka
     --clang
@@ -56,7 +57,6 @@ build_pyinstaller = """
 include = [
     "program*",
     "downloaders*",
-    "utils*",
     "cache_data*",
 ]
 exclude = [
