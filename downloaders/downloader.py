@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
-from program.keybox import Keybox, KeyboxMetadata
+from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from requests import Response as CloudflareResponse
 from typing import final, overload, ClassVar, Literal, Self
 from zipfile import Path as ZipPath
@@ -68,9 +68,13 @@ class Downloader(ABC):
                 except NotImplementedError:
                     pass
 
-                yield Keybox(
-                    data, KeyboxMetadata(source=type(self).__name__, file_idx=idx)
-                )
+                try:
+                    yield Keybox(
+                        data, KeyboxMetadata(source=type(self).__name__, file_idx=idx)
+                    )
+                except KeyboxError as e:
+                    self.logger.info(e.msg)
+                    yield None
             else:
                 yield data
 
