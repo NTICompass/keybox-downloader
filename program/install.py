@@ -333,13 +333,13 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                             item
                             for key, text in keys_help.items()
                             for item in (
-                                ('bold', f'[{key.upper()}] '),
+                                ('class:key', f'[{key.upper()}] '),
                                 ('', f'{text.title()} '),
                             )
                         ]
                     ),
                     height=1,
-                    style='reverse',
+                    style='class:toolbar',
                 ),
             ]
         )
@@ -358,6 +358,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 'checkbox': 'fg:black',
                 'checkbox-checked': 'fg:red bold',
                 'checkbox-selected': 'reverse bold',
+                'toolbar': 'reverse',
+                'key': 'bold',
             }
         ),
     )
