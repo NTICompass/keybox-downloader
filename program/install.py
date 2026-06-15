@@ -300,6 +300,31 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         'q': 'Quit',
     }
 
+    def status_handler(key: str) -> Callable[[MouseEvent], None]:
+        def click(mouse_event: MouseEvent):
+            if (
+                mouse_event.button == MouseButton.LEFT
+                and mouse_event.event_type == MouseEventType.MOUSE_UP
+            ):
+                pass
+
+        return click
+
+    status_bar = Window(
+        content=FormattedTextControl(
+            [
+                item
+                for key, text in keys_help.items()
+                for item in (
+                    ('class:key', f'[{key.upper()}] ', status_handler(key)),
+                    ('', f'{text.title()} ', status_handler(key)),
+                )
+            ]
+        ),
+        height=2 if is_android else 1,
+        style='class:toolbar',
+    )
+
     if is_android:
         root_win = HSplit(
             [
@@ -310,6 +335,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     ]
                 ),
                 Frame(preview, title='Keybox Info'),
+                status_bar,
             ]
         )
     else:
@@ -327,20 +353,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     ]
                 ),
                 continue_button,
-                Window(
-                    content=FormattedTextControl(
-                        [
-                            item
-                            for key, text in keys_help.items()
-                            for item in (
-                                ('class:key', f'[{key.upper()}] '),
-                                ('', f'{text.title()} '),
-                            )
-                        ]
-                    ),
-                    height=1,
-                    style='class:toolbar',
-                ),
+                status_bar,
             ]
         )
 
