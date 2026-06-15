@@ -293,6 +293,13 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
 
+    keys_help = {
+        'd': 'Run downloaders',
+        'r': 'Reload / Re-scan devices',
+        'o': 'Options',
+        'q': 'Quit',
+    }
+
     if is_android:
         root_win = HSplit(
             [
@@ -320,6 +327,20 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     ]
                 ),
                 continue_button,
+                Window(
+                    content=FormattedTextControl(
+                        [
+                            item
+                            for key, text in keys_help.items()
+                            for item in (
+                                ('bold', f'[{key.upper()}] '),
+                                ('', f'{text.title()} '),
+                            )
+                        ]
+                    ),
+                    height=1,
+                    style='reverse',
+                ),
             ]
         )
 
