@@ -1,4 +1,5 @@
 from .action import get_downloaders, go
+from .eventmap import EventMap
 from .options import Options
 from cache_data import Overrides
 from collections.abc import Callable
@@ -153,7 +154,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         else:
             get_app().invalidate()
 
-    async def keybox_info(event: KeyPressEvent | MouseEvent | None = None):
+    async def keybox_info(do_invalidate=True):
         nonlocal keybox_info_text
 
         keybox_info_text = (
@@ -162,7 +163,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             else ''
         )
 
-        if event is None:
+        if do_invalidate:
             get_app().invalidate()
 
     def file_list() -> StyleAndTextTuples:
@@ -175,7 +176,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     and mouse_event.event_type == MouseEventType.MOUSE_UP
                 ):
                     selected_index = idx
-                    get_app().create_background_task(keybox_info(mouse_event))
+                    get_app().create_background_task(keybox_info(False))
 
             return click
 
@@ -219,7 +220,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     def move(delta: int, event: KeyPressEvent):
         nonlocal selected_index
         selected_index = (selected_index + delta) % len(keyboxes)
-        event.app.create_background_task(keybox_info(event))
+        event.app.create_background_task(keybox_info(False))
 
     @kb.add(Keys.Up, filter=Condition(lambda: len(keyboxes) > 0))
     def _(event: KeyPressEvent):
@@ -234,17 +235,20 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
 
-    @kb.add('d')
-    def _(event: KeyPressEvent):
+    def do_download(evt_app: Application[Path | None] = get_app()):
         async def run():
             async with in_terminal():
                 nonlocal keyboxes
 
                 await go(*get_downloaders())
                 keyboxes = list(folder.rglob('*.xml'))
-                await keybox_info(event)
+                await keybox_info(False)
 
-        event.app.create_background_task(run())
+        evt_app.create_background_task(run())
+
+    @kb.add('d')
+    def _(event: KeyPressEvent):
+        do_download(event.app)
 
     @kb.add('o')
     async def _(event: KeyPressEvent):
@@ -293,13 +297,6 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
 
-    keys_help = {
-        'd': 'Run downloaders',
-        'r': 'Reload / Re-scan devices',
-        'o': 'Options',
-        'q': 'Quit',
-    }
-
     def status_handler(key: str) -> Callable[[MouseEvent], None]:
         def click(mouse_event: MouseEvent):
             if (
@@ -310,11 +307,18 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         return click
 
+    status_keys = {
+        'd': 'Run downloaders',
+        'r': 'Reload / Re-scan devices',
+        'o': 'Options',
+        'q': 'Quit',
+    }
+
     status_bar = Window(
         content=FormattedTextControl(
             [
                 item
-                for key, text in keys_help.items()
+                for key, text in status_keys.items()
                 for item in (
                     ('class:key', f'[{key.upper()}] ', status_handler(key)),
                     ('', f'{text.title()} ', status_handler(key)),
@@ -358,7 +362,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         )
 
     root_float = FloatContainer(content=root_win, floats=[])
-    app = Application(
+    app = Application[Path | None](
         layout=Layout(root_float, focused_element=menu_control),
         full_screen=True,
         key_bindings=ConditionalKeyBindings(
