@@ -28,7 +28,7 @@ pc = [
 build = [
     "nuitka[app]",
     "poethepoet==0.46.0",
-    "pyinstaller==6.20.0",
+    "pyinstaller==6.21.0",
 ]
 
 [tool.poe.tasks]
