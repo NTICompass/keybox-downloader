@@ -6,7 +6,7 @@ from downloaders import Downloader
 from pathlib import Path
 from program.keybox import Keybox
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.application import Application, get_app, in_terminal
+from prompt_toolkit.application import Application, in_terminal, get_app
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
@@ -146,15 +146,17 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     keybox_info_text = ''
     options_shown = False
 
+    app: Application[Path | None] = get_app()
     kb = KeyBindings()
     opts: Options
     menu_control: Window
     root_float: FloatContainer
 
-    async def refresh_device(evt_app: Application[Path | None] = get_app()):
+    async def refresh_device(evt_app: Application[Path | None] | None = None):
         nonlocal device_info_text
+
         device_info_text = await get_device()
-        evt_app.invalidate()
+        (evt_app if evt_app is not None else app).invalidate()
 
     async def keybox_info(do_invalidate=True):
         nonlocal keybox_info_text
@@ -166,7 +168,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         )
 
         if do_invalidate:
-            get_app().invalidate()
+            app.invalidate()
 
     def file_list() -> StyleAndTextTuples:
         def handler(idx: int) -> Callable[[MouseEvent], None]:
@@ -178,7 +180,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     and mouse_event.event_type == MouseEventType.MOUSE_UP
                 ):
                     selected_index = idx
-                    get_app().create_background_task(keybox_info(False))
+                    app.create_background_task(keybox_info(False))
 
             return click
 
@@ -193,9 +195,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         ]
 
     if len(keyboxes) > 0:
-        get_app().create_background_task(keybox_info())
+        app.create_background_task(keybox_info())
 
-    get_app().create_background_task(refresh_device())
+    app.create_background_task(refresh_device())
 
     menu_control = Window(
         FormattedTextControl(
@@ -211,7 +213,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     continue_button = ConditionalContainer(
         Button(
             text='Continue',
-            handler=lambda: get_app().exit(result=keyboxes[selected_index]),
+            handler=lambda: app.exit(result=keyboxes[selected_index]),
         ),
         Condition(lambda: is_android or device is not None),
         Button(text='No Device Found'),
@@ -237,7 +239,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
 
-    def do_download(evt_app: Application[Path | None] = get_app()):
+    async def do_download(evt_app: Application[Path | None] | None = None):
         async def run():
             async with in_terminal():
                 nonlocal keyboxes
@@ -246,18 +248,19 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 keyboxes = list(folder.rglob('*.xml'))
                 await keybox_info(False)
 
-        evt_app.create_background_task(run())
+        await (evt_app if evt_app is not None else app).create_background_task(run())
 
-    async def open_options(evt_app: Application[Path | None] = get_app()):
+    async def open_options(evt_app: Application[Path | None] | None = None):
         nonlocal options_shown, opts
         options_shown = True
 
+        my_app = evt_app if evt_app is not None else app
         opts = Options(is_android)
         root_float.floats.append(Float(content=opts.dialog))
 
-        if evt_app.layout:
-            evt_app.layout.focus(opts.dialog)
-        evt_app.invalidate()
+        if my_app.layout:
+            my_app.layout.focus(opts.dialog)
+        my_app.invalidate()
 
         enabled = await opts.future
 
@@ -279,15 +282,15 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         root_float.floats.pop()
 
-        if evt_app.layout:
-            evt_app.layout.focus(menu_control)
-        evt_app.invalidate()
+        if my_app.layout:
+            my_app.layout.focus(menu_control)
+        my_app.invalidate()
 
         options_shown = False
 
     @kb.add('d')
-    def _(event: KeyPressEvent):
-        do_download(event.app)
+    async def _(event: KeyPressEvent):
+        await do_download(event.app)
 
     @kb.add('o')
     async def _(event: KeyPressEvent):
@@ -319,10 +322,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         'd': ('Run downloaders', do_download),
         'r': (
             'Reload / Re-scan devices',
-            lambda: get_app().create_background_task(refresh_device()),
+            lambda: app.create_background_task(refresh_device()),
         ),
         'o': ('Options', open_options),
-        'q': ('Quit', lambda: get_app().exit(result=None)),
+        'q': ('Quit', lambda: app.exit(result=None)),
     }
 
     status_bar = Window(
