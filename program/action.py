@@ -32,6 +32,13 @@ def can_run() -> bool:
     return True
 
 
+def force_run():
+    global manifest
+
+    logger.info('Forcing downloads...')
+    manifest.last_checked = 0
+
+
 def make_folders():
     path.mkdir(exist_ok=True)
 
@@ -92,11 +99,9 @@ async def go(*downloaders: Downloader):
                 xml_file.save(folder)
                 keyboxes.append(xml_file)
 
-        await Downloader.client.aclose()
-
         logger.info('All keyboxes downloaded, comparing to find duplicates')
-        groups = Keybox.group(*keyboxes)
 
+        groups = Keybox.group(*keyboxes)
         logger.info(groups)
 
         manifest.last_checked = datetime.now().timestamp()

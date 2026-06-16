@@ -18,6 +18,7 @@ exe_root = (
 )
 
 # ruff: disable[E402]
+from downloaders import Downloader
 from program.action import get_downloaders, go
 from program.install import menu
 import argparse
@@ -33,9 +34,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    async def exit_app():
+        await Downloader.client.aclose()
+
     if args.download:
         asyncio.run(go(*get_downloaders()))
     elif args.install:
         menu()
     else:
         menu(True)
+
+    asyncio.run(exit_app())

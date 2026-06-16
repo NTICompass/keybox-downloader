@@ -1,4 +1,4 @@
-from .action import get_downloaders, go, can_run
+from .action import get_downloaders, go, can_run, force_run
 from .options import Options
 from asyncio import Future
 from cache_data import Overrides
@@ -15,6 +15,7 @@ from prompt_toolkit.key_binding import (
     KeyBindings,
     KeyPressEvent,
     ConditionalKeyBindings,
+    merge_key_bindings,
 )
 from prompt_toolkit.layout import (
     Layout,
@@ -29,6 +30,7 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import Frame, Button, Dialog
+from typing import Literal
 import __main__
 import asyncio
 import sys
@@ -145,10 +147,12 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     selected_index = 0
     device_info_text = ''
     keybox_info_text: StyleAndTextTuples = []
-    dialog_shown = False
+    dialog_shown: Literal[False, 'options', 'download'] = False
+    dl_dialog = Future[Literal[None, 'force']]
 
     app: Application[Path | None] = get_app()
     kb = KeyBindings()
+    dl_kb = KeyBindings()
     opts: Options
     menu_control: Window
     root_float: FloatContainer
@@ -251,9 +255,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             event.app.exit(result=keyboxes[selected_index])
 
     async def do_download(evt_app: Application[Path | None] | None = None):
-        nonlocal dialog_shown
+        nonlocal dialog_shown, dl_dialog
 
-        dialog_shown = True
         my_app = evt_app if evt_app is not None else app
 
         async def run():
@@ -267,7 +270,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         if can_run():
             await my_app.create_background_task(run())
         else:
-            close_dialog: Future[None] = asyncio.get_running_loop().create_future()
+            dialog_shown = 'download'
+            dl_dialog = asyncio.get_running_loop().create_future()
 
             already_ran = Dialog(
                 title='Notice',
@@ -276,9 +280,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                         text='Downloaders can only be ran once every 24hrs'
                     )
                 ),
-                buttons=[
-                    Button(text='Ok', handler=lambda: close_dialog.set_result(None))
-                ],
+                buttons=[Button(text='Ok', handler=lambda: dl_dialog.set_result(None))],
             )
 
             root_float.floats.append(Float(content=already_ran))
@@ -286,8 +288,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 my_app.layout.focus(already_ran)
             my_app.invalidate()
 
-            await close_dialog
-
+            result = await dl_dialog
             dialog_shown = False
             root_float.floats.pop()
 
@@ -295,9 +296,13 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 my_app.layout.focus(menu_control)
             my_app.invalidate()
 
+            if result == 'force':
+                force_run()
+                await my_app.create_background_task(run())
+
     async def open_options(evt_app: Application[Path | None] | None = None):
         nonlocal dialog_shown, opts
-        dialog_shown = True
+        dialog_shown = 'options'
 
         my_app = evt_app if evt_app is not None else app
         opts = Options(is_android)
@@ -349,6 +354,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     @kb.add('q')
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
+
+    @dl_kb.add('f')
+    def _(event: KeyPressEvent):
+        if not dl_dialog.done():
+            dl_dialog.set_result('force')
 
     def status_handler(func: EventFunc) -> Callable[[MouseEvent], Awaitable[None]]:
         async def click(mouse_event: MouseEvent):
@@ -424,9 +434,17 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     app = Application[Path | None](
         layout=Layout(root_float, focused_element=menu_control),
         full_screen=True,
-        key_bindings=ConditionalKeyBindings(
-            kb,
-            filter=Condition(lambda: not dialog_shown),
+        key_bindings=merge_key_bindings(
+            [
+                ConditionalKeyBindings(
+                    kb,
+                    filter=Condition(lambda: not dialog_shown),
+                ),
+                ConditionalKeyBindings(
+                    dl_kb,
+                    filter=Condition(lambda: dialog_shown == 'download'),
+                ),
+            ]
         ),
         mouse_support=Condition(lambda: not is_android),
         style=Style.from_dict(
