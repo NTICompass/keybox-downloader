@@ -28,7 +28,7 @@ class CatalogOverride(TypedDict):
 class Catalog(TypedDict):
     entries: list[CatalogEntry]
     latest: dict[str, int]
-    working: CatalogWorking
+    working: CatalogWorking | None
     autoOverride: CatalogOverride
 
 
@@ -68,16 +68,18 @@ class Specter(Downloader):
             yield None
 
         if cat is not None:
+            working = cat['working'] or {}
+
             other_keys = [
                 f'{entry["source"]} v{entry["version"]}'
                 for entry in cat['entries']
                 if not entry['revoked']
-                and cat['working']['source'] != entry['source']
-                and cat['working']['version'] != entry['version']
+                and working.get('source', '') != entry['source']
+                and working.get('version', '') != entry['version']
             ]
 
             self.logger.info(
-                f'"Working" keybox is {cat["working"]["source"]} v{cat["working"]["version"]}'
+                f'"Working" keybox is {working.get("source", "none")} v{working.get("version", 0)}'
             )
             self.logger.info(f'Other keys are {", ".join(other_keys)}')
 
