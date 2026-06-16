@@ -171,8 +171,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             app.invalidate()
 
     def file_list() -> StyleAndTextTuples:
-        def handler(idx: int) -> Callable[[MouseEvent], None]:
-            def click(mouse_event: MouseEvent):
+        def handler(idx: int) -> Callable[[MouseEvent], Awaitable[None]]:
+            async def click(mouse_event: MouseEvent):
                 nonlocal selected_index
 
                 if (
@@ -180,7 +180,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     and mouse_event.event_type == MouseEventType.MOUSE_UP
                 ):
                     selected_index = idx
-                    app.create_background_task(keybox_info(False))
+                    await app.create_background_task(keybox_info(False))
 
             return click
 
@@ -221,18 +221,19 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     device_info = Window(FormattedTextControl(text=lambda: device_info_text))
 
-    def move(delta: int, event: KeyPressEvent):
+    async def move(delta: int, event: KeyPressEvent):
         nonlocal selected_index
+
         selected_index = (selected_index + delta) % len(keyboxes)
-        event.app.create_background_task(keybox_info(False))
+        await event.app.create_background_task(keybox_info(False))
 
     @kb.add(Keys.Up, filter=Condition(lambda: len(keyboxes) > 0))
-    def _(event: KeyPressEvent):
-        move(-1, event)
+    async def _(event: KeyPressEvent):
+        await move(-1, event)
 
     @kb.add(Keys.Down, filter=Condition(lambda: len(keyboxes) > 0))
-    def _(event: KeyPressEvent):
-        move(1, event)
+    async def _(event: KeyPressEvent):
+        await move(1, event)
 
     @kb.add(Keys.Enter, filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
@@ -298,8 +299,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     @kb.add(Keys.F5)
     @kb.add('r')
-    def _(event: KeyPressEvent):
-        event.app.create_background_task(refresh_device(event.app))
+    async def _(event: KeyPressEvent):
+        await event.app.create_background_task(refresh_device(event.app))
 
     @kb.add('q')
     def _(event: KeyPressEvent):
