@@ -143,7 +143,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     selected_index = 0
     device_info_text = ''
-    keybox_info_text = ''
+    keybox_info_text: StyleAndTextTuples = []
     options_shown = False
 
     app: Application[Path | None] = get_app()
@@ -162,9 +162,18 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         nonlocal keybox_info_text
 
         keybox_info_text = (
-            f'{keyboxes[selected_index].parent.name} / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'
+            [
+                (
+                    f'class:validity class:{keyboxes[selected_index].parent.name}',
+                    keyboxes[selected_index].parent.name,
+                ),
+                (
+                    '',
+                    f' / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}',
+                ),
+            ]
             if len(keyboxes) > 0
-            else ''
+            else []
         )
 
         if do_invalidate:
@@ -392,6 +401,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 'checkbox-selected': 'reverse bold',
                 'toolbar': 'reverse',
                 'key': 'bold',
+                'validity': 'bold',
+                'valid': 'fg:green',
+                'revoked': 'fg:red',
+                'semi_valid': 'fg:blue',
+                'aosp': 'fg:purple',
             }
         ),
     )
