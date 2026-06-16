@@ -48,11 +48,10 @@ class Downloader(ABC):
     @final
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        target = (
-            Downloader.enabled
-            if Downloader.overrides.is_enabled(cls) or cls.ENABLED
-            else Downloader.disabled
-        )
+
+        override = Downloader.overrides.is_enabled(cls)
+        is_enabled = cls.ENABLED if override is None else override
+        target = Downloader.enabled if is_enabled else Downloader.disabled
 
         target.add(cls)
 
