@@ -474,17 +474,16 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
 def menu(
     ignore_empty=False,
-    on_exit: Callable[[], None | Awaitable[None]] | None = None,
+    on_exit: Callable[[], None | Awaitable[None]] = lambda: None,
 ):
     async def main_menu[T](main: Awaitable[T]) -> T:
         try:
             return await main
         finally:
-            if on_exit is not None:
-                result = on_exit()
+            result = on_exit()
 
-                if asyncio.iscoroutine(result):
-                    await result
+            if asyncio.iscoroutine(result):
+                await result
 
     selected_file = asyncio.run(
         main_menu(select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty))
