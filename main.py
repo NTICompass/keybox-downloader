@@ -35,8 +35,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     async def run_dl():
-        await go(*get_downloaders())
-        await exit_app()
+        try:
+            await go(*get_downloaders())
+        finally:
+            await exit_app()
 
     async def exit_app():
         await Downloader.client.aclose()
