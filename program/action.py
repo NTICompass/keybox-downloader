@@ -20,6 +20,18 @@ logger = logging.getLogger(__name__)
 manifest: Manifest
 
 
+def can_run() -> bool:
+    global manifest
+    manifest = Manifest()
+
+    # Only download once every 24hrs
+    if manifest.last_checked > 0:
+        time_diff = datetime.now() - datetime.fromtimestamp(manifest.last_checked)
+        return (time_diff / timedelta(hours=1)) >= 24
+
+    return True
+
+
 def make_folders():
     path.mkdir(exist_ok=True)
 
@@ -34,17 +46,10 @@ def init():
     )
     logger.info('Starting Keybox Downloader')
 
-    global manifest
-    manifest = Manifest()
-
-    # Only download once every 24hrs
-    if manifest.last_checked > 0:
-        time_diff = datetime.now() - datetime.fromtimestamp(manifest.last_checked)
-
-        if (time_diff / timedelta(hours=1)) < 24:
-            raise RuntimeError(
-                f'Last download was less than 24hrs ago: {manifest.last_checked}'
-            )
+    if not can_run():
+        raise RuntimeError(
+            f'Last download was less than 24hrs ago: {manifest.last_checked}'
+        )
 
     if not path.exists():
         make_folders()

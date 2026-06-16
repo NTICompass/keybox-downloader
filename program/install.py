@@ -1,5 +1,6 @@
-from .action import get_downloaders, go
+from .action import get_downloaders, go, can_run
 from .options import Options
+from asyncio import Future
 from cache_data import Overrides
 from collections.abc import Callable, Awaitable
 from downloaders import Downloader
@@ -27,7 +28,7 @@ from prompt_toolkit.layout import (
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.styles import Style
-from prompt_toolkit.widgets import Frame, Button
+from prompt_toolkit.widgets import Frame, Button, Dialog
 import __main__
 import asyncio
 import sys
@@ -144,7 +145,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     selected_index = 0
     device_info_text = ''
     keybox_info_text: StyleAndTextTuples = []
-    options_shown = False
+    dialog_shown = False
 
     app: Application[Path | None] = get_app()
     kb = KeyBindings()
@@ -250,6 +251,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             event.app.exit(result=keyboxes[selected_index])
 
     async def do_download(evt_app: Application[Path | None] | None = None):
+        nonlocal dialog_shown
+
+        dialog_shown = True
+        my_app = evt_app if evt_app is not None else app
+
         async def run():
             async with in_terminal():
                 nonlocal keyboxes
@@ -258,11 +264,40 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 keyboxes = list(folder.rglob('*.xml'))
                 await keybox_info(False)
 
-        await (evt_app if evt_app is not None else app).create_background_task(run())
+        if can_run():
+            await my_app.create_background_task(run())
+        else:
+            close_dialog: Future[None] = asyncio.get_running_loop().create_future()
+
+            already_ran = Dialog(
+                title='Notice',
+                body=Window(
+                    FormattedTextControl(
+                        text='Downloaders can only be ran once every 24hrs'
+                    )
+                ),
+                buttons=[
+                    Button(text='Ok', handler=lambda: close_dialog.set_result(None))
+                ],
+            )
+
+            root_float.floats.append(Float(content=already_ran))
+            if my_app.layout:
+                my_app.layout.focus(already_ran)
+            my_app.invalidate()
+
+            await close_dialog
+
+            dialog_shown = False
+            root_float.floats.pop()
+
+            if my_app.layout:
+                my_app.layout.focus(menu_control)
+            my_app.invalidate()
 
     async def open_options(evt_app: Application[Path | None] | None = None):
-        nonlocal options_shown, opts
-        options_shown = True
+        nonlocal dialog_shown, opts
+        dialog_shown = True
 
         my_app = evt_app if evt_app is not None else app
         opts = Options(is_android)
@@ -296,7 +331,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             my_app.layout.focus(menu_control)
         my_app.invalidate()
 
-        options_shown = False
+        dialog_shown = False
 
     @kb.add('d')
     async def _(event: KeyPressEvent):
@@ -391,7 +426,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         full_screen=True,
         key_bindings=ConditionalKeyBindings(
             kb,
-            filter=Condition(lambda: not options_shown),
+            filter=Condition(lambda: not dialog_shown),
         ),
         mouse_support=Condition(lambda: not is_android),
         style=Style.from_dict(
