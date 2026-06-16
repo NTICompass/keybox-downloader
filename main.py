@@ -34,14 +34,16 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    async def run_dl():
+        await go(*get_downloaders())
+        await exit_app()
+
     async def exit_app():
         await Downloader.client.aclose()
 
     if args.download:
-        asyncio.run(go(*get_downloaders()))
+        asyncio.run(run_dl())
     elif args.install:
-        menu()
+        menu(on_exit=exit_app)
     else:
-        menu(True)
-
-    asyncio.run(exit_app())
+        menu(True, exit_app)

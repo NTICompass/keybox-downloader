@@ -472,9 +472,23 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     return await app.run_async()
 
 
-def menu(ignore_empty=False):
+def menu(
+    ignore_empty=False,
+    on_exit: Callable[[], None] | Callable[[], Awaitable[None]] | None = None,
+):
+    async def main_menu[T](main: Awaitable[T]) -> T:
+        ret = await main
+
+        if on_exit is not None:
+            result = on_exit()
+
+            if asyncio.iscoroutine(result):
+                await result
+
+        return ret
+
     selected_file = asyncio.run(
-        select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty)
+        main_menu(select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty))
     )
 
     if selected_file is None:
