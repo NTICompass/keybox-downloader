@@ -37,6 +37,7 @@ class Specter(Downloader):
     # https://github.com/dpejoh/specter/
     # https://specter.dpejoh.com/reference/config.html
     DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
+    # https://rawbin.dpejoh.com/key/catalog
     URL = 'https://rawbin.netlify.app/key/catalog'
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
@@ -55,30 +56,39 @@ class Specter(Downloader):
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[str | None]:
+        cat: Catalog | None
         self.logger.info('Downloading catalog')
 
-        cat: Catalog = json.loads(await anext(downloaded))
-        other_keys = [
-            f'{entry["source"]} v{entry["version"]}'
-            for entry in cat['entries']
-            if not entry['revoked']
-            and cat['working']['source'] != entry['source']
-            and cat['working']['version'] != entry['version']
-        ]
+        try:
+            cat = json.loads(await anext(downloaded))
+        except StopAsyncIteration:
+            cat = None
+            self.logger.info('Error downloading catalog')
 
-        self.logger.info(
-            f'"Working" keybox is {cat["working"]["source"]} v{cat["working"]["version"]}'
-        )
-        self.logger.info(f'Other keys are {", ".join(other_keys)}')
+            yield None
 
-        async for data in self.download_urls(
-            download=[
-                f'{self.KEYBOX_URL}/{entry["source"]}/{entry["version"]}'
+        if cat is not None:
+            other_keys = [
+                f'{entry["source"]} v{entry["version"]}'
                 for entry in cat['entries']
                 if not entry['revoked']
+                and cat['working']['source'] != entry['source']
+                and cat['working']['version'] != entry['version']
             ]
-        ):
-            yield data
+
+            self.logger.info(
+                f'"Working" keybox is {cat["working"]["source"]} v{cat["working"]["version"]}'
+            )
+            self.logger.info(f'Other keys are {", ".join(other_keys)}')
+
+            async for data in self.download_urls(
+                download=[
+                    f'{self.KEYBOX_URL}/{entry["source"]}/{entry["version"]}'
+                    for entry in cat['entries']
+                    if not entry['revoked']
+                ]
+            ):
+                yield data
 
     @override
     def decode(self, encoded: str) -> str:
