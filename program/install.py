@@ -1,8 +1,7 @@
 from .action import get_downloaders, go
-from .eventmap import EventMap
 from .options import Options
 from cache_data import Overrides
-from collections.abc import Callable
+from collections.abc import Callable, Awaitable
 from downloaders import Downloader
 from pathlib import Path
 from program.keybox import Keybox
@@ -56,6 +55,13 @@ runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 current_keybox: Keybox | None = None
 files: dict[str, Keybox] = {}
 overrides: Overrides[type[Downloader]] = Overrides()
+
+type EventFunc = (
+    Callable[[Application[Path | None]], None]
+    | Callable[[], None]
+    | Callable[[Application[Path | None]], Awaitable[None]]
+    | Callable[[], Awaitable[None]]
+)
 
 
 async def get_prop(prop: str | None = None) -> str:
@@ -145,14 +151,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     menu_control: Window
     root_float: FloatContainer
 
-    async def refresh_device(event: KeyPressEvent | None = None):
+    async def refresh_device(evt_app: Application[Path | None] = get_app()):
         nonlocal device_info_text
         device_info_text = await get_device()
-
-        if event is not None:
-            event.app.invalidate()
-        else:
-            get_app().invalidate()
+        evt_app.invalidate()
 
     async def keybox_info(do_invalidate=True):
         nonlocal keybox_info_text
@@ -246,21 +248,16 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         evt_app.create_background_task(run())
 
-    @kb.add('d')
-    def _(event: KeyPressEvent):
-        do_download(event.app)
-
-    @kb.add('o')
-    async def _(event: KeyPressEvent):
+    async def open_options(evt_app: Application[Path | None] = get_app()):
         nonlocal options_shown, opts
         options_shown = True
 
         opts = Options(is_android)
         root_float.floats.append(Float(content=opts.dialog))
 
-        if event.app.layout:
-            event.app.layout.focus(opts.dialog)
-        event.app.invalidate()
+        if evt_app.layout:
+            evt_app.layout.focus(opts.dialog)
+        evt_app.invalidate()
 
         enabled = await opts.future
 
@@ -282,46 +279,60 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         root_float.floats.pop()
 
-        if event.app.layout:
-            event.app.layout.focus(menu_control)
-        event.app.invalidate()
+        if evt_app.layout:
+            evt_app.layout.focus(menu_control)
+        evt_app.invalidate()
 
         options_shown = False
+
+    @kb.add('d')
+    def _(event: KeyPressEvent):
+        do_download(event.app)
+
+    @kb.add('o')
+    async def _(event: KeyPressEvent):
+        await open_options(event.app)
 
     @kb.add(Keys.F5)
     @kb.add('r')
     def _(event: KeyPressEvent):
-        event.app.create_background_task(refresh_device(event))
+        event.app.create_background_task(refresh_device(event.app))
 
     @kb.add('q')
     def _(event: KeyPressEvent):
         event.app.exit(result=None)
 
-    def status_handler(key: str) -> Callable[[MouseEvent], None]:
-        def click(mouse_event: MouseEvent):
+    def status_handler(func: EventFunc) -> Callable[[MouseEvent], Awaitable[None]]:
+        async def click(mouse_event: MouseEvent):
             if (
                 mouse_event.button == MouseButton.LEFT
                 and mouse_event.event_type == MouseEventType.MOUSE_UP
             ):
-                pass
+                result = func()
+
+                if asyncio.iscoroutine(result):
+                    await result
 
         return click
 
-    status_keys = {
-        'd': 'Run downloaders',
-        'r': 'Reload / Re-scan devices',
-        'o': 'Options',
-        'q': 'Quit',
+    status_keys: dict[str, tuple[str, EventFunc]] = {
+        'd': ('Run downloaders', do_download),
+        'r': (
+            'Reload / Re-scan devices',
+            lambda: get_app().create_background_task(refresh_device()),
+        ),
+        'o': ('Options', open_options),
+        'q': ('Quit', lambda: get_app().exit(result=None)),
     }
 
     status_bar = Window(
         content=FormattedTextControl(
             [
                 item
-                for key, text in status_keys.items()
+                for key, (text, func) in status_keys.items()
                 for item in (
-                    ('class:key', f'[{key.upper()}] ', status_handler(key)),
-                    ('', f'{text.title()} ', status_handler(key)),
+                    ('class:key', f'[{key.upper()}] ', status_handler(func)),
+                    ('', f'{text.title()} ', status_handler(func)),
                 )
             ]
         ),
