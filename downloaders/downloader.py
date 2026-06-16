@@ -3,7 +3,6 @@ from asyncstdlib import enumerate as a_enumerate
 from cache_data import Overrides
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
@@ -139,24 +138,18 @@ class Downloader(ABC):
     async def cloudflare_download(
         self, *download: str
     ) -> AsyncGenerator[CloudflareResponse]:
-        loop = asyncio.get_running_loop()
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            for r in await asyncio.gather(
-                *[
-                    loop.run_in_executor(
-                        executor,
-                        lambda url, idx: self.cloudflare_client.get(
-                            url, headers=self.get_headers(idx)
-                        ),
-                        dl,
-                        idx,
-                    )
-                    for idx, dl in enumerate(download)
-                ]
-            ):
-                self.logger.info(f'Downloaded {r.url} via "CloudScraper"')
-                yield r
+        for r in await asyncio.gather(
+            *[
+                asyncio.to_thread(
+                    self.cloudflare_client.get,
+                    dl,
+                    headers=self.get_headers(idx),
+                )
+                for idx, dl in enumerate(download)
+            ]
+        ):
+            self.logger.info(f'Downloaded {r.url} via "CloudScraper"')
+            yield r
 
     @overload
     def download_urls(
