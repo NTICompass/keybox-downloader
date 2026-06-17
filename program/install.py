@@ -403,7 +403,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             [
                 VSplit(
                     [
-                        Frame(menu_control, title='Valid Keyboxes'),
+                        Frame(menu_control, title='Available Keyboxes'),
                         Frame(device_info, title='Device Info'),
                     ]
                 ),
@@ -418,7 +418,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     [
                         HSplit(
                             [
-                                Frame(menu_control, title='Valid Keyboxes'),
+                                Frame(menu_control, title='Available Keyboxes'),
                                 Frame(device_info, title='Device Info'),
                             ]
                         ),
