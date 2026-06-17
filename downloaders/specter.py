@@ -45,6 +45,10 @@ class Specter(Downloader):
     ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     SHUFFLED = '1dgWnocayqxU3r6vA5lCIPYfHmkV08b4tz+KMsp2NQ9LRXihODwSj7BEFJ/ZuGTe'
 
+    extra_headers = {
+        'User-Agent': 'Specter/1.0',
+    }
+
     @override
     def __init__(self):
         super().__init__()
