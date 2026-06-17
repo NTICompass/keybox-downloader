@@ -1,9 +1,10 @@
 from collections.abc import Callable
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.mouse_events import MouseEventType, MouseEvent
-from typing import Awaitable
+from typing import Awaitable, override, final
 
 
+@final
 class ScrollableTextControl(FormattedTextControl):
     def __init__(
         self,
@@ -14,6 +15,7 @@ class ScrollableTextControl(FormattedTextControl):
         super().__init__(*args, **kwargs)
         self.__on_scroll = on_scroll
 
+    @override
     def mouse_handler(self, mouse_event: MouseEvent):
         if mouse_event.event_type == MouseEventType.SCROLL_UP:
             self.__on_scroll(-1)
