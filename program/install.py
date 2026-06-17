@@ -147,6 +147,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     keyboxes = sorted(keyboxes, key=lambda file: (file.parent.name, file.name))
 
     selected_index = 0
+    selectable_rows: list[int] = []
     device_info_text = ''
     keybox_info_text: StyleAndTextTuples = []
     dialog_shown: Literal[False, 'options', 'download'] = False
@@ -202,9 +203,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         rows: StyleAndTextTuples = []
         start = 0
+        cursor = 0
 
         for kb_folder, kb_files in groupby(keyboxes, key=lambda file: file.parent.name):
             rows.append((f'class:{kb_folder}', f'{kb_folder}\n'))
+            cursor += 1
 
             for kb_idx, kb_file in enumerate(kb_files, start=start):
                 rows.append(
@@ -214,7 +217,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                         handler(kb_idx),
                     )
                 )
+                selectable_rows.append(cursor)
+
                 start += 1
+                cursor += 1
 
         return rows
 
@@ -227,7 +233,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         FormattedTextControl(
             text=file_list,
             focusable=True,
-            get_cursor_position=lambda: Point(0, selected_index),
+            get_cursor_position=lambda: Point(0, selectable_rows[selected_index]),
         )
     )
     preview = Window(
