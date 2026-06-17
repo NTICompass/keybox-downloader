@@ -1,5 +1,6 @@
 from .action import get_downloaders, go, can_run, force_run
 from .options import Options
+from .scrollable import ScrollableTextControl
 from asyncio import Future
 from cache_data import Overrides
 from collections.abc import Callable, Awaitable
@@ -230,10 +231,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     app.create_background_task(refresh_device())
 
     menu_control = Window(
-        FormattedTextControl(
+        ScrollableTextControl(
             text=file_list,
             focusable=True,
             get_cursor_position=lambda: Point(0, selectable_rows[selected_index]),
+            on_scroll=lambda delta: app.create_background_task(move(delta)),
         )
     )
     preview = Window(
@@ -251,19 +253,21 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     device_info = Window(FormattedTextControl(text=lambda: device_info_text))
 
-    async def move(delta: int, event: KeyPressEvent):
+    async def move(delta: int, evt_app: Application[Path | None] | None = None):
         nonlocal selected_index
 
         selected_index = (selected_index + delta) % len(keyboxes)
-        await event.app.create_background_task(keybox_info(False))
+        await (evt_app if evt_app is not None else app).create_background_task(
+            keybox_info(False)
+        )
 
     @kb.add(Keys.Up, filter=Condition(lambda: len(keyboxes) > 0))
     async def _(event: KeyPressEvent):
-        await move(-1, event)
+        await move(-1, event.app)
 
     @kb.add(Keys.Down, filter=Condition(lambda: len(keyboxes) > 0))
     async def _(event: KeyPressEvent):
-        await move(1, event)
+        await move(1, event.app)
 
     @kb.add(Keys.Enter, filter=Condition(lambda: is_android or device is not None))
     def _(event: KeyPressEvent):
