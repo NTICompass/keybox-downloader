@@ -42,6 +42,7 @@ if __name__ == '__main__':
 
     async def exit_app():
         await Downloader.client.aclose()
+        Downloader.cloudflare_client.close()
 
     if args.download:
         asyncio.run(run_dl())
