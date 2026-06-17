@@ -3,10 +3,11 @@ from asyncstdlib import enumerate as a_enumerate
 from cache_data import Overrides
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
+from contextlib import AsyncExitStack, asynccontextmanager
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
-from requests import Response as CloudflareResponse
+from requests import Response as CloudflareResponse, Session
 from typing import final, overload, ClassVar, Literal, Self
 from zipfile import Path as ZipPath
 import asyncio
@@ -23,23 +24,15 @@ class Downloader(ABC):
     disabled: ClassVar[set[type[Self]]] = set()
     overrides: ClassVar[Overrides[type[Self]]] = Overrides()
 
+    client: ClassVar[AsyncClient]
+    cloudflare_client: ClassVar[CloudScraper | Session]
+
     DESCRIPTION = ''
     URL: str
     URLS: list[str]
     ENABLED = True
 
     current_url: HTTP_URL | str
-    client: ClassVar[AsyncClient] = AsyncClient(
-        http2=True,
-        follow_redirects=True,
-        timeout=None,
-        headers={
-            'Accept-Encoding': 'br, gzip',
-            'Cache-Control': 'no-cache',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0',
-        },
-    )
-    cloudflare_client: ClassVar[CloudScraper] = CloudScraper()
     extra_headers: dict[str, str] | list[dict[str, str]] | None = None
 
     def __init__(self):
@@ -54,6 +47,25 @@ class Downloader(ABC):
         target = Downloader.enabled if is_enabled else Downloader.disabled
 
         target.add(cls)
+
+    @classmethod
+    @asynccontextmanager
+    async def start(cls):
+        async with AsyncExitStack() as stack:
+            cls.client = await stack.enter_async_context(
+                AsyncClient(
+                    http2=True,
+                    follow_redirects=True,
+                    timeout=None,
+                    headers={
+                        'Accept-Encoding': 'br, gzip',
+                        'Cache-Control': 'no-cache',
+                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0',
+                    },
+                )
+            )
+            cls.cloudflare_client = stack.enter_context(CloudScraper())
+            yield
 
     @final
     async def __call__(self) -> AsyncGenerator[Keybox | None]:

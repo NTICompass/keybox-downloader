@@ -4,6 +4,7 @@ from .scrollable import ScrollableTextControl
 from asyncio import Future
 from cache_data import Overrides
 from collections.abc import Callable, Awaitable
+from contextlib import AbstractAsyncContextManager
 from downloaders import Downloader
 from itertools import groupby
 from pathlib import Path
@@ -492,18 +493,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     return await app.run_async()
 
 
-def menu(
-    ignore_empty=False,
-    on_exit: Callable[[], None | Awaitable[None]] = lambda: None,
-):
+def menu(context: AbstractAsyncContextManager, ignore_empty=False):
     async def main_menu[T](main: Awaitable[T]) -> T:
-        try:
+        async with context:
             return await main
-        finally:
-            result = on_exit()
-
-            if asyncio.iscoroutine(result):
-                await result
 
     selected_file = asyncio.run(
         main_menu(select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty))

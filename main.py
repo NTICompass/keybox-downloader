@@ -33,20 +33,15 @@ if __name__ == '__main__':
     group.add_argument('-i', '--install', dest='install', action='store_true')
 
     args = parser.parse_args()
+    context = Downloader.start()
 
     async def run_dl():
-        try:
+        async with context:
             await go(*get_downloaders())
-        finally:
-            await exit_app()
-
-    async def exit_app():
-        await Downloader.client.aclose()
-        Downloader.cloudflare_client.close()
 
     if args.download:
         asyncio.run(run_dl())
     elif args.install:
-        menu(on_exit=exit_app)
+        menu(context)
     else:
-        menu(True, exit_app)
+        menu(context, True)
