@@ -4,6 +4,7 @@ from asyncio import Future
 from cache_data import Overrides
 from collections.abc import Callable, Awaitable
 from downloaders import Downloader
+from itertools import groupby
 from pathlib import Path
 from program.keybox import Keybox
 from prompt_toolkit.keys import Keys
@@ -143,6 +144,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         return None
 
     await Keybox.init_attestation(Downloader.client)
+    keyboxes = sorted(keyboxes, key=lambda file: (file.parent.name, file.name))
 
     selected_index = 0
     device_info_text = ''
@@ -198,15 +200,23 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
             return click
 
-        return [
-            # (style, text, handler)
-            (
-                'class:selected' if idx == selected_index else '',
-                f'{"->" if idx == selected_index else "  "} {file.parent.name} / {file.name}\n',
-                handler(idx),
-            )
-            for idx, file in enumerate(keyboxes)
-        ]
+        rows: StyleAndTextTuples = []
+        start = 0
+
+        for kb_folder, kb_files in groupby(keyboxes, key=lambda file: file.parent.name):
+            rows.append((f'class:{kb_folder}', f'{kb_folder}\n'))
+
+            for kb_idx, kb_file in enumerate(kb_files, start=start):
+                rows.append(
+                    (
+                        'class:selected' if kb_idx == selected_index else '',
+                        f'{"->" if kb_idx == selected_index else "  "} {kb_folder} / {kb_file.name}\n',
+                        handler(kb_idx),
+                    )
+                )
+                start += 1
+
+        return rows
 
     if len(keyboxes) > 0:
         app.create_background_task(keybox_info())
