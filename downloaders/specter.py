@@ -1,16 +1,18 @@
 from . import Downloader
 from base64 import b64decode
 from collections.abc import AsyncGenerator
-from typing import final, override, TypedDict, NotRequired
+from typing import final, override, TypedDict
 import json
 
 
 class CatalogEntry(TypedDict):
+    id: str
     source: str
     version: str
     text: str
     revoked: bool
-    softbanned: NotRequired[bool]
+    softbanned: bool
+    shared: bool
     serial: str
     last_checked: str
     timestamp: str
@@ -18,7 +20,7 @@ class CatalogEntry(TypedDict):
 
 class CatalogWorking(TypedDict):
     source: str
-    version: str
+    version: int | str
 
 
 class CatalogOverride(TypedDict):
@@ -27,9 +29,10 @@ class CatalogOverride(TypedDict):
 
 class Catalog(TypedDict):
     entries: list[CatalogEntry]
-    latest: dict[str, int]
+    latest: dict[str, int | str]
     working: CatalogWorking | None
-    autoOverride: CatalogOverride
+    autoOverride: CatalogOverride | None
+    shared: bool
 
 
 @final
@@ -37,11 +40,11 @@ class Specter(Downloader):
     # https://github.com/dpejoh/specter/
     # https://specter.dpejoh.com/reference/config.html
     DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
-    # https://rawbin.dpejoh.com/key/catalog
-    URL = 'https://rawbin.netlify.app/key/catalog'
+    # https://rawbin.netlify.app/key/catalog
+    URL = 'https://rawbin.dpejoh.com/catalog'
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
-    KEYBOX_URL = 'https://rawbin.netlify.app/key'
+    KEYBOX_URL = 'https://rawbin.dpejoh.com/key'
     ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     SHUFFLED = '1dgWnocayqxU3r6vA5lCIPYfHmkV08b4tz+KMsp2NQ9LRXihODwSj7BEFJ/ZuGTe'
 
@@ -78,6 +81,7 @@ class Specter(Downloader):
                 f'{entry["source"]} v{entry["version"]}'
                 for entry in cat['entries']
                 if not entry['revoked']
+                and not entry['softbanned']
                 and working.get('source', '') != entry['source']
                 and working.get('version', '') != entry['version']
             ]
@@ -85,13 +89,17 @@ class Specter(Downloader):
             self.logger.info(
                 f'"Working" keybox is {working.get("source", "none")} v{working.get("version", 0)}'
             )
-            self.logger.info(f'Other keys are {", ".join(other_keys)}')
+
+            if len(other_keys) > 0:
+                self.logger.info(f'Other keys are {", ".join(other_keys)}')
+            else:
+                self.logger.info('No other keys')
 
             async for data in self.download_urls(
                 download=[
                     f'{self.KEYBOX_URL}/{entry["source"]}/{entry["version"]}'
                     for entry in cat['entries']
-                    if not entry['revoked']
+                    if not entry['revoked'] and not entry['softbanned']
                 ]
             ):
                 yield data
