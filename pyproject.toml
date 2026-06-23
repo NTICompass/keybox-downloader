@@ -12,7 +12,7 @@ dependencies = [
     "prompt-toolkit==3.0.52",
     "python-dotenv==1.2.2",
     "requests==2.34.2",
-    "tqdm==4.68.2",
+    "tqdm==4.68.3",
 ]
 
 [project.optional-dependencies]
