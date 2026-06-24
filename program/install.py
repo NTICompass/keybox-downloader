@@ -153,7 +153,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     device_info_text = ''
     keybox_info_text: StyleAndTextTuples = []
     dialog_shown: Literal[False, 'options', 'download'] = False
-    dl_dialog = Future[Literal[None, 'force']]
+    dl_dialog: Future[Literal[None, 'force']]
 
     app: Application[Path | None] = get_app()
     kb = KeyBindings()
