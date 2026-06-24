@@ -60,6 +60,7 @@ build_github = """
     --mode=onefile
     --include-data-dir=scripts=scripts
     --include-package-data=cloudscraper
+    --windows-icon-from-ico=images/key-icon.png
     --output-filename=KeyDL.exe
     main.py
 """
