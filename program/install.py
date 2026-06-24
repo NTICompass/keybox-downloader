@@ -30,6 +30,7 @@ from prompt_toolkit.layout import (
     FloatContainer,
 )
 from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import Frame, Button, Dialog
@@ -428,9 +429,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     [
                         Frame(menu_control, title='Available Keyboxes'),
                         Frame(device_info, title='Device Info'),
-                    ]
+                    ],
+                    width=Dimension(weight=1),
                 ),
-                Frame(preview, title='Keybox Info'),
+                Frame(preview, title='Keybox Info', width=Dimension(weight=1)),
                 status_bar,
             ]
         )
@@ -443,9 +445,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                             [
                                 Frame(menu_control, title='Available Keyboxes'),
                                 Frame(device_info, title='Device Info'),
-                            ]
+                            ],
+                            width=Dimension(weight=1),
                         ),
-                        Frame(preview, title='Keybox Info', width=100),
+                        Frame(preview, title='Keybox Info', width=Dimension(weight=2)),
                     ]
                 ),
                 continue_button,
