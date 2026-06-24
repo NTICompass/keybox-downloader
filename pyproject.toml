@@ -55,6 +55,7 @@ build_pyinstaller = """
 """
 build_github = """
     nuitka
+    --assume-yes-for-downloads
     --clang
     --lto=auto
     --include-distribution-metadata=keybox-downloader
