@@ -52,6 +52,17 @@ build_pyinstaller = """
     --add-data "scripts:scripts"
     main.py
 """
+build_github = """
+    nuitka
+    --clang
+    --lto=auto
+    --include-distribution-metadata=keybox-downloader
+    --mode=onefile
+    --include-data-dir=scripts=scripts
+    --include-package-data=cloudscraper
+    --output-filename=KeyDL.exe
+    main.py
+"""
 
 [tool.setuptools.packages.find]
 include = [
