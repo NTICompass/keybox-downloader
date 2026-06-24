@@ -5,23 +5,41 @@ on:
         tags:
             - "v*"
 
+permissions:
+    contents: write
+
 jobs:
     build:
         runs-on: windows-latest
 
         steps:
             -   uses: actions/checkout@v7
+
             -   uses: actions/setup-python@v6
                 with:
                     python-version: "3.14"
+
             -   uses: astral-sh/setup-uv@v8.2.0
+
             -   name: Sync dependencies
                 run: |
                     uv sync --extra pc --extra build
                     uv pip install -e .
+
             -   name: Build
                 run: uv run poe build_github
+
             -   uses: actions/upload-artifact@v4
                 with:
                     name: KeyDL
                     path: KeyDL.exe
+
+            -   name: Release
+                uses: softprops/action-gh-release@v3
+                with:
+                    files: KeyDL.exe
+                    draft: true
+                    body: |
+                        Windows build of keybox downloader.
+                        
+                        Download KeyDL.exe, move it into its own folder, then run.
