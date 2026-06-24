@@ -235,7 +235,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         ScrollableTextControl(
             text=file_list,
             focusable=True,
-            get_cursor_position=lambda: Point(0, selectable_rows[selected_index]),
+            get_cursor_position=lambda: Point(
+                0, selectable_rows[selected_index] if len(selectable_rows) > 0 else 0
+            ),
             on_scroll=lambda delta: app.create_background_task(move(delta)),
         )
     )
