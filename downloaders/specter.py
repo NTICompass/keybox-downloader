@@ -23,6 +23,10 @@ class CatalogWorking(TypedDict):
     version: int | str
 
 
+class CatalogWorkingEntry(CatalogWorking):
+    text: str
+
+
 class CatalogOverride(TypedDict):
     source: str
 
@@ -31,6 +35,7 @@ class Catalog(TypedDict):
     entries: list[CatalogEntry]
     latest: dict[str, int | str]
     working: CatalogWorking | None
+    workingEntries: list[CatalogWorkingEntry]
     autoOverride: CatalogOverride | None
     shared: bool
 
@@ -48,9 +53,7 @@ class Specter(Downloader):
     ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     SHUFFLED = '1dgWnocayqxU3r6vA5lCIPYfHmkV08b4tz+KMsp2NQ9LRXihODwSj7BEFJ/ZuGTe'
 
-    extra_headers = {
-        'User-Agent': 'Specter/1.0',
-    }
+    extra_headers = {'User-Agent': 'Specter/1.0'}
 
     @override
     def __init__(self):
