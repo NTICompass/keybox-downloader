@@ -473,7 +473,7 @@ wheels = [
 
 [[package]]
 name = "keybox-downloader"
-version = "0.99.9"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "asyncstdlib" },

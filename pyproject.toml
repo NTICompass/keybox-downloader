@@ -1,6 +1,6 @@
 [project]
 name = "keybox-downloader"
-version = "0.99.9"
+version = "1.0.0"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = ">=3.12"
 dependencies = [
