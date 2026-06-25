@@ -25,15 +25,17 @@ pc = [
     "adbutils==2.12.0",
 ]
 
+# nuitka uses imageio to convert png -> ico
+# pyinstaller uses pillow to convert png -> ico
 build = [
     "imageio>=2.37.3",
     "nuitka[app]",
+    "pillow==12.2.0",
     "poethepoet==0.46.0",
     "pyinstaller==6.21.0",
 ]
 
 [tool.poe.tasks]
-# Windows may need `--include-windows-runtime-dlls=yes`
 build_nuitka = """
     nuitka
     --clang
