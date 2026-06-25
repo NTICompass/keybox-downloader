@@ -474,7 +474,7 @@ wheels = [
 [[package]]
 name = "keybox-downloader"
 version = "0.99.9"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "asyncstdlib" },
     { name = "beautifulsoup4" },

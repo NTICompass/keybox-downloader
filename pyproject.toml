@@ -78,5 +78,8 @@ exclude = [
     "keyboxes*",
 ]
 
+[tool.uv]
+package = true
+
 [tool.uv.sources]
 nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "develop" }
