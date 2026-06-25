@@ -56,16 +56,12 @@ build_pyinstaller = """
     main.py
 """
 build_github = """
-    nuitka
-    --assume-yes-for-downloads
-    --clang
-    --lto=auto
-    --include-distribution-metadata=keybox-downloader
-    --mode=onefile
-    --include-data-dir=scripts=scripts
-    --include-package-data=cloudscraper
-    --windows-icon-from-ico=images/key-icon.png
-    --output-filename=KeyDL.exe
+    pyinstaller
+    --copy-metadata keybox-downloader
+    --onefile
+    --add-data "scripts:scripts"
+    --icon=images/key-icon.png
+    --name=KeyDL
     main.py
 """
 

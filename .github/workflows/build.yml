@@ -32,12 +32,12 @@ jobs:
             -   uses: actions/upload-artifact@v4
                 with:
                     name: KeyDL
-                    path: KeyDL.exe
+                    path: dist/KeyDL.exe
 
             -   name: Release
                 uses: softprops/action-gh-release@v3
                 with:
-                    files: KeyDL.exe
+                    files: dist/KeyDL.exe
                     draft: true
                     body: |
                         Windows build of keybox downloader.
