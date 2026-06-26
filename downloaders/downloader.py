@@ -67,7 +67,6 @@ class Downloader(ABC):
     DESCRIPTION = ''
     URL: str
     URLS: list[str]
-    ENABLED = True
 
     current_url: HTTP_URL | str
     extra_headers: dict[str, str] | list[dict[str, str]] | None = None
@@ -76,15 +75,16 @@ class Downloader(ABC):
         self.logger = logging.getLogger(type(self).__name__)
 
     @final
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, enabled=True, **kwargs):
         super().__init_subclass__(**kwargs)
 
         override = Downloader.overrides.is_enabled(cls)
-        is_enabled = cls.ENABLED if override is None else override
+        is_enabled = enabled if override is None else override
         target = Downloader.enabled if is_enabled else Downloader.disabled
 
         target.add(cls)
 
+    @final
     @classmethod
     @asynccontextmanager
     async def start(cls):
@@ -134,8 +134,8 @@ class Downloader(ABC):
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
 
-    @classmethod
     @final
+    @classmethod
     def get_github_token(cls) -> str | None:
         if not cls._env_loaded:
             load_dotenv(cls.env_file if cls.env_file.exists() else None)

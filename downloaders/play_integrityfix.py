@@ -6,9 +6,7 @@ from typing import final, override
 
 # Root Phantom Fateh (@fateh7)
 @final
-class PlayIntegrityFix(Downloader):
-    ENABLED = False
-
+class PlayIntegrityFix(Downloader, enabled=False):
     # https://t.me/ProfessorRoot_DZ
     # https://t.me/s/kernelsu1
     # Found via: https://t.me/s/keybox_xml
