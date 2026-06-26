@@ -11,7 +11,7 @@ from pathlib import Path
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from requests import Response as CloudflareResponse, Session
 from typing import final, overload, ClassVar, Literal, Self, TypedDict
-from zipfile import Path as ZipPath
+from zipfile import Path as ZipPath, ZipFile
 import __main__
 import asyncio
 import logging
@@ -145,15 +145,20 @@ class Downloader(ABC):
         for release in releases['assets']:
             if release['content_type'] == 'application/zip':
                 self.logger.info(f'Downloading {release["name"]}')
+
+                orig_headers = self.extra_headers
                 self.extra_headers = None
 
-                # hash = release['digest']
-                return await anext(
-                    self.download_urls(
-                        binary=True,
-                        download=(release['browser_download_url'],),
+                try:
+                    # hash = release['digest']
+                    return await anext(
+                        self.download_urls(
+                            binary=True,
+                            download=(release['browser_download_url'],),
+                        )
                     )
-                )
+                finally:
+                    self.extra_headers = orig_headers
 
         return None
 
@@ -169,6 +174,16 @@ class Downloader(ABC):
                     source=type(self).__name__, original=zip_file, file_idx=1
                 ),
             )
+
+    @final
+    def unzip_files(self, zipfile: bytes, filenames: list[str]) -> list[str]:
+        files = []
+        with ZipFile(BytesIO(zipfile)) as zf:
+            for filename in filenames:
+                with zf.open(filename) as data:
+                    files.append(data.read().decode('utf-8'))
+
+        return files
 
     @final
     def get_var_from_shell(self, script: str | bytes, var: list[str]) -> dict[str, str]:

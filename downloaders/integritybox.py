@@ -1,9 +1,11 @@
 from . import Downloader
 from base64 import b64decode
 from codecs import decode
+from collections import deque
 from collections.abc import AsyncGenerator
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from typing import final, override
+import json
 import re
 
 
@@ -12,9 +14,9 @@ class IntegrityBox(Downloader):
     # https://t.me/MeowDump
     DESCRIPTION = 'IntegrityBox module (Mona/MEOWna @ GitHub)'
     URLS = [
-        # Key Script
-        'github:MeowDump/Integrity-Box::webroot/common_scripts/key.sh',
-        # Cleanup Script
+        # Key + Cleanup Scripts
+        'github-api:MeowDump/Integrity-Box',
+        # Cleanup Script (for extra)
         'github:MeowDump/Integrity-Box::webroot/common_scripts/cleanup.sh',
         # Extra Keybox(es)
         'github:MeowDump/MeowDump::NullVoid/OptimusPrime',
@@ -25,7 +27,12 @@ class IntegrityBox(Downloader):
     @override
     def __init__(self):
         super().__init__()
-        self.junk: list[str] = []
+        self.junk: tuple[str, ...] | None = None
+
+        github_token = Downloader.get_github_token()
+        if github_token:
+            self.extra_headers = [{} for _ in self.URLS]
+            self.extra_headers[0]['Authorization'] = f'Bearer {github_token}'
 
     def get_keybox_url(self, keybox_script: str | bytes) -> str:
         keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
@@ -39,22 +46,40 @@ class IntegrityBox(Downloader):
     ) -> AsyncGenerator[Keybox | None]:
         self.logger.info('Downloading keybox scripts')
 
-        # Also download the keybox from the webapp, which is probably the same
-        keybox_script, cleanup_script, encoded_keybox, web_keybox = [
-            data async for data in downloaded
-        ]
+        # The module download and the code in the `main` branch on the repo are slightly different
+        download_urls: list[str] = []
+        junk_data: deque[tuple[str, ...] | None] = deque()
 
-        download_url = self.get_keybox_url(keybox_script)
+        zip_dl = await self.get_latest_github_release(
+            json.loads(await anext(downloaded))
+        )
+        if zip_dl is not None:
+            keybox_script, cleanup_script = self.unzip_files(
+                zip_dl,
+                [
+                    'webroot/common_scripts/key.sh',
+                    'webroot/common_scripts/cleanup.sh',
+                ],
+            )
+            junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
+
+            download_urls.append(self.get_keybox_url(keybox_script))
+            junk_data.append(tuple(junk_vars['X'].split(',')))
+
+        # Also download the keybox from the webapp, which is probably the same
+        cleanup_script, encoded_keybox, web_keybox = [data async for data in downloaded]
+
         junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
-        self.junk = junk_vars['X'].split(',')
+        junk_data.append(tuple(junk_vars['X'].split(',')))
 
         keyboxes: list[str | bytes | None] = [web_keybox]
 
         # Decode the keyboxes
         for encoded in (
-            (await self.client.get(download_url)).text,
+            *[(await self.client.get(dl)).text for dl in download_urls],
             encoded_keybox,
         ):
+            self.junk = junk_data.popleft()
             keyboxes.append(self.decode(encoded))
 
         # Output keyboxes as XML
@@ -92,7 +117,8 @@ class IntegrityBox(Downloader):
         encoded = decode(encoded, 'rot_13')
 
         # Remove extra "junk" from the file
-        encoded = re.sub(rf'({"|".join(self.junk)})', '', encoded)
+        if self.junk is not None:
+            encoded = re.sub(rf'({"|".join(self.junk)})', '', encoded)
 
         # Finally remove extra comments/newlines
         return encoded.replace('<!--INTEGRITY BOX-->', '')
