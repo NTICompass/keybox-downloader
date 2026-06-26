@@ -287,7 +287,10 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             async with in_terminal():
                 nonlocal keyboxes
 
-                await go(*get_downloaders())
+                await go(
+                    *get_downloaders(),
+                    progress=lambda current, total: print(f'{current} of {total}'),
+                )
                 keyboxes = list(folder.rglob('*.xml'))
                 await keybox_info(False)
 

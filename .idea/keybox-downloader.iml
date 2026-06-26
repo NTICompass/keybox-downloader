@@ -4,6 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/main.build" />
+      <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/keybox_downloader.egg-info" />
     </content>
     <orderEntry type="jdk" jdkName="uv (keybox-downloader)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

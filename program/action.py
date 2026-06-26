@@ -1,4 +1,5 @@
 from .keybox import Keybox, KeyType
+from asyncio import Future
 from asyncstdlib import enumerate as a_enumerate
 from cache_data import Manifest
 from collections.abc import Generator
@@ -8,7 +9,9 @@ from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
 from tqdm.asyncio import tqdm_asyncio
+from typing import Callable, Iterator, Iterable, Awaitable
 import __main__
+import asyncio
 import logging
 
 
@@ -85,7 +88,10 @@ async def run(dl: Downloader) -> list[tuple[Path, Keybox]]:
     return files
 
 
-async def go(*downloaders: Downloader):
+async def go(
+    *downloaders: Downloader,
+    progress: Callable[[int, int], None] | None = None,
+):
     try:
         init()
     except RuntimeError as e:
@@ -94,7 +100,19 @@ async def go(*downloaders: Downloader):
         await Keybox.init_attestation(Downloader.client)
         keyboxes: list[Keybox] = []
 
-        for task in tqdm_asyncio.as_completed([run(dl) for dl in downloaders]):
+        def as_completed[T](fs: Iterable[Awaitable[T]]) -> Iterator[Future[T]]:
+            func = (
+                tqdm_asyncio.as_completed if progress is None else asyncio.as_completed
+            )
+            return func(fs)
+
+        tasks = [run(dl) for dl in downloaders]
+        total = len(tasks)
+
+        for idx, task in enumerate(as_completed(tasks), start=1):
+            if progress is not None:
+                progress(idx, total)
+
             for folder, xml_file in await task:
                 xml_file.save(folder)
                 keyboxes.append(xml_file)
