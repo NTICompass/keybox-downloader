@@ -2,7 +2,6 @@ from . import Downloader
 from collections.abc import AsyncGenerator
 from program.keybox import Keybox
 from typing import final, override
-import json
 
 
 # Root Phantom Fateh (@fateh7)
@@ -31,9 +30,7 @@ class PlayIntegrityFix(Downloader):
     async def process(
         self, downloaded: AsyncGenerator[str]
     ) -> AsyncGenerator[Keybox | None]:
-        zip_dl = await self.get_latest_github_release(
-            json.loads(await anext(downloaded))
-        )
+        zip_dl = await self.get_latest_github_release(await anext(downloaded))
         yield self.unzip_keybox(zip_dl) if zip_dl is not None else None
 
     @override

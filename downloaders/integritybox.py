@@ -5,7 +5,6 @@ from collections import deque
 from collections.abc import AsyncGenerator
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from typing import final, override
-import json
 import re
 
 
@@ -50,9 +49,7 @@ class IntegrityBox(Downloader):
         download_urls: list[str] = []
         junk_data: deque[tuple[str, ...] | None] = deque()
 
-        zip_dl = await self.get_latest_github_release(
-            json.loads(await anext(downloaded))
-        )
+        zip_dl = await self.get_latest_github_release(await anext(downloaded))
         if zip_dl is not None:
             keybox_script, cleanup_script = self.unzip_files(
                 zip_dl,

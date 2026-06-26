@@ -10,20 +10,12 @@ from io import IOBase
 from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
+from pydantic import BaseModel, Field, ConfigDict
 from time import time
-from typing import (
-    final,
-    ClassVar,
-    Literal,
-    TypedDict,
-    NotRequired,
-    Self,
-    override,
-)
+from typing import final, override, ClassVar, Literal, Self
 from xml.etree.ElementTree import Element, ElementTree, ParseError
 from zipfile import Path as ZipPath
 import __main__
-import json
 import logging
 import xml.etree.ElementTree as ET
 
@@ -56,9 +48,11 @@ class KeyboxError(SyntaxError):
 
 
 # See: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
-class Attestation(TypedDict):
+class Attestation(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    
     status: Literal['REVOKED', 'SUSPENDED']
-    reason: NotRequired[
+    reason: (
         Literal[
             'UNSPECIFIED',
             'KEY_COMPROMISE',
@@ -66,10 +60,15 @@ class Attestation(TypedDict):
             'SUPERSEDED',
             'SOFTWARE_FLAW',
         ]
-    ]
+        | None
+    ) = None
+    expires: str | None = None
+    comment: str | None = Field(default=None, max_length=140)
 
 
-class AttestationList(TypedDict):
+class AttestationList(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     entries: dict[str, Attestation]
 
 
@@ -144,7 +143,9 @@ class Keybox:
             do_download = False
 
             try:
-                cls.status_list = json.load(cached_status)
+                cls.status_list = AttestationList.model_validate_json(
+                    cached_status.read()
+                )
             except JSONDecodeError:
                 do_download = True
 
@@ -158,18 +159,18 @@ class Keybox:
 
             if do_download:
                 data = await dl.get(cls._URL)
-                cls.status_list = data.json()
+                cls.status_list = AttestationList.model_validate(data.json())
 
                 cached_status.seek(0)
                 cached_status.truncate()
-                json.dump(cls.status_list, cached_status)
+                cached_status.write(cls.status_list.model_dump_json())
 
                 manifest.attestation_date = datetime.now().timestamp()
 
             cls.revoked = {
                 key
-                for key, status in cls.status_list['entries'].items()
-                if status['status'] == 'REVOKED'
+                for key, status in cls.status_list.entries.items()
+                if status.status == 'REVOKED'
             }
 
     type KeyboxGroup = defaultdict[frozenset[tuple[int, int]], list[str]]

@@ -1,42 +1,51 @@
 from . import Downloader
 from base64 import b64decode
 from collections.abc import AsyncGenerator
-from typing import final, override, TypedDict
-import json
+from datetime import datetime
+from pydantic import BaseModel, UUID4, Field, ConfigDict
+from typing import final, override
 
 
-class CatalogEntry(TypedDict):
-    id: str
+class CatalogEntry(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID4
     source: str
     version: str
     text: str
     revoked: bool
     softbanned: bool
     shared: bool
-    serial: str
-    last_checked: str
-    timestamp: str
+    serial: str = Field(pattern=r'^[0-9a-fA-F]+$')
+    last_checked: datetime
+    timestamp: datetime
 
 
-class CatalogWorking(TypedDict):
+class CatalogWorking(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     source: str
-    version: int | str
+    version: str
 
 
 class CatalogWorkingEntry(CatalogWorking):
     text: str
 
 
-class CatalogOverride(TypedDict):
+class CatalogOverride(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     source: str
 
 
-class Catalog(TypedDict):
+class Catalog(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     entries: list[CatalogEntry]
-    latest: dict[str, int | str]
-    working: CatalogWorking | None
+    latest: dict[str, str]
+    working: CatalogWorking | None = None
     workingEntries: list[CatalogWorkingEntry]
-    autoOverride: CatalogOverride | None
+    autoOverride: CatalogOverride | None = None
     shared: bool
 
 
@@ -70,7 +79,7 @@ class Specter(Downloader):
         self.logger.info('Downloading catalog')
 
         try:
-            cat = json.loads(await anext(downloaded))
+            cat = Catalog.model_validate_json(await anext(downloaded))
         except StopAsyncIteration:
             cat = None
             self.logger.info('Error downloading catalog')
@@ -78,19 +87,19 @@ class Specter(Downloader):
             yield None
 
         if cat is not None:
-            working = cat['working'] or {}
-
             other_keys = [
-                f'{entry["source"]} v{entry["version"]}'
-                for entry in cat['entries']
-                if not entry['revoked']
-                and not entry['softbanned']
-                and working.get('source', '') != entry['source']
-                and working.get('version', '') != entry['version']
+                f'{entry.source} v{entry.version}'
+                for entry in cat.entries
+                if not entry.revoked
+                and not entry.softbanned
+                and (cat.working.source if cat.working is not None else '')
+                != entry.source
+                and (cat.working.version if cat.working is not None else '')
+                != entry.version
             ]
 
             self.logger.info(
-                f'"Working" keybox is {working.get("source", "none")} v{working.get("version", 0)}'
+                f'"Working" keybox is {cat.working.source if cat.working is not None else "none"} v{cat.working.version if cat.working is not None else 0}'
             )
 
             if len(other_keys) > 0:
@@ -100,9 +109,9 @@ class Specter(Downloader):
 
             async for data in self.download_urls(
                 download=[
-                    f'{self.KEYBOX_URL}/{entry["source"]}/{entry["version"]}'
-                    for entry in cat['entries']
-                    if not entry['revoked'] and not entry['softbanned']
+                    f'{self.KEYBOX_URL}/{entry.source}/{entry.version}'
+                    for entry in cat.entries
+                    if not entry.revoked and not entry.softbanned
                 ]
             ):
                 yield data

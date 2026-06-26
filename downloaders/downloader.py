@@ -9,8 +9,9 @@ from httpx2 import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
 from pathlib import Path
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
+from pydantic import BaseModel, ConfigDict
 from requests import Response as CloudflareResponse, Session
-from typing import final, overload, ClassVar, Literal, Self, TypedDict
+from typing import final, overload, ClassVar, Literal, Self
 from zipfile import Path as ZipPath, ZipFile
 import __main__
 import asyncio
@@ -20,14 +21,18 @@ import re
 
 
 # https://docs.github.com/en/rest/releases/releases?apiVersion=2026-03-10
-class GitHubAsset(TypedDict):
+class GitHubAsset(BaseModel):
+    model_config = ConfigDict(extra='allow', frozen=True)
+
     name: str
-    digest: str
+    digest: str | None = None
     content_type: str
     browser_download_url: str
 
 
-class GitHubRelease(TypedDict):
+class GitHubRelease(BaseModel):
+    model_config = ConfigDict(extra='allow', frozen=True)
+
     assets: list[GitHubAsset]
 
 
@@ -139,22 +144,36 @@ class Downloader(ABC):
         return os.getenv('GITHUB_TOKEN')
 
     @final
-    async def get_latest_github_release(self, releases: GitHubRelease) -> bytes | None:
+    async def get_latest_github_release(
+        self, data: GitHubRelease | dict | str
+    ) -> bytes | None:
         self.logger.info('Searching for latest release')
 
-        for release in releases['assets']:
-            if release['content_type'] == 'application/zip':
-                self.logger.info(f'Downloading {release["name"]}')
+        releases: GitHubRelease | None = None
+
+        if isinstance(data, GitHubRelease):
+            releases = data
+        elif isinstance(data, str):
+            releases = GitHubRelease.model_validate_json(data)
+        elif isinstance(data, dict):
+            releases = GitHubRelease.model_validate(data)
+
+        if releases is None:
+            return None
+
+        for release in releases.assets:
+            if release.content_type == 'application/zip':
+                self.logger.info(f'Downloading {release.name}')
 
                 orig_headers = self.extra_headers
                 self.extra_headers = None
 
                 try:
-                    # hash = release['digest']
+                    # hash = release.digest
                     return await anext(
                         self.download_urls(
                             binary=True,
-                            download=(release['browser_download_url'],),
+                            download=[release.browser_download_url],
                         )
                     )
                 finally:
