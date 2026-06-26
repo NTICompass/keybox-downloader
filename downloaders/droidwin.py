@@ -51,7 +51,7 @@ class DroidWin(Downloader):
                 )
             )
 
-            yield self.unzip(zip_dl, 'keybox.xml')
+            yield self.unzip_keybox(zip_dl)
 
     async def do_download[T: str | bytes](
         self, dl: Callable[[], AsyncGenerator[T]]

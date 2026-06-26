@@ -4,25 +4,57 @@ from cache_data import Overrides
 from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
+from dotenv import load_dotenv
 from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
+from pathlib import Path
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from requests import Response as CloudflareResponse, Session
-from typing import final, overload, ClassVar, Literal, Self
+from typing import final, overload, ClassVar, Literal, Self, TypedDict
 from zipfile import Path as ZipPath
+import __main__
 import asyncio
 import logging
+import os
 import re
+
+
+# https://docs.github.com/en/rest/releases/releases?apiVersion=2026-03-10
+class GitHubAsset(TypedDict):
+    name: str
+    digest: str
+    content_type: str
+    browser_download_url: str
+
+
+class GitHubRelease(TypedDict):
+    assets: list[GitHubAsset]
 
 
 def build_github_url(repo: str, branch: str, file: str) -> str:
     return f'https://raw.githubusercontent.com/{repo}/refs/heads/{branch if len(branch) > 0 else "main"}/{file}'
 
 
+def build_github_api_url(repo: str) -> str:
+    return f'https://api.github.com/repos/{repo}/releases/latest'
+
+
+def get_download_url(dl: str) -> str:
+    if dl.startswith('github:'):
+        return build_github_url(*dl.split(':', 4)[1:])
+    elif dl.startswith('github-api:'):
+        return build_github_api_url(dl.split(':', 1)[1])
+    else:
+        return dl
+
+
 class Downloader(ABC):
     enabled: ClassVar[set[type[Self]]] = set()
     disabled: ClassVar[set[type[Self]]] = set()
     overrides: ClassVar[Overrides[type[Self]]] = Overrides()
+
+    env_file: ClassVar[Path] = __main__.exe_root / '.env'
+    _env_loaded: ClassVar[bool] = False
 
     client: ClassVar[AsyncClient]
     cloudflare_client: ClassVar[CloudScraper | Session]
@@ -97,8 +129,36 @@ class Downloader(ABC):
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
 
+    @classmethod
     @final
-    def unzip(self, zipfile: bytes, filename: str) -> Keybox:
+    def get_github_token(cls) -> str | None:
+        if not cls._env_loaded:
+            load_dotenv(cls.env_file if cls.env_file.exists() else None)
+            cls._env_loaded = True
+
+        return os.getenv('GITHUB_TOKEN')
+
+    @final
+    async def get_latest_github_release(self, releases: GitHubRelease) -> bytes | None:
+        self.logger.info('Searching for latest release')
+
+        for release in releases['assets']:
+            if release['content_type'] == 'application/zip':
+                self.logger.info(f'Downloading {release["name"]}')
+                self.extra_headers = None
+
+                # hash = release['digest']
+                return await anext(
+                    self.download_urls(
+                        binary=True,
+                        download=(release['browser_download_url'],),
+                    )
+                )
+
+        return None
+
+    @final
+    def unzip_keybox(self, zipfile: bytes, filename: str = 'keybox.xml') -> Keybox:
         zip_file = ZipPath(BytesIO(zipfile), at=filename)
 
         with zip_file.open('r') as data:
@@ -128,9 +188,7 @@ class Downloader(ABC):
         for r in await asyncio.gather(
             *[
                 self.client.get(
-                    build_github_url(*dl.split(':', 4)[1:])
-                    if dl.startswith('github:')
-                    else dl,
+                    get_download_url(dl),
                     headers=self.get_headers(idx),
                 )
                 for idx, dl in enumerate(download)
