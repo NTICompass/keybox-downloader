@@ -8,7 +8,7 @@ dependencies = [
     "beautifulsoup4==4.15.0",
     "cloudscraper==1.2.71",
     "cryptography==49.0.0",
-    "httpx[brotli,http2]==0.28.1",
+    "httpx2[brotli,http2,zstd]>=2.5.0",
     "prompt-toolkit==3.0.52",
     "python-dotenv==1.2.2",
     "requests==2.34.2",

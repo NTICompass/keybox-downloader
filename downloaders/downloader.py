@@ -5,7 +5,7 @@ from cloudscraper import CloudScraper
 from collections.abc import AsyncGenerator, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 from dotenv import load_dotenv
-from httpx import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
+from httpx2 import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
 from io import BytesIO
 from pathlib import Path
 from program.keybox import Keybox, KeyboxMetadata, KeyboxError
@@ -90,7 +90,7 @@ class Downloader(ABC):
                     follow_redirects=True,
                     timeout=None,
                     headers={
-                        'Accept-Encoding': 'br, gzip',
+                        'Accept-Encoding': 'zstd, br, gzip',
                         'Cache-Control': 'no-cache',
                         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0',
                     },

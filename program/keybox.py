@@ -5,7 +5,7 @@ from cryptography.x509.base import Certificate
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum, auto
-from httpx import AsyncClient
+from httpx2 import AsyncClient
 from io import IOBase
 from json import JSONDecodeError
 from logging import Logger
