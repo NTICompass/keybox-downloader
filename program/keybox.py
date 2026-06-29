@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from enum import StrEnum, auto
 from httpx2 import AsyncClient
 from io import IOBase
-from json import JSONDecodeError
 from logging import Logger
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -50,7 +49,7 @@ class KeyboxError(SyntaxError):
 # See: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
 class Attestation(BaseModel):
     model_config = ConfigDict(frozen=True)
-    
+
     status: Literal['REVOKED', 'SUSPENDED']
     reason: (
         Literal[
@@ -140,14 +139,8 @@ class Keybox:
 
         with open(cls._cached, 'r+') as cached_status:
             manifest = Manifest()
-            do_download = False
-
-            try:
-                cls.status_list = AttestationList.model_validate_json(
-                    cached_status.read()
-                )
-            except JSONDecodeError:
-                do_download = True
+            cache_json = cached_status.read()
+            do_download = len(cache_json) == 0
 
             if not do_download and manifest.attestation_date >= 0:
                 time_diff = datetime.now() - datetime.fromtimestamp(
@@ -157,7 +150,9 @@ class Keybox:
                 if (time_diff / timedelta(hours=1)) >= 24:
                     do_download = True
 
-            if do_download:
+            if not do_download:
+                cls.status_list = AttestationList.model_validate_json(cache_json)
+            else:
                 data = await dl.get(cls._URL)
                 cls.status_list = AttestationList.model_validate(data.json())
 
