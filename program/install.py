@@ -1,4 +1,5 @@
 from .action import get_downloaders, go, can_run, force_run
+from .dialog import AwaitableDialog
 from .options import Options
 from .scrollable import ScrollableTextControl
 from asyncio import Future
@@ -154,7 +155,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     device_info_text = ''
     keybox_info_text: StyleAndTextTuples = []
     dialog_shown: Literal[False, 'options', 'download', 'progress'] = False
-    dl_dialog: Future[Literal[None, 'force']]
+    dl_dialog: AwaitableDialog[Literal['force']]
 
     app: Application[Path | None] = get_app()
     kb = KeyBindings()
@@ -340,21 +341,19 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             await my_app.create_background_task(run())
         else:
             dialog_shown = 'download'
-            dl_dialog = asyncio.get_running_loop().create_future()
 
-            already_ran = Dialog(
+            dl_dialog = AwaitableDialog[Literal['force']](
                 title='Notice',
                 body=Window(
                     FormattedTextControl(
                         text='Downloaders can only be ran once every 24hrs'
                     )
                 ),
-                buttons=[Button(text='Ok', handler=lambda: dl_dialog.set_result(None))],
             )
 
-            root_float.floats.append(Float(content=already_ran))
+            root_float.floats.append(Float(content=dl_dialog))
             if my_app.layout:
-                my_app.layout.focus(already_ran)
+                my_app.layout.focus(dl_dialog)
             my_app.invalidate()
 
             result = await dl_dialog
@@ -426,8 +425,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     @dl_kb.add('f')
     def _(event: KeyPressEvent):
-        if not dl_dialog.done():
-            dl_dialog.set_result('force')
+        dl_dialog.finish('force')
 
     def status_handler(func: EventFunc) -> Callable[[MouseEvent], Awaitable[None]]:
         async def click(mouse_event: MouseEvent):
