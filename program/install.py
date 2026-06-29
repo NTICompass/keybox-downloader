@@ -33,7 +33,7 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
 from prompt_toolkit.styles import Style
-from prompt_toolkit.widgets import Frame, Button, Dialog
+from prompt_toolkit.widgets import Frame, Button, Dialog, ProgressBar, Box
 from typing import Literal
 import __main__
 import asyncio
@@ -153,7 +153,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     selectable_rows: list[int] = []
     device_info_text = ''
     keybox_info_text: StyleAndTextTuples = []
-    dialog_shown: Literal[False, 'options', 'download'] = False
+    dialog_shown: Literal[False, 'options', 'download', 'progress'] = False
     dl_dialog: Future[Literal[None, 'force']]
 
     app: Application[Path | None] = get_app()
@@ -280,19 +280,38 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     async def do_download(evt_app: Application[Path | None] | None = None):
         nonlocal dialog_shown, dl_dialog
-
         my_app = evt_app if evt_app is not None else app
 
         async def run():
-            async with in_terminal():
-                nonlocal keyboxes
+            nonlocal keyboxes, dialog_shown
+            dialog_shown = 'progress'
 
-                await go(
-                    *get_downloaders(),
-                    progress=lambda current, total: print(f'{current} of {total}'),
-                )
-                keyboxes = list(folder.rglob('*.xml'))
-                await keybox_info(False)
+            progress_bar = ProgressBar()
+            progress_dialog = Dialog(
+                title='Downloading...',
+                body=Box(
+                    body=progress_bar,
+                    padding_left=2,
+                    padding_right=2,
+                ),
+            )
+
+            def update_progress(current: int, total: int):
+                progress_bar.percentage = (current / total) * 100
+
+            root_float.floats.append(Float(content=progress_dialog))
+            my_app.invalidate()
+
+            progress_bar.percentage = 0
+            await go(
+                *get_downloaders(),
+                progress=update_progress,
+            )
+
+            root_float.floats.pop()
+            keyboxes = list(folder.rglob('*.xml'))
+            await keybox_info(True)
+            dialog_shown = False
 
         if can_run():
             await my_app.create_background_task(run())
@@ -392,6 +411,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             if (
                 mouse_event.button == MouseButton.LEFT
                 and mouse_event.event_type == MouseEventType.MOUSE_UP
+                and (not dialog_shown == 'progress')
             ):
                 result = func()
 
