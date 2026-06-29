@@ -284,25 +284,30 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         async def run():
             nonlocal keyboxes, dialog_shown
+
             dialog_shown = 'progress'
-
             progress_bar = ProgressBar()
-            progress_dialog = Dialog(
-                title='Downloading...',
-                body=Box(
-                    body=progress_bar,
-                    padding_left=2,
-                    padding_right=2,
-                ),
+
+            async def update_progress(current: int, total: int):
+                progress_bar.percentage = (current * 100) // total
+
+                # Both lines below are needed to actually draw the progress bar updates
+                my_app.invalidate()
+                await asyncio.sleep(1)
+
+            root_float.floats.append(
+                Float(
+                    content=Dialog(
+                        title='Downloading...',
+                        body=Box(
+                            progress_bar, width=30, padding_right=2, padding_left=2
+                        ),
+                    )
+                )
             )
-
-            def update_progress(current: int, total: int):
-                progress_bar.percentage = (current / total) * 100
-
-            root_float.floats.append(Float(content=progress_dialog))
+            progress_bar.percentage = 0
             my_app.invalidate()
 
-            progress_bar.percentage = 0
             await go(
                 *get_downloaders(),
                 progress=update_progress,

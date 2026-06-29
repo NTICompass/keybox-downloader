@@ -90,7 +90,7 @@ async def run(dl: Downloader) -> list[tuple[Path, Keybox]]:
 
 async def go(
     *downloaders: Downloader,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[int, int], Awaitable[None]] | None = None,
 ):
     try:
         init()
@@ -111,7 +111,7 @@ async def go(
 
         for idx, task in enumerate(as_completed(tasks), start=1):
             if progress is not None:
-                progress(idx, total)
+                await progress(idx, total)
 
             for folder, xml_file in await task:
                 xml_file.save(folder)
