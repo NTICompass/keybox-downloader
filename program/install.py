@@ -287,9 +287,11 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
             dialog_shown = 'progress'
             progress_bar = ProgressBar()
+            completed: list[str] = []
 
-            async def update_progress(current: int, total: int):
+            async def update_progress(current: int, total: int, dl_complete: str):
                 progress_bar.percentage = (current * 100) // total
+                completed.append(dl_complete)
 
                 # Both lines below are needed to actually draw the progress bar updates
                 my_app.invalidate()
@@ -299,19 +301,35 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 Float(
                     content=Dialog(
                         title='Downloading...',
-                        body=Box(
-                            progress_bar, width=30, padding_right=2, padding_left=2
+                        body=HSplit(
+                            [
+                                Box(
+                                    progress_bar,
+                                    width=30,
+                                    padding_right=2,
+                                    padding_left=2,
+                                ),
+                                Frame(
+                                    Window(
+                                        FormattedTextControl(
+                                            text=lambda: '\n'.join(completed)
+                                        )
+                                    ),
+                                    'Completed',
+                                ),
+                            ]
                         ),
                     )
                 )
             )
+
             progress_bar.percentage = 0
             my_app.invalidate()
-
             await go(
                 *get_downloaders(),
                 progress=update_progress,
             )
+            await asyncio.sleep(1)
 
             root_float.floats.pop()
             keyboxes = list(folder.rglob('*.xml'))

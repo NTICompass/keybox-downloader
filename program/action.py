@@ -72,8 +72,11 @@ def init():
         make_folders()
 
 
-async def run(dl: Downloader) -> list[tuple[Path, Keybox]]:
-    files: list[tuple[Path, Keybox]] = []
+type KeyPath = tuple[Path, Keybox]
+
+
+async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
+    files: list[KeyPath] = []
 
     async for idx, keybox_file in a_enumerate(dl()):
         keybox_idx = idx + 1
@@ -85,12 +88,12 @@ async def run(dl: Downloader) -> list[tuple[Path, Keybox]]:
         logger.info(f'Checking/Saving keybox #{keybox_idx:d}')
         files.append((path / keybox_file.key_type, keybox_file))
 
-    return files
+    return files, type(dl).__name__
 
 
 async def go(
     *downloaders: Downloader,
-    progress: Callable[[int, int], Awaitable[None]] | None = None,
+    progress: Callable[[int, int, str], Awaitable[None]] | None = None,
 ):
     try:
         init()
@@ -110,12 +113,14 @@ async def go(
         total = len(tasks)
 
         for idx, task in enumerate(as_completed(tasks), start=1):
-            if progress is not None:
-                await progress(idx, total)
+            dl_info, dl_complete = await task
 
-            for folder, xml_file in await task:
+            for folder, xml_file in dl_info:
                 xml_file.save(folder)
                 keyboxes.append(xml_file)
+
+            if progress is not None:
+                await progress(idx, total, dl_complete)
 
         logger.info('All keyboxes downloaded, comparing to find duplicates')
 
