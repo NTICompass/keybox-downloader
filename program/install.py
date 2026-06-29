@@ -293,7 +293,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
                 # Both lines below are needed to actually draw the progress bar updates
                 my_app.invalidate()
-                await asyncio.sleep(1)
+                await asyncio.sleep(0)
 
             root_float.floats.append(
                 Float(
