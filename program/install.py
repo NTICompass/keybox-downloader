@@ -2,7 +2,6 @@ from .action import get_downloaders, go, can_run, force_run
 from .dialog import AwaitableDialog
 from .options import Options
 from .scrollable import ScrollableTextControl
-from asyncio import Future
 from cache_data import Overrides
 from collections.abc import Callable, Awaitable
 from contextlib import AbstractAsyncContextManager
@@ -11,7 +10,7 @@ from itertools import groupby
 from pathlib import Path
 from program.keybox import Keybox
 from prompt_toolkit.keys import Keys
-from prompt_toolkit.application import Application, in_terminal, get_app
+from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
