@@ -125,20 +125,24 @@ async def get_device() -> str:
         return props if props.strip() != '' else 'No device found, press "r" to re-try'
 
 
-def get_cert_serials(file: Path) -> list[str]:
+def get_cert_serials(file: Path, certs_only=False) -> list[str]:
     if file.name not in files:
         files[file.name] = Keybox(file)
 
     all_certs = [
-        f'{cert} ({"Valid" if valid else "Revoked"})'
+        cert if certs_only else f'{cert} ({"Valid" if valid else "Revoked"})'
         for cert, valid in files[file.name].keys_valid.items()
     ]
     ec_certs, rsa_certs = files[file.name].key_counts
 
-    return [
-        f'{ec_certs} EC certs, {rsa_certs} RSA certs',
-        *all_certs,
-    ]
+    return (
+        all_certs
+        if certs_only
+        else [
+            f'{ec_certs} EC certs, {rsa_certs} RSA certs',
+            *all_certs,
+        ]
+    )
 
 
 async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
@@ -147,7 +151,9 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         return None
 
     await Keybox.init_attestation(Downloader.client)
-    keyboxes = sorted(keyboxes, key=lambda file: (file.parent.name, file.name))
+    keyboxes.sort(
+        key=lambda file: (file.parent.name, get_cert_serials(file, True)[0], file.name)
+    )
 
     selected_index = 0
     selectable_rows: list[int] = []
