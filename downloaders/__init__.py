@@ -1,4 +1,5 @@
 from .downloader import Downloader
+from .alwaysstrong import AlwaysStrong
 from .droidwin import DroidWin
 from .fixintegrity import FixIntegrity
 from .integritybox import IntegrityBox
@@ -10,6 +11,7 @@ from .yurikey import YuriKey
 
 __all__ = [
     'Downloader',
+    'AlwaysStrong',
     'DroidWin',
     'FixIntegrity',
     'IntegrityBox',
