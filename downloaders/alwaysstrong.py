@@ -6,6 +6,9 @@ from typing import final, override
 @final
 class AlwaysStrong(Downloader):
     # https://t.me/s/keyboxstrong
+    # https://t.me/evokeroot
+    # https://t.me/evokerr
+    # https://github.com/evoker0/AlwaysStrong
     DESCRIPTION = 'AlwaysStrong module (evoker0 @ GitHub)'
     URL = 'https://botkey.netlify.app/key'
 
