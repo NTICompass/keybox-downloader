@@ -97,7 +97,7 @@ class Downloader(ABC):
                     headers={
                         'Accept-Encoding': 'zstd, br, gzip',
                         'Cache-Control': 'no-cache',
-                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0',
+                        'User-Agent': 'Mozilla/5.0 (Linux; Android 17; Pixel 9 Pro Build/CP2A.260605.012; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/149.0.7827.164 Mobile Safari/537.36',
                     },
                 )
             )
