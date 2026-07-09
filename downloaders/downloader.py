@@ -97,6 +97,8 @@ class Downloader(ABC):
                     headers={
                         'Accept-Encoding': 'zstd, br, gzip',
                         'Cache-Control': 'no-cache',
+                        # https://android-developers.googleblog.com/2024/12/user-agent-reduction-on-android-webview.html
+                        # https://whatmyuseragent.com/platforms/android
                         'User-Agent': 'Mozilla/5.0 (Linux; Android 17; Pixel 9 Pro Build/CP2A.260605.012; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/149.0.7827.164 Mobile Safari/537.36',
                     },
                 )
