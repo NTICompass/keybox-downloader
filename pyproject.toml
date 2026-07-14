@@ -4,26 +4,28 @@ version = "1.0.0"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = ">=3.12"
 dependencies = [
-    "asyncstdlib==3.14.0",
-    "beautifulsoup4==4.15.0",
-    "cloudscraper==1.2.71",
-    "cryptography==49.0.0",
+    "asyncstdlib>=3.14.0",
+    "beautifulsoup4>=4.15.0",
+    "cloudscraper>=1.2.71",
+    "cryptography==48.0.1", # Needed for Android!
     "httpx2[brotli,http2,zstd]>=2.5.0",
-    "prompt-toolkit==3.0.52",
-    "pydantic>=2.13.4",
-    "python-dotenv==1.2.2",
-    "requests==2.34.2",
-    "tqdm==4.68.3",
+    "pillow==12.3.0",
+    "poethepoet==0.48.0",
+    "prompt-toolkit>=3.0.52",
+    "pydantic==2.12.5", # Needed for Android!
+    "python-dotenv>=1.2.2",
+    "requests>=2.34.2",
+    "tqdm==4.68.4",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "python-dotenv[cli]==1.2.2",
-    "ruff==0.15.20",
+    "python-dotenv[cli]>=1.2.2",
+    "ruff>=0.15.20",
 ]
 
 pc = [
-    "adbutils==2.12.0",
+    "adbutils>=2.12.0",
 ]
 
 # nuitka uses imageio to convert png -> ico
@@ -31,9 +33,9 @@ pc = [
 build = [
     "imageio>=2.37.3",
     "nuitka[app]",
-    "pillow==12.2.0",
-    "poethepoet==0.46.0",
-    "pyinstaller==6.21.0",
+    "pillow>=12.2.0",
+    "poethepoet>=0.46.0",
+    "pyinstaller>=6.21.0",
 ]
 
 [tool.poe.tasks]
@@ -81,6 +83,7 @@ exclude = [
 
 [tool.uv]
 package = true
+exclude-newer = "7 days"
 
 [tool.uv.sources]
 nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "develop" }
