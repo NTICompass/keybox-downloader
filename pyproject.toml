@@ -87,3 +87,13 @@ exclude-newer = "7 days"
 
 [tool.uv.sources]
 nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "develop" }
+pydantic-core = [
+    {
+        url = "https://github.com/tur-pypi-dists/python3.13-pydantic_core/releases/download/v2.41.5/pydantic_core-2.41.5-cp313-cp313-android_24_arm64_v8a.whl",
+        marker = "platform_system == 'Android' and python_version == '3.13'"
+    },
+    {
+        index = "pypi",
+        marker = "platform_system != 'Android'"
+    },
+]
