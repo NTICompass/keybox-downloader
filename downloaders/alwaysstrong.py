@@ -10,7 +10,7 @@ class AlwaysStrong(Downloader):
     # https://t.me/evokerr
     # https://github.com/evoker0/AlwaysStrong
     DESCRIPTION = 'AlwaysStrong module (evoker0 @ GitHub)'
-    URL = 'https://botkey.netlify.app/key'
+    URL = 'https://evoker.qzz.io/key'
 
     extra_headers = {'User-Agent': 'Mozilla/5.0 (Linux; Android) asfetch/1.0'}
 
