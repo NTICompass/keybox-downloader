@@ -88,10 +88,10 @@ exclude-newer = "7 days"
 [tool.uv.sources]
 nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "develop" }
 pydantic-core = [
-    { index = "pydantic", marker = "platform_system == 'Android' and python_version == '3.14'" },
-    { index = "pypi", marker = "platform_system != 'Android'" },
+    { index = "labs", marker = "platform_system == 'Android'" },
 ]
 
 [[tool.uv.index]]
-name = "pydantic"
+name = "labs"
 url = "https://labs.nticompassinc.com/idk-lol/repo/"
+explicit = true
