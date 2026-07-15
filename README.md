@@ -8,7 +8,7 @@ Runs on PC or even on Android (via termux).
 ## Android Instructions
 
 ```bash
-pkg install python python-cryptography python-pillow
+pkg install uv python python-cryptography
 git checkout ...
 cd keybox-downloader
 uv venv --system-site-packages
