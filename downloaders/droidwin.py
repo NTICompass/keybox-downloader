@@ -1,9 +1,11 @@
 from . import Downloader
 from bs4 import BeautifulSoup
 from collections.abc import AsyncGenerator, Callable
+from io import BytesIO
 from program.keybox import Keybox
 from typing import final, override
 import re
+import zipfile
 
 
 @final
@@ -48,18 +50,35 @@ class DroidWin(Downloader):
                     binary=True,
                     cloudflare=self.cloudflare,
                     download=(str(link.attrs['href']),),
-                )
+                ),
+                True,
             )
 
             yield self.unzip_keybox(zip_dl)
 
     async def do_download[T: str | bytes](
-        self, dl: Callable[[], AsyncGenerator[T]]
+        self, dl: Callable[[], AsyncGenerator[T]], force_zip=False
     ) -> T:
         gen = dl()
 
         try:
             data = await anext(gen)
+
+            if (
+                force_zip
+                and not zipfile.is_zipfile(BytesIO(data))
+                and not self.cloudflare
+            ):
+                """
+                This means that the httpx returned the CloudFlare challenge page via a 200!
+                """
+                self.logger.info('Failed to download zip, retrying with CloudScraper')
+
+                self.cloudflare = True
+                await gen.aclose()
+                gen = dl()
+
+                data = await anext(gen)
         except StopAsyncIteration:
             """
             This means that the httpx returned an error downloading the website
