@@ -2,15 +2,13 @@
 name = "keybox-downloader"
 version = "1.0.0"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
-requires-python = "~=3.14"
+requires-python = "~=3.14.0"
 dependencies = [
     "asyncstdlib>=3.14.0",
     "beautifulsoup4>=4.15.0",
     "cloudscraper>=1.2.71",
     "cryptography==49.0.0", # Needed for Android!
     "httpx2[brotli,http2,zstd]>=2.5.0",
-    "pillow==12.3.0",
-    "poethepoet==0.48.0",
     "prompt-toolkit>=3.0.52",
     "pydantic==2.12.5", # Needed for Android!
     "python-dotenv>=1.2.2",
@@ -92,3 +90,4 @@ pydantic-core = { index = "labs", marker = "platform_system == 'Android'" }
 [[tool.uv.index]]
 name = "labs"
 url = "https://labs.nticompassinc.com/idk-lol/repo/"
+explicit = true
