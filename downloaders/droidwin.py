@@ -49,36 +49,20 @@ class DroidWin(Downloader):
                 lambda: self.download_urls(
                     binary=True,
                     cloudflare=self.cloudflare,
-                    download=(str(link.attrs['href']),),
+                    download=[str(link.attrs['href'])],
                 ),
                 True,
             )
 
-            yield self.unzip_keybox(zip_dl)
+            yield self.unzip_keybox(zip_dl) if zip_dl is not None else None
 
     async def do_download[T: str | bytes](
         self, dl: Callable[[], AsyncGenerator[T]], force_zip=False
-    ) -> T:
+    ) -> T | None:
         gen = dl()
 
         try:
             data = await anext(gen)
-
-            if (
-                force_zip
-                and not zipfile.is_zipfile(BytesIO(data))
-                and not self.cloudflare
-            ):
-                """
-                This means that the httpx returned the CloudFlare challenge page via a 200!
-                """
-                self.logger.info('Failed to download zip, retrying with CloudScraper')
-
-                self.cloudflare = True
-                await gen.aclose()
-                gen = dl()
-
-                data = await anext(gen)
         except StopAsyncIteration:
             """
             This means that the httpx returned an error downloading the website
@@ -93,6 +77,10 @@ class DroidWin(Downloader):
             data = await anext(gen)
         finally:
             await gen.aclose()
+
+        # TODO: Sometimes the solver fails and returns the challenge HTML (on Android)
+        if force_zip and not zipfile.is_zipfile(BytesIO(data)):
+            return None
 
         return data
 
