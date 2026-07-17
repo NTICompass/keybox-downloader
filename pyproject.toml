@@ -11,9 +11,9 @@ dependencies = [
     "prompt-toolkit>=3.0.52",
     # On Android, I have a pre-built wheel of `pydantic-core==2.41.5` (for `pydantic==2.12.5`)
     "pydantic==2.12.5; platform_system == 'Android'",
-    "pydantic>=2.13.4; platform_system != 'Android'",
+    "pydantic>=2.13.4, <2.14.0a1; platform_system != 'Android'", # Don't install "alpha" version
     "pydantic-core==2.41.5; platform_system == 'Android'",
-    "pydantic-core>=2.46.4; platform_system != 'Android'",
+    "pydantic-core>=2.46.4, <2.47.0; platform_system != 'Android'", # 2.47.0 is for pydantic 2.14.0a1
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
     "tqdm==4.68.4",
@@ -22,7 +22,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "python-dotenv[cli]>=1.2.2",
-    "ruff>=0.15.21",
+    "ruff>=0.15.22",
 ]
 
 pc = [
