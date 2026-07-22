@@ -16,7 +16,7 @@ dependencies = [
     "pydantic-core>=2.46.4, <2.47.0; platform_system != 'Android'", # 2.47.0 is for pydantic 2.14.0a1
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
-    "tqdm==4.68.4",
+    "tqdm>=4.69.0",
 ]
 
 [project.optional-dependencies]
@@ -34,7 +34,7 @@ pc = [
 # nuitka uses imageio to convert png -> ico
 # pyinstaller uses pillow to convert png -> ico
 build = [
-    "imageio>=2.37.3",
+    "imageio>=2.37.4",
     "nuitka[app]",
     "pillow>=12.2.0",
     "poethepoet>=0.46.0",
@@ -94,5 +94,6 @@ pydantic-core = { index = "labs", marker = "platform_system == 'Android'" }
 
 [[tool.uv.index]]
 name = "labs"
+# Actual wheels are from https://github.com/tur-pypi-dists/python3.14-pydantic_core/releases/tag/v2.41.5
 url = "https://labs.nticompassinc.com/idk-lol/repo/"
 explicit = true
