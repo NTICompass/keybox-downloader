@@ -41,6 +41,12 @@ build = [
     "pyinstaller>=6.21.0",
 ]
 
+[tool.ruff]
+target-version = "py314"
+
+[tool.ruff.format]
+quote-style = "single"
+
 [tool.poe.tasks]
 build_nuitka = """
     nuitka
