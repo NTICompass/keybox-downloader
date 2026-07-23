@@ -114,13 +114,15 @@ async def go(
 
         for idx, task in enumerate(as_completed(tasks), start=1):
             dl_info, dl_complete = await task
+            dl_count = 0
 
             for folder, xml_file in dl_info:
                 xml_file.save(folder)
                 keyboxes.append(xml_file)
+                dl_count += 1
 
             if progress is not None:
-                await progress(idx, total, dl_complete)
+                await progress(idx, total, f'{dl_complete} ({dl_count})')
 
         logger.info('All keyboxes downloaded, comparing to find duplicates')
 
