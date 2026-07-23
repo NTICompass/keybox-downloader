@@ -1,41 +1,66 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""IntegrityBox download module."""
+
 import re
 from base64 import b64decode
 from codecs import decode
 from collections import deque
-from collections.abc import AsyncGenerator
-from typing import final, override
+from typing import TYPE_CHECKING, final, override
 
 from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 from . import Downloader
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
 
 @final
 class IntegrityBox(Downloader):
-    # https://t.me/MeowDump
+    """IntegrityBox Downloader.
+
+    Telegram:
+    https://t.me/MeowDump
+
+    GitHub:
+    https://github.com/MeowDump/Integrity-Box
+    """
+
     DESCRIPTION = 'IntegrityBox module (Mona/MEOWna @ GitHub)'
-    URLS = [
-        # Key + Cleanup Scripts
-        'github-api:MeowDump/Integrity-Box',
-        # Cleanup Script (for extra)
-        'github:MeowDump/Integrity-Box::webroot/common_scripts/cleanup.sh',
-        # Extra Keybox(es)
-        'github:MeowDump/MeowDump::NullVoid/OptimusPrime',
-        # https://integritybox.vercel.app/
-        'github:freekeybox/mona::meow.tar',
-    ]
 
     @override
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.junk: tuple[str, ...] | None = None
+
+        self.URLS = [
+            # Key + Cleanup Scripts
+            'github-api:MeowDump/Integrity-Box',
+            # Cleanup Script (for extra)
+            'github:MeowDump/Integrity-Box::webroot/common_scripts/cleanup.sh',
+            # Extra Keybox(es)
+            'github:MeowDump/MeowDump::NullVoid/OptimusPrime',
+            # https://integritybox.vercel.app/
+            'github:freekeybox/mona::meow.tar',
+        ]
 
         github_token = Downloader.get_github_token()
         if github_token:
             self.extra_headers = [{} for _ in self.URLS]
             self.extra_headers[0]['Authorization'] = f'Bearer {github_token}'
 
-    def get_keybox_url(self, keybox_script: str | bytes) -> str:
+    def _get_keybox_url(self, keybox_script: str | bytes) -> str:
+        """Extract keybox URL from module's shell scripts.
+
+        Args:
+            keybox_script: Text of `key.sh` from module
+
+        Returns:
+            Keybox download URL
+
+        """
         keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
         return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
 
@@ -54,7 +79,7 @@ class IntegrityBox(Downloader):
             )
             junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
 
-            download_urls.append(self.get_keybox_url(keybox_script))
+            download_urls.append(self._get_keybox_url(keybox_script))
             junk_data.append(tuple(junk_vars['X'].split(',')))
 
         # Also download the keybox from the webapp, which is probably the same
@@ -88,11 +113,11 @@ class IntegrityBox(Downloader):
                     yield None
 
     @override
-    def decode(self, encoded: str) -> str | None:
+    def decode(self, encoded: str) -> str:
         self.logger.info('Decoding keybox xml')
 
         # Decode base64 ten times!
-        for i in range(10):
+        for _i in range(10):
             encoded = b64decode(encoded).decode('ascii')
 
         # Then decode the hex bytes

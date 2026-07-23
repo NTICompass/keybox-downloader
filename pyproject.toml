@@ -66,6 +66,9 @@ ignore = [
     "TD002",
     "TD003",
     "G004",
+    # Allow `xml.etree.ElementTree`
+    "S405",
+    "S314",
 ]
 
 [tool.ruff.format]

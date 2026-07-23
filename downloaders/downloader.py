@@ -26,7 +26,7 @@ from cache_data import Overrides
 from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncGenerator, AsyncIterator, Sequence
     from pathlib import Path
 
     from httpx2 import Response as HttpResponse
@@ -200,7 +200,7 @@ class Downloader(ABC):
         """
         ...
 
-    def process(self, downloaded: AsyncIterator[str]) -> AsyncIterator[str | Keybox | None]:
+    def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | Keybox | None]:
         """Process each downloaded URL and send to `decode()` method, can be overridden.
 
         Args:
@@ -381,17 +381,17 @@ class Downloader(ABC):
     @overload
     def download_urls(
         self, *, binary: Literal[True], cloudflare: bool = False, download: Sequence[str] | None = None
-    ) -> AsyncIterator[bytes]: ...
+    ) -> AsyncGenerator[bytes]: ...
 
     @overload
     def download_urls(
         self, *, binary: Literal[False] = False, cloudflare: bool = False, download: Sequence[str] | None = None
-    ) -> AsyncIterator[str]: ...
+    ) -> AsyncGenerator[str]: ...
 
     @final
     async def download_urls(
         self, *, binary: bool = False, cloudflare: bool = False, download: Sequence[str] | None = None
-    ) -> AsyncIterator[str | bytes]:
+    ) -> AsyncGenerator[str | bytes]:
         """Download urls, either from `URL`/`URLS` or the `download` parameter.
 
         Args:

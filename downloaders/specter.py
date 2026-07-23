@@ -1,16 +1,22 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""Specter download module."""
+
 from base64 import b64decode
-from collections.abc import AsyncGenerator
-from datetime import datetime
-from typing import final, override
+from typing import TYPE_CHECKING, final, override
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 from . import Downloader
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+    from datetime import datetime
 
-class CatalogEntry(BaseModel):
+
+class CatalogEntry(BaseModel):  # ruff: ignore[undocumented-public-class]
     model_config = ConfigDict(frozen=True)
-
     id: UUID4
     source: str
     version: str
@@ -23,40 +29,51 @@ class CatalogEntry(BaseModel):
     timestamp: datetime
 
 
-class CatalogWorking(BaseModel):
+class CatalogWorking(BaseModel):  # ruff: ignore[undocumented-public-class]
     model_config = ConfigDict(frozen=True)
-
     source: str
     version: str
 
 
-class CatalogWorkingEntry(CatalogWorking):
+class CatalogWorkingEntry(CatalogWorking):  # ruff: ignore[undocumented-public-class]
     text: str
 
 
-class CatalogOverride(BaseModel):
+class CatalogOverride(BaseModel):  # ruff: ignore[undocumented-public-class]
     model_config = ConfigDict(frozen=True)
-
     source: str
 
 
 class Catalog(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    """Keybox catalog.
 
+    Downloaded from: https://rawbin.dpejoh.com/catalog
+    """
+
+    model_config = ConfigDict(frozen=True)
     entries: list[CatalogEntry]
     latest: dict[str, str]
     working: CatalogWorking | None = None
-    workingEntries: list[CatalogWorkingEntry]
-    autoOverride: CatalogOverride | None = None
+    workingEntries: list[CatalogWorkingEntry]  # ruff: ignore[mixed-case-variable-in-class-scope]
+    autoOverride: CatalogOverride | None = None  # ruff: ignore[mixed-case-variable-in-class-scope]
     shared: bool
 
 
 @final
 class Specter(Downloader):
-    # https://github.com/dpejoh/specter/
-    # https://specter.dpejoh.com/reference/config.html
+    """Specter Downloader.
+
+    Telegram:
+    https://t.me/dpejoh
+
+    GitHub:
+    https://github.com/dpejoh/specter/
+
+    Docs:
+    https://specter.dpejoh.com/reference/config.html#urls
+    """
+
     DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
-    # https://rawbin.netlify.app/key/catalog
     URL = 'https://rawbin.dpejoh.com/catalog'
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
@@ -64,14 +81,13 @@ class Specter(Downloader):
     ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     SHUFFLED = '1dgWnocayqxU3r6vA5lCIPYfHmkV08b4tz+KMsp2NQ9LRXihODwSj7BEFJ/ZuGTe'
 
-    extra_headers = {'User-Agent': 'Specter/1.0'}
-
     @override
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # 🏳️‍⚧️ PRIDE
         self.trans = str.maketrans(self.SHUFFLED, self.ALPHABET)
+        self.extra_headers = {'User-Agent': 'Specter/1.0'}
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
@@ -97,7 +113,8 @@ class Specter(Downloader):
             ]
 
             self.logger.info(
-                f'"Working" keybox is {cat.working.source if cat.working is not None else "none"} v{cat.working.version if cat.working is not None else 0}'
+                f'"Working" keybox is {cat.working.source if cat.working is not None else "none"} '
+                f'v{cat.working.version if cat.working is not None else 0}'
             )
 
             if len(other_keys) > 0:

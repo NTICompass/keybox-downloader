@@ -1,11 +1,14 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""TSupport Advance download module."""
+
 import pathlib
 import re
 import xml.etree.ElementTree as ET
 from base64 import b64decode
 from codecs import decode
-from collections.abc import AsyncGenerator
-from typing import final, override
-from xml.etree.ElementTree import Element
+from typing import TYPE_CHECKING, final, override
 
 from asyncstdlib import enumerate as a_enumerate
 
@@ -13,32 +16,49 @@ from program.keybox import Keybox, KeyboxMetadata
 
 from . import Downloader
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+    from xml.etree.ElementTree import Element
+
 
 @final
 class TSupport(Downloader):
+    """TSupport Advance Downloader.
+
+    Telegram:
+    https://t.me/s/citraintegritytrick
+
+    GitHub:
+    https://github.com/Citra-Standalone/Citra-Standalone
+    """
+
     keys: str
 
-    # https://t.me/s/citraintegritytrick
     DESCRIPTION = 'TSupport Advance module (Citra-Standalone @ GitHub, @citraintegritytrick on Telegram)'
-    URLS = [
-        # The keybox from the module (Actually just the AOSP keybox)
-        'github:Citra-Standalone/Citra-Standalone::bin.tar',
-        # Extra keybox files
-        'github:Citra-Standalone/Citra-Standalone::zipball/bin.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/bin1.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox0.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox1.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox2.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox3.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox4.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox5.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox6.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox7.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox8.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/blackbox9.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/preview.tar',
-        'github:Citra-Standalone/Citra-Standalone::zipball/sanctuary.tar',
-    ]
+
+    @override
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.URLS = [
+            # The keybox from the module (Actually just the AOSP keybox)
+            'github:Citra-Standalone/Citra-Standalone::bin.tar',
+            # Extra keybox files
+            'github:Citra-Standalone/Citra-Standalone::zipball/bin.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/bin1.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox0.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox1.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox2.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox3.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox4.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox5.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox6.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox7.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox8.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/blackbox9.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/preview.tar',
+            'github:Citra-Standalone/Citra-Standalone::zipball/sanctuary.tar',
+        ]
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[Keybox | None]:
@@ -50,7 +70,7 @@ class TSupport(Downloader):
             if dl is not None and len(dl.strip()) > 0:
                 self.logger.info(f'Building keybox xml #{idx + 1}')
                 self.keys = self.decode(dl)
-                keybox_xml = self.build_keybox()
+                keybox_xml = self._build_keybox()
 
                 yield (
                     Keybox(keybox_xml, KeyboxMetadata(source=type(self).__name__, file_idx=idx))
@@ -60,7 +80,13 @@ class TSupport(Downloader):
             else:
                 yield None
 
-    def build_keybox(self) -> Element | None:
+    def _build_keybox(self) -> Element | None:
+        """TSupport doesn't download the full XML, just the certificate blocks.
+
+        Returns:
+            The `AndroidAttestation` Element
+
+        """
         # First, extract the metadata
         keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', self.keys))
 
@@ -86,7 +112,9 @@ class TSupport(Downloader):
                 'DeviceID',
                 f'{"HW" if key_id == "Hardware Attestation" else "SW"}'
                 f'{"PVT" if keybox_metadata["TYPE"] == "PRIVATE" else "PUB"}'
-                f'_{pathlib.Path(self.current_url if isinstance(self.current_url, str) else self.current_url.path).stem}',
+                f'_{
+                    pathlib.Path(self.current_url if isinstance(self.current_url, str) else self.current_url.path).stem
+                }',
             )
             keybox_element.append(ecdsa_key)
             keybox_element.append(rsa_key)
@@ -97,7 +125,7 @@ class TSupport(Downloader):
     @override
     def decode(self, encoded: str) -> str:
         # Strip off any irrelevant data
-        encoded = re.sub(r'=+.+?=.\s+', '', encoded, 1, re.DOTALL)
+        encoded = re.sub(r'=+.+?=.\s+', '', encoded, count=1, flags=re.DOTALL)
 
         # Some files are rot13+base64, some are just base64
         try:
