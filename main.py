@@ -14,7 +14,7 @@ is_pyinstaller = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
 # `root` is where "internal files" are, like the "scripts" directory
 root = (
-    Path(sys._MEIPASS)  # noqa: SLF001
+    Path(sys._MEIPASS)  # ruff: ignore[private-member-access]
     if is_pyinstaller
     else Path(__file__).resolve().parent
 )
