@@ -1,9 +1,11 @@
-from . import Downloader
 from base64 import b64decode
 from collections.abc import AsyncGenerator
 from datetime import datetime
-from pydantic import BaseModel, UUID4, Field, ConfigDict
 from typing import final, override
+
+from pydantic import UUID4, BaseModel, ConfigDict, Field
+
+from . import Downloader
 
 
 class CatalogEntry(BaseModel):
@@ -72,9 +74,7 @@ class Specter(Downloader):
         self.trans = str.maketrans(self.SHUFFLED, self.ALPHABET)
 
     @override
-    async def process(
-        self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[str | None]:
+    async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
         cat: Catalog | None
         self.logger.info('Downloading catalog')
 
@@ -92,10 +92,8 @@ class Specter(Downloader):
                 for entry in cat.entries
                 if not entry.revoked
                 and not entry.softbanned
-                and (cat.working.source if cat.working is not None else '')
-                != entry.source
-                and (cat.working.version if cat.working is not None else '')
-                != entry.version
+                and (cat.working.source if cat.working is not None else '') != entry.source
+                and (cat.working.version if cat.working is not None else '') != entry.version
             ]
 
             self.logger.info(

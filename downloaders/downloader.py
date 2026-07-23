@@ -1,23 +1,28 @@
-from abc import ABC, abstractmethod
-from asyncstdlib import enumerate as a_enumerate
-from cache_data import Overrides
-from cloudscraper import CloudScraper
-from collections.abc import AsyncGenerator, Sequence
-from contextlib import AsyncExitStack, asynccontextmanager
-from dotenv import load_dotenv
-from httpx2 import AsyncClient, Response, URL as HTTP_URL, HTTPStatusError
-from io import BytesIO
-from pathlib import Path
-from program.keybox import Keybox, KeyboxMetadata, KeyboxError
-from pydantic import BaseModel, ConfigDict
-from requests import Response as CloudflareResponse, Session
-from typing import final, overload, ClassVar, Literal, Self
-from zipfile import Path as ZipPath, ZipFile
-import __main__
 import asyncio
 import logging
 import os
 import re
+from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator, Sequence
+from contextlib import AsyncExitStack, asynccontextmanager
+from io import BytesIO
+from pathlib import Path
+from typing import ClassVar, Literal, Self, final, overload
+from zipfile import Path as ZipPath
+from zipfile import ZipFile
+
+from asyncstdlib import enumerate as a_enumerate
+from cloudscraper import CloudScraper
+from dotenv import load_dotenv
+from httpx2 import URL as HTTP_URL
+from httpx2 import AsyncClient, HTTPStatusError, Response
+from pydantic import BaseModel, ConfigDict
+from requests import Response as CloudflareResponse
+from requests import Session
+
+import __main__
+from cache_data import Overrides
+from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 
 # https://docs.github.com/en/rest/releases/releases?apiVersion=2026-03-10
@@ -47,10 +52,9 @@ def build_github_api_url(repo: str) -> str:
 def get_download_url(dl: str) -> str:
     if dl.startswith('github:'):
         return build_github_url(*dl.split(':', 4)[1:])
-    elif dl.startswith('github-api:'):
+    if dl.startswith('github-api:'):
         return build_github_api_url(dl.split(':', 1)[1])
-    else:
-        return dl
+    return dl
 
 
 class Downloader(ABC):
@@ -118,9 +122,7 @@ class Downloader(ABC):
                     pass
 
                 try:
-                    yield Keybox(
-                        data, KeyboxMetadata(source=type(self).__name__, file_idx=idx)
-                    )
+                    yield Keybox(data, KeyboxMetadata(source=type(self).__name__, file_idx=idx))
                 except KeyboxError as e:
                     self.logger.info(e.msg)
                     yield None
@@ -130,9 +132,7 @@ class Downloader(ABC):
     @abstractmethod
     def decode(self, encoded: str) -> str: ...
 
-    def process(
-        self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[str | Keybox | None]:
+    def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | Keybox | None]:
         self.logger.info(f'Downloaded keybox(es) for {type(self).__name__}')
         return downloaded
 
@@ -146,9 +146,7 @@ class Downloader(ABC):
         return os.getenv('GITHUB_TOKEN')
 
     @final
-    async def get_latest_github_release(
-        self, data: GitHubRelease | dict | str
-    ) -> bytes | None:
+    async def get_latest_github_release(self, data: GitHubRelease | dict | str) -> bytes | None:
         self.logger.info('Searching for latest release')
 
         releases: GitHubRelease | None = None
@@ -172,12 +170,7 @@ class Downloader(ABC):
 
                 try:
                     # hash = release.digest
-                    return await anext(
-                        self.download_urls(
-                            binary=True,
-                            download=[release.browser_download_url],
-                        )
-                    )
+                    return await anext(self.download_urls(binary=True, download=[release.browser_download_url]))
                 finally:
                     self.extra_headers = orig_headers
 
@@ -189,12 +182,7 @@ class Downloader(ABC):
 
         with zip_file.open('r') as data:
             self.logger.info('Extracting keybox from ZIP file')
-            return Keybox(
-                data,
-                KeyboxMetadata(
-                    source=type(self).__name__, original=zip_file, file_idx=1
-                ),
-            )
+            return Keybox(data, KeyboxMetadata(source=type(self).__name__, original=zip_file, file_idx=1))
 
     @final
     def unzip_files(self, zipfile: bytes, filenames: list[str]) -> list[str]:
@@ -214,42 +202,27 @@ class Downloader(ABC):
     def get_headers(self, idx: int) -> dict[str, str]:
         if self.extra_headers is None:
             return {}
-        elif isinstance(self.extra_headers, dict):
+        if isinstance(self.extra_headers, dict):
             return self.extra_headers
-        else:
-            return self.extra_headers[idx]
+        return self.extra_headers[idx]
 
     @final
     async def download_all(self, *download: str) -> AsyncGenerator[Response]:
         for r in await asyncio.gather(
-            *[
-                self.client.get(
-                    get_download_url(dl),
-                    headers=self.get_headers(idx),
-                )
-                for idx, dl in enumerate(download)
-            ]
+            *[self.client.get(get_download_url(dl), headers=self.get_headers(idx)) for idx, dl in enumerate(download)]
         ):
             try:
                 r.raise_for_status()
             except HTTPStatusError as exc:
-                self.logger.info(
-                    f'Error response {exc.response.status_code} while requesting {exc.request.url!r}.'
-                )
+                self.logger.info(f'Error response {exc.response.status_code} while requesting {exc.request.url!r}.')
             else:
                 yield r
 
     @final
-    async def cloudflare_download(
-        self, *download: str
-    ) -> AsyncGenerator[CloudflareResponse]:
+    async def cloudflare_download(self, *download: str) -> AsyncGenerator[CloudflareResponse]:
         for r in await asyncio.gather(
             *[
-                asyncio.to_thread(
-                    self.cloudflare_client.get,
-                    dl,
-                    headers=self.get_headers(idx),
-                )
+                asyncio.to_thread(self.cloudflare_client.get, dl, headers=self.get_headers(idx))
                 for idx, dl in enumerate(download)
             ]
         ):
@@ -258,26 +231,17 @@ class Downloader(ABC):
 
     @overload
     def download_urls(
-        self,
-        binary: Literal[True],
-        cloudflare: bool = False,
-        download: Sequence[str] | None = None,
+        self, binary: Literal[True], cloudflare: bool = False, download: Sequence[str] | None = None
     ) -> AsyncGenerator[bytes]: ...
 
     @overload
     def download_urls(
-        self,
-        binary: Literal[False] = False,
-        cloudflare: bool = False,
-        download: Sequence[str] | None = None,
+        self, binary: Literal[False] = False, cloudflare: bool = False, download: Sequence[str] | None = None
     ) -> AsyncGenerator[str]: ...
 
     @final
     async def download_urls(
-        self,
-        binary: bool = False,
-        cloudflare: bool = False,
-        download: Sequence[str] | None = None,
+        self, binary: bool = False, cloudflare: bool = False, download: Sequence[str] | None = None
     ) -> AsyncGenerator[str | bytes]:
         if download is None:
             try:
@@ -286,10 +250,6 @@ class Downloader(ABC):
                 download = (self.URL,)
 
         if download is not None:
-            async for r in (
-                self.cloudflare_download(*download)
-                if cloudflare
-                else self.download_all(*download)
-            ):
+            async for r in self.cloudflare_download(*download) if cloudflare else self.download_all(*download):
                 self.current_url = r.url
                 yield r.content if binary else r.text

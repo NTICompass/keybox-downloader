@@ -1,14 +1,17 @@
-from . import Downloader
-from asyncstdlib import enumerate as a_enumerate
-from base64 import b64decode
-from codecs import decode
-from collections.abc import AsyncGenerator
-from program.keybox import Keybox, KeyboxMetadata
-from typing import final, override
-from xml.etree.ElementTree import Element
 import pathlib
 import re
 import xml.etree.ElementTree as ET
+from base64 import b64decode
+from codecs import decode
+from collections.abc import AsyncGenerator
+from typing import final, override
+from xml.etree.ElementTree import Element
+
+from asyncstdlib import enumerate as a_enumerate
+
+from program.keybox import Keybox, KeyboxMetadata
+
+from . import Downloader
 
 
 @final
@@ -38,9 +41,7 @@ class TSupport(Downloader):
     ]
 
     @override
-    async def process(
-        self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Keybox | None]:
+    async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[Keybox | None]:
         self.logger.info(f'There are {len(self.URLS)} keyboxes to check')
 
         async for idx, dl in a_enumerate(downloaded):
@@ -52,10 +53,7 @@ class TSupport(Downloader):
                 keybox_xml = self.build_keybox()
 
                 yield (
-                    Keybox(
-                        keybox_xml,
-                        KeyboxMetadata(source=type(self).__name__, file_idx=idx),
-                    )
+                    Keybox(keybox_xml, KeyboxMetadata(source=type(self).__name__, file_idx=idx))
                     if keybox_xml is not None
                     else None
                 )
@@ -67,9 +65,7 @@ class TSupport(Downloader):
         keybox_metadata = dict(re.findall(r'(TYPE|ID)=(.+)', self.keys))
 
         # Next, get the XML data
-        keybox_keys = re.search(
-            r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', self.keys, re.DOTALL
-        )
+        keybox_keys = re.search(r'(#EC)(\s+<.+>)\s+(#RSA)(\s+<.+>)', self.keys, re.DOTALL)
 
         if keybox_keys is not None:
             ecdsa_key = ET.fromstring(keybox_keys.group(2))
@@ -96,8 +92,7 @@ class TSupport(Downloader):
             keybox_element.append(rsa_key)
 
             return keybox_xml
-        else:
-            return None
+        return None
 
     @override
     def decode(self, encoded: str) -> str:
@@ -112,8 +107,4 @@ class TSupport(Downloader):
             encoded = b64decode(encoded).decode('ascii')
 
         # Fix invalid XML data
-        return re.sub(
-            r'</Key>\s*#RSA\s*</Key>',
-            '</Key>\n#RSA\n<Key algorithm="rsa">',
-            encoded,
-        )
+        return re.sub(r'</Key>\s*#RSA\s*</Key>', '</Key>\n#RSA\n<Key algorithm="rsa">', encoded)

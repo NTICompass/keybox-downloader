@@ -1,22 +1,24 @@
-from cache_data import Manifest
-from collections import defaultdict, Counter
-from cryptography import x509
-from cryptography.x509.base import Certificate
+import logging
+import xml.etree.ElementTree as ET
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum, auto
-from httpx2 import AsyncClient
 from io import IOBase
 from logging import Logger
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
 from time import time
-from typing import final, override, ClassVar, Literal, Self
+from typing import ClassVar, Literal, Self, final, override
 from xml.etree.ElementTree import Element, ElementTree, ParseError
 from zipfile import Path as ZipPath
+
+from cryptography import x509
+from cryptography.x509.base import Certificate
+from httpx2 import AsyncClient
+from pydantic import BaseModel, ConfigDict, Field
+
 import __main__
-import logging
-import xml.etree.ElementTree as ET
+from cache_data import Manifest
 
 
 class KeyType(StrEnum):
@@ -34,9 +36,7 @@ class KeyboxMetadata:
 
     @property
     def name(self) -> str:
-        return (
-            f'{self.source if len(self.source) > 0 else "keybox"}_{self.file_idx:d}.xml'
-        )
+        return f'{self.source if len(self.source) > 0 else "keybox"}_{self.file_idx:d}.xml'
 
 
 class KeyboxError(SyntaxError):
@@ -51,16 +51,7 @@ class Attestation(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     status: Literal['REVOKED', 'SUSPENDED']
-    reason: (
-        Literal[
-            'UNSPECIFIED',
-            'KEY_COMPROMISE',
-            'CA_COMPROMISE',
-            'SUPERSEDED',
-            'SOFTWARE_FLAW',
-        ]
-        | None
-    ) = None
+    reason: Literal['UNSPECIFIED', 'KEY_COMPROMISE', 'CA_COMPROMISE', 'SUPERSEDED', 'SOFTWARE_FLAW'] | None = None
     expires: str | None = None
     comment: str | None = Field(default=None, max_length=140)
 
@@ -88,18 +79,10 @@ class Keybox:
     _cache_folder: ClassVar[Path] = _root / 'cache'
     _cached: ClassVar[Path] = _cache_folder / 'attestation.json'
 
-    _URL: ClassVar[str] = (
-        f'https://android.googleapis.com/attestation/status?{time():.0f}'
-    )
-    _AOSP_CERTS: ClassVar[Counter[int]] = Counter(
-        (0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C)
-    )
+    _URL: ClassVar[str] = f'https://android.googleapis.com/attestation/status?{time():.0f}'
+    _AOSP_CERTS: ClassVar[Counter[int]] = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
-    def __init__(
-        self,
-        keybox_data: Element | Path | IOBase | str | bytes,
-        metadata: KeyboxMetadata | None = None,
-    ):
+    def __init__(self, keybox_data: Element | Path | IOBase | str | bytes, metadata: KeyboxMetadata | None = None):
         if isinstance(keybox_data, Element):
             self.root = keybox_data
         elif isinstance(keybox_data, (Path, IOBase)):
@@ -114,16 +97,12 @@ class Keybox:
         for cert in self.root.iterfind('.//Keybox//Certificate[@format="pem"]'):
             if cert.text:
                 # From: https://stackoverflow.com/a/17610612
-                cert.text = '\n'.join(
-                    [ll.rstrip() for ll in cert.text.splitlines() if ll.strip()]
-                )
+                cert.text = '\n'.join([ll.rstrip() for ll in cert.text.splitlines() if ll.strip()])
 
         # Probably fix the private keys, too
         for key in self.root.iterfind('.//Keybox//PrivateKey[@format="pem"]'):
             if key.text:
-                key.text = '\n'.join(
-                    [ll.rstrip() for ll in key.text.splitlines() if ll.strip()]
-                )
+                key.text = '\n'.join([ll.rstrip() for ll in key.text.splitlines() if ll.strip()])
 
         self.meta = metadata if metadata is not None else KeyboxMetadata()
         self.logger = logging.getLogger(
@@ -137,15 +116,13 @@ class Keybox:
         cls._cache_folder.mkdir(exist_ok=True)
         cls._cached.touch(exist_ok=True)
 
-        with open(cls._cached, 'r+') as cached_status:
+        with Path(cls._cached).open('r+') as cached_status:
             manifest = Manifest()
             cache_json = cached_status.read()
             do_download = len(cache_json) == 0
 
             if not do_download and manifest.attestation_date >= 0:
-                time_diff = datetime.now() - datetime.fromtimestamp(
-                    manifest.attestation_date
-                )
+                time_diff = datetime.now() - datetime.fromtimestamp(manifest.attestation_date)
 
                 if (time_diff / timedelta(hours=1)) >= 24:
                     do_download = True
@@ -162,11 +139,7 @@ class Keybox:
 
                 manifest.attestation_date = datetime.now().timestamp()
 
-            cls.revoked = {
-                key
-                for key, status in cls.status_list.entries.items()
-                if status.status == 'REVOKED'
-            }
+            cls.revoked = {key for key, status in cls.status_list.entries.items() if status.status == 'REVOKED'}
 
     type KeyboxGroup = defaultdict[frozenset[tuple[int, int]], list[str]]
 
@@ -179,50 +152,30 @@ class Keybox:
             name = keybox.device_id
 
             groups[key].append(
-                name
-                if name is not None
-                else str(
-                    keybox.meta.original.stem
-                    if keybox.meta.original is not None
-                    else ''
-                )
+                name if name is not None else str(keybox.meta.original.stem if keybox.meta.original is not None else '')
             )
 
         return groups
 
     def save(self, folder: Path):
         file_name = folder / self.meta.name
-        self.logger.info(f'Saving keybox to {file_name}')
+        self.logger.info('Saving keybox to %s', file_name)
 
         ElementTree(self.root).write(file_name, 'unicode', True)
 
     def __load_certs(self):
         self.logger.info('Loading certs from keybox')
 
-        ec_certs = self.root.findall(
-            './/Key[@algorithm="ecdsa"]/CertificateChain/Certificate'
-        )
-        rsa_certs = self.root.findall(
-            './/Key[@algorithm="rsa"]/CertificateChain/Certificate'
-        )
+        ec_certs = self.root.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
+        rsa_certs = self.root.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
 
         self._cert_counts = (len(ec_certs), len(rsa_certs))
-        self.logger.info(
-            f'Found {self._cert_counts[0]} EC and {self._cert_counts[1]} RSA certs for "{self.device_id}"'
-        )
+        self.logger.info(f'Found {self._cert_counts[0]} EC and {self._cert_counts[1]} RSA certs for "{self.device_id}"')
 
         try:
             self._cert_data = x509.load_pem_x509_certificates(
-                b''.join(
-                    cert_pem.text.encode()
-                    for cert_pem in ec_certs
-                    if cert_pem.text is not None
-                )
-                + b''.join(
-                    cert_pem.text.encode()
-                    for cert_pem in rsa_certs
-                    if cert_pem.text is not None
-                )
+                b''.join(cert_pem.text.encode() for cert_pem in ec_certs if cert_pem.text is not None)
+                + b''.join(cert_pem.text.encode() for cert_pem in rsa_certs if cert_pem.text is not None)
             )
         except ValueError:
             self._cert_data = []
@@ -232,9 +185,7 @@ class Keybox:
 
     def __check_cert_validity(self):
         if not hasattr(self, 'status_list'):
-            raise RuntimeError(
-                f'Please load attestation status with "await {type(self).__name__}.init_attestation()"'
-            )
+            raise RuntimeError(f'Please load attestation status with "await {type(self).__name__}.init_attestation()"')
 
         self._cert_valid: dict[int, bool] = {}
 
@@ -244,16 +195,9 @@ class Keybox:
                 f'and {cert.not_valid_after_utc:%a %b %d %Y, %I:%M%p}'
             )
 
-            issuer_serial = {
-                attr.value.lower()
-                for attr in cert.issuer
-                if attr.oid == x509.NameOID.SERIAL_NUMBER
-            }
+            issuer_serial = {attr.value.lower() for attr in cert.issuer if attr.oid == x509.NameOID.SERIAL_NUMBER}
 
-            parsed_serials = (
-                f'{cert.serial_number:x}',
-                str(issuer_serial.pop()) if len(issuer_serial) > 0 else None,
-            )
+            parsed_serials = (f'{cert.serial_number:x}', str(issuer_serial.pop()) if len(issuer_serial) > 0 else None)
 
             self.logger.info('Parsed cert {}, issuer {}'.format(*parsed_serials))
             found = (parsed_serials[0] and parsed_serials[0] in self.revoked) or (
@@ -274,10 +218,9 @@ class Keybox:
 
         if all(self._cert_valid.values()):
             return KeyType.AOSP if self.__is_aosp_keybox() else KeyType.VALID
-        elif next(iter(self._cert_valid.values())):
+        if next(iter(self._cert_valid.values())):
             return KeyType.SEMI_VALID
-        else:
-            return KeyType.REVOKED
+        return KeyType.REVOKED
 
     @property
     def keys_valid(self) -> dict[str, bool]:

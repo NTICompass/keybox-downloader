@@ -1,19 +1,20 @@
-from .keybox import Keybox, KeyType
+import asyncio
+import logging
 from asyncio import Future
-from asyncstdlib import enumerate as a_enumerate
-from cache_data import Manifest
-from collections.abc import Generator
+from collections.abc import Awaitable, Callable, Generator, Iterable, Iterator
 from datetime import datetime, timedelta
-from downloaders import Downloader
 from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
-from tqdm.asyncio import tqdm_asyncio
-from typing import Callable, Iterator, Iterable, Awaitable
-import __main__
-import asyncio
-import logging
 
+from asyncstdlib import enumerate as a_enumerate
+from tqdm.asyncio import tqdm_asyncio
+
+import __main__
+from cache_data import Manifest
+from downloaders import Downloader
+
+from .keybox import Keybox, KeyType
 
 root: Path = __main__.exe_root
 path = root / 'keyboxes'
@@ -51,15 +52,11 @@ def make_folders():
 
 def init():
     log_path.mkdir(exist_ok=True)
-    logging.basicConfig(
-        filename=f'{log_path}/keybox-downloader-{time():.0f}.log', level=logging.INFO
-    )
+    logging.basicConfig(filename=f'{log_path}/keybox-downloader-{time():.0f}.log', level=logging.INFO)
     logger.info('Starting Keybox Downloader')
 
     if not can_run():
-        raise RuntimeError(
-            f'Last download was less than 24hrs ago: {manifest.last_checked}'
-        )
+        raise RuntimeError(f'Last download was less than 24hrs ago: {manifest.last_checked}')
 
     if not path.exists():
         make_folders()
@@ -91,10 +88,7 @@ async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
     return files, type(dl).__name__
 
 
-async def go(
-    *downloaders: Downloader,
-    progress: Callable[[int, int, str], Awaitable[None]] | None = None,
-):
+async def go(*downloaders: Downloader, progress: Callable[[int, int, str], Awaitable[None]] | None = None):
     try:
         init()
     except RuntimeError as e:
@@ -104,9 +98,7 @@ async def go(
         keyboxes: list[Keybox] = []
 
         def as_completed[T](fs: Iterable[Awaitable[T]]) -> Iterator[Future[T]]:
-            func = (
-                tqdm_asyncio.as_completed if progress is None else asyncio.as_completed
-            )
+            func = tqdm_asyncio.as_completed if progress is None else asyncio.as_completed
             return func(fs)
 
         tasks = [run(dl) for dl in downloaders]

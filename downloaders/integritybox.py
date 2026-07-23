@@ -1,11 +1,13 @@
-from . import Downloader
+import re
 from base64 import b64decode
 from codecs import decode
 from collections import deque
 from collections.abc import AsyncGenerator
-from program.keybox import Keybox, KeyboxMetadata, KeyboxError
 from typing import final, override
-import re
+
+from program.keybox import Keybox, KeyboxError, KeyboxMetadata
+
+from . import Downloader
 
 
 @final
@@ -35,14 +37,10 @@ class IntegrityBox(Downloader):
 
     def get_keybox_url(self, keybox_script: str | bytes) -> str:
         keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
-        return b64decode(
-            keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']
-        ).decode('ascii')
+        return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
 
     @override
-    async def process(
-        self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Keybox | None]:
+    async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[Keybox | None]:
         self.logger.info('Downloading keybox scripts')
 
         # The module download and the code in the `main` branch on the repo are slightly different
@@ -52,11 +50,7 @@ class IntegrityBox(Downloader):
         zip_dl = await self.get_latest_github_release(await anext(downloaded))
         if zip_dl is not None:
             keybox_script, cleanup_script = self.unzip_files(
-                zip_dl,
-                [
-                    'webroot/common_scripts/key.sh',
-                    'webroot/common_scripts/cleanup.sh',
-                ],
+                zip_dl, ['webroot/common_scripts/key.sh', 'webroot/common_scripts/cleanup.sh']
             )
             junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
 
@@ -72,10 +66,7 @@ class IntegrityBox(Downloader):
         keyboxes: list[str | bytes | None] = [web_keybox]
 
         # Decode the keyboxes
-        for encoded in (
-            *[(await self.client.get(dl)).text for dl in download_urls],
-            encoded_keybox,
-        ):
+        for encoded in (*[(await self.client.get(dl)).text for dl in download_urls], encoded_keybox):
             self.junk = junk_data.popleft()
             keyboxes.append(self.decode(encoded))
 
@@ -85,10 +76,7 @@ class IntegrityBox(Downloader):
                 yield None
             else:
                 try:
-                    kb = Keybox(
-                        keybox,
-                        KeyboxMetadata(source=type(self).__name__, file_idx=idx),
-                    )
+                    kb = Keybox(keybox, KeyboxMetadata(source=type(self).__name__, file_idx=idx))
 
                     keybox_id = kb.device_id
                     if keybox_id is not None:

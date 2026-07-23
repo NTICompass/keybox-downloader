@@ -1,7 +1,8 @@
 from asyncio import Future, get_running_loop
-from collections.abc import Sequence, Generator
-from prompt_toolkit.widgets import Dialog, Button
-from typing import final, override, Any
+from collections.abc import Generator, Sequence
+from typing import Any, final, override
+
+from prompt_toolkit.widgets import Button, Dialog
 
 
 @final

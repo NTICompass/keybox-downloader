@@ -1,7 +1,9 @@
-from . import Downloader
 from collections.abc import AsyncGenerator
-from program.keybox import Keybox
 from typing import final, override
+
+from program.keybox import Keybox
+
+from . import Downloader
 
 
 # Root Phantom Fateh (@fateh7)
@@ -11,9 +13,7 @@ class PlayIntegrityFix(Downloader, enabled=False):
     # https://t.me/s/kernelsu1
     # Found via: https://t.me/s/keybox_xml
     # https://github.com/FBIVIP/Play-IntegrityFix/releases
-    DESCRIPTION = (
-        'PlayIntegrity module (FBIVIP @ GitHub, aka "Root Phantom Fateh", aka @fateh7)'
-    )
+    DESCRIPTION = 'PlayIntegrity module (FBIVIP @ GitHub, aka "Root Phantom Fateh", aka @fateh7)'
     URL = 'github-api:FBIVIP/Play-IntegrityFix'
 
     @override
@@ -25,9 +25,7 @@ class PlayIntegrityFix(Downloader, enabled=False):
             self.extra_headers = {'Authorization': f'Bearer {github_token}'}
 
     @override
-    async def process(
-        self, downloaded: AsyncGenerator[str]
-    ) -> AsyncGenerator[Keybox | None]:
+    async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[Keybox | None]:
         zip_dl = await self.get_latest_github_release(await anext(downloaded))
         yield self.unzip_keybox(zip_dl) if zip_dl is not None else None
 

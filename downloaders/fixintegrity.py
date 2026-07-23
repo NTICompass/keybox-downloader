@@ -1,6 +1,7 @@
-from . import Downloader
 from base64 import b64decode
 from typing import final, override
+
+from . import Downloader
 
 
 # Also called TrickyBox/TrickBox

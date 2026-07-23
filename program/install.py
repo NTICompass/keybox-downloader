@@ -1,48 +1,38 @@
-from .action import get_downloaders, go, can_run, force_run
-from .dialog import AwaitableDialog
-from .options import Options
-from .scrollable import ScrollableTextControl
-from cache_data import Overrides
-from collections.abc import Callable, Awaitable
+import asyncio
+import sys
+from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
-from downloaders import Downloader
 from itertools import groupby
 from pathlib import Path
-from program.keybox import Keybox
-from prompt_toolkit.keys import Keys
+from typing import Literal
+
 from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.formatted_text import StyleAndTextTuples
-from prompt_toolkit.key_binding import (
-    KeyBindings,
-    KeyPressEvent,
-    ConditionalKeyBindings,
-    merge_key_bindings,
-)
-from prompt_toolkit.layout import (
-    Layout,
-    HSplit,
-    VSplit,
-    Window,
-    ConditionalContainer,
-    Float,
-    FloatContainer,
-)
+from prompt_toolkit.key_binding import ConditionalKeyBindings, KeyBindings, KeyPressEvent, merge_key_bindings
+from prompt_toolkit.keys import Keys
+from prompt_toolkit.layout import ConditionalContainer, Float, FloatContainer, HSplit, Layout, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
-from prompt_toolkit.mouse_events import MouseButton, MouseEventType, MouseEvent
+from prompt_toolkit.mouse_events import MouseButton, MouseEvent, MouseEventType
 from prompt_toolkit.styles import Style
-from prompt_toolkit.widgets import Frame, Button, Dialog, ProgressBar, Box
-from typing import Literal
+from prompt_toolkit.widgets import Box, Button, Dialog, Frame, ProgressBar
+
 import __main__
-import asyncio
-import sys
+from cache_data import Overrides
+from downloaders import Downloader
+from program.keybox import Keybox
+
+from .action import can_run, force_run, get_downloaders, go
+from .dialog import AwaitableDialog
+from .options import Options
+from .scrollable import ScrollableTextControl
 
 is_android = hasattr(sys, 'getandroidapilevel')
 
 try:
-    from adbutils import adb, AdbDevice, AdbError
+    from adbutils import AdbDevice, AdbError, adb
 
     device: AdbDevice | None
 except ImportError:
@@ -76,28 +66,22 @@ async def get_prop(prop: str | None = None) -> str:
 
     if is_android and prop is not None:
         proc = await asyncio.create_subprocess_exec(
-            '/system/bin/getprop',
-            prop,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            '/system/bin/getprop', prop, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
         stdout, stderr = await proc.communicate()
 
         return stdout.decode().strip() if stdout else ''
-    elif not is_android and adb is not None:
+    if not is_android and adb is not None:
         try:
             if device is None:
                 # Connect to the 1st device (throws exception if there are zero or multiple)
                 device = adb.device()
 
             if device is not None:
-                return str(
-                    device.getprop(prop) if prop is not None else device.prop
-                ).strip()
-            else:
-                raise RuntimeError('No device found')
-        except (AdbError, RuntimeError):
+                return str(device.getprop(prop) if prop is not None else device.prop).strip()
+            raise RuntimeError('No device found')
+        except AdbError, RuntimeError:
             return ''
     else:
         return ''
@@ -108,21 +92,14 @@ async def get_device() -> str:
 
     if is_android:
         return await get_prop('ro.system.build.fingerprint')
-    else:
-        manufacturer, fingerprint = await asyncio.gather(
-            get_prop('ro.product.manufacturer'),
-            get_prop('ro.system.build.fingerprint'),
-        )
-        props = '\n'.join(
-            [
-                await get_prop('ro.vendor.asus.product.mkt_name')
-                if manufacturer == 'asus'
-                else await get_prop(),
-                fingerprint,
-            ]
-        )
+    manufacturer, fingerprint = await asyncio.gather(
+        get_prop('ro.product.manufacturer'), get_prop('ro.system.build.fingerprint')
+    )
+    props = '\n'.join(
+        [await get_prop('ro.vendor.asus.product.mkt_name') if manufacturer == 'asus' else await get_prop(), fingerprint]
+    )
 
-        return props if props.strip() != '' else 'No device found, press "r" to re-try'
+    return props if props.strip() != '' else 'No device found, press "r" to re-try'
 
 
 def get_cert_serials(file: Path, certs_only=False) -> list[str]:
@@ -135,14 +112,7 @@ def get_cert_serials(file: Path, certs_only=False) -> list[str]:
     ]
     ec_certs, rsa_certs = files[file.name].key_counts
 
-    return (
-        all_certs
-        if certs_only
-        else [
-            f'{ec_certs} EC certs, {rsa_certs} RSA certs',
-            *all_certs,
-        ]
-    )
+    return all_certs if certs_only else [f'{ec_certs} EC certs, {rsa_certs} RSA certs', *all_certs]
 
 
 async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
@@ -151,9 +121,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         return None
 
     await Keybox.init_attestation(Downloader.client)
-    keyboxes.sort(
-        key=lambda file: (file.parent.name, get_cert_serials(file, True)[0], file.name)
-    )
+    keyboxes.sort(key=lambda file: (file.parent.name, get_cert_serials(file, True)[0], file.name))
 
     selected_index = 0
     selectable_rows: list[int] = []
@@ -180,14 +148,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         keybox_info_text = (
             [
-                (
-                    f'class:validity class:{keyboxes[selected_index].parent.name}',
-                    keyboxes[selected_index].parent.name,
-                ),
-                (
-                    '',
-                    f' / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}',
-                ),
+                (f'class:validity class:{keyboxes[selected_index].parent.name}', keyboxes[selected_index].parent.name),
+                ('', f' / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'),
             ]
             if len(keyboxes) > 0
             else []
@@ -201,10 +163,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             async def click(mouse_event: MouseEvent):
                 nonlocal selected_index
 
-                if (
-                    mouse_event.button == MouseButton.LEFT
-                    and mouse_event.event_type == MouseEventType.MOUSE_UP
-                ):
+                if mouse_event.button == MouseButton.LEFT and mouse_event.event_type == MouseEventType.MOUSE_UP:
                     selected_index = idx
                     await app.create_background_task(keybox_info(False))
 
@@ -242,21 +201,14 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         ScrollableTextControl(
             text=file_list,
             focusable=True,
-            get_cursor_position=lambda: Point(
-                0, selectable_rows[selected_index] if len(selectable_rows) > 0 else 0
-            ),
+            get_cursor_position=lambda: Point(0, selectable_rows[selected_index] if len(selectable_rows) > 0 else 0),
             on_scroll=lambda delta: app.create_background_task(move(delta)),
         )
     )
-    preview = Window(
-        FormattedTextControl(text=lambda: keybox_info_text, focusable=False)
-    )
+    preview = Window(FormattedTextControl(text=lambda: keybox_info_text, focusable=False))
 
     continue_button = ConditionalContainer(
-        Button(
-            text='Continue',
-            handler=lambda: app.exit(result=keyboxes[selected_index]),
-        ),
+        Button(text='Continue', handler=lambda: app.exit(result=keyboxes[selected_index])),
         Condition(lambda: is_android or device is not None),
         Button(text='No Device Found'),
     )
@@ -267,9 +219,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         nonlocal selected_index
 
         selected_index = (selected_index + delta) % len(keyboxes)
-        await (evt_app if evt_app is not None else app).create_background_task(
-            keybox_info(False)
-        )
+        await (evt_app if evt_app is not None else app).create_background_task(keybox_info(False))
 
     @kb.add(Keys.Up, filter=Condition(lambda: len(keyboxes) > 0))
     async def _(event: KeyPressEvent):
@@ -309,20 +259,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                         title='Downloading...',
                         body=HSplit(
                             [
-                                Box(
-                                    progress_bar,
-                                    width=30,
-                                    padding_right=2,
-                                    padding_left=2,
-                                ),
-                                Frame(
-                                    Window(
-                                        FormattedTextControl(
-                                            text=lambda: '\n'.join(completed)
-                                        )
-                                    ),
-                                    'Completed',
-                                ),
+                                Box(progress_bar, width=30, padding_right=2, padding_left=2),
+                                Frame(Window(FormattedTextControl(text=lambda: '\n'.join(completed))), 'Completed'),
                             ]
                         ),
                     )
@@ -331,10 +269,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
             progress_bar.percentage = 0
             my_app.invalidate()
-            await go(
-                *get_downloaders(),
-                progress=update_progress,
-            )
+            await go(*get_downloaders(), progress=update_progress)
             await asyncio.sleep(1)
 
             root_float.floats.pop()
@@ -348,12 +283,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             dialog_shown = 'download'
 
             dl_dialog = AwaitableDialog[Literal['force']](
-                title='Notice',
-                body=Window(
-                    FormattedTextControl(
-                        text='Downloaders can only be ran once every 24hrs'
-                    )
-                ),
+                title='Notice', body=Window(FormattedTextControl(text='Downloaders can only be ran once every 24hrs'))
             )
 
             root_float.floats.append(Float(content=dl_dialog))
@@ -389,9 +319,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         if enabled is not None:
             dl_selected = set(enabled)
-            all_downloaders: set[type[Downloader]] = (
-                Downloader.enabled | Downloader.disabled
-            )
+            all_downloaders: set[type[Downloader]] = Downloader.enabled | Downloader.disabled
 
             Downloader.enabled.clear()
             Downloader.disabled.clear()
@@ -448,10 +376,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
     status_keys: dict[str, tuple[str, EventFunc]] = {
         'd': ('Run downloaders', do_download),
-        'r': (
-            'Reload / Re-scan devices',
-            lambda: app.create_background_task(refresh_device()),
-        ),
+        'r': ('Reload / Re-scan devices', lambda: app.create_background_task(refresh_device())),
         'o': ('Options', open_options),
         'q': ('Quit', lambda: app.exit(result=None)),
     }
@@ -475,10 +400,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         root_win = HSplit(
             [
                 VSplit(
-                    [
-                        Frame(menu_control, title='Available Keyboxes'),
-                        Frame(device_info, title='Device Info'),
-                    ],
+                    [Frame(menu_control, title='Available Keyboxes'), Frame(device_info, title='Device Info')],
                     width=Dimension(weight=1),
                 ),
                 Frame(preview, title='Keybox Info', width=Dimension(weight=1)),
@@ -491,10 +413,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 VSplit(
                     [
                         HSplit(
-                            [
-                                Frame(menu_control, title='Available Keyboxes'),
-                                Frame(device_info, title='Device Info'),
-                            ],
+                            [Frame(menu_control, title='Available Keyboxes'), Frame(device_info, title='Device Info')],
                             width=Dimension(weight=1),
                         ),
                         Frame(preview, title='Keybox Info', width=Dimension(weight=2)),
@@ -511,14 +430,8 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         full_screen=True,
         key_bindings=merge_key_bindings(
             [
-                ConditionalKeyBindings(
-                    kb,
-                    filter=Condition(lambda: not dialog_shown),
-                ),
-                ConditionalKeyBindings(
-                    dl_kb,
-                    filter=Condition(lambda: dialog_shown == 'download'),
-                ),
+                ConditionalKeyBindings(kb, filter=Condition(lambda: not dialog_shown)),
+                ConditionalKeyBindings(dl_kb, filter=Condition(lambda: dialog_shown == 'download')),
             ]
         ),
         mouse_support=Condition(lambda: not is_android),
@@ -552,9 +465,7 @@ def menu(context: AbstractAsyncContextManager, ignore_empty=False):
         async with context:
             return await main
 
-    selected_file = asyncio.run(
-        main_menu(select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty))
-    )
+    selected_file = asyncio.run(main_menu(select_file(list(folder.rglob('*.xml')), ignore_empty=ignore_empty)))
 
     if selected_file is None:
         print('Exiting')
@@ -563,14 +474,8 @@ def menu(context: AbstractAsyncContextManager, ignore_empty=False):
         selected = folder / selected_file
 
         if is_android:
-            install = (
-                (root / f'scripts/{runner["android"]}').absolute(),
-                selected.absolute(),
-            )
-            subprocess.run(
-                ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
-                stdout=sys.stdout,
-            )
+            install = ((root / f'scripts/{runner["android"]}').absolute(), selected.absolute())
+            subprocess.run(['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'], stdout=sys.stdout)
 
             print('Keybox successfully installed')
         elif adb is not None:
@@ -585,14 +490,10 @@ def menu(context: AbstractAsyncContextManager, ignore_empty=False):
                     device.sync.push(selected, key_file)
 
                     # Also copy the installer script
-                    device.sync.push(
-                        root / f'scripts/{runner["pc"]}', f'{tmp_folder}/{runner["pc"]}'
-                    )
+                    device.sync.push(root / f'scripts/{runner["pc"]}', f'{tmp_folder}/{runner["pc"]}')
 
                     # Run the main installer script
-                    with device.shell(
-                        f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True
-                    ) as stream:
+                    with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
                         print(stream.read_until_close())
 
                     # Remove the scripts (the keybox was moved already)

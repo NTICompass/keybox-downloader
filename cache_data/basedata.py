@@ -1,10 +1,11 @@
+import json
 from abc import ABC
 from dataclasses import dataclass, field, fields
 from json import JSONDecodeError
 from pathlib import Path
 from typing import ClassVar
+
 import __main__
-import json
 
 
 @dataclass
@@ -22,7 +23,7 @@ class BaseData(ABC):
         self._manifest_path.mkdir(exist_ok=True)
         self._manifest_file.touch(exist_ok=True)
 
-        with open(self._manifest_file, 'r') as file:
+        with Path(self._manifest_file).open() as file:
             try:
                 for k, v in json.load(file).items():
                     object.__setattr__(self, k, v)
@@ -38,12 +39,5 @@ class BaseData(ABC):
             self.save()
 
     def save(self):
-        with open(self._manifest_file, 'w') as file:
-            json.dump(
-                {
-                    f.name: getattr(self, f.name)
-                    for f in fields(self)
-                    if not f.name.startswith('_')
-                },
-                file,
-            )
+        with Path(self._manifest_file).open('w') as file:
+            json.dump({f.name: getattr(self, f.name) for f in fields(self) if not f.name.startswith('_')}, file)

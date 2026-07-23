@@ -1,12 +1,14 @@
-from asyncio import get_running_loop, Future
-from downloaders import Downloader
+from asyncio import Future, get_running_loop
 from importlib.metadata import version
 from operator import itemgetter
-from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
-from prompt_toolkit.layout.containers import VSplit, HSplit, Window
-from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.widgets import CheckboxList, Dialog, Button, Frame, Box
 from typing import ClassVar
+
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
+from prompt_toolkit.layout.containers import HSplit, VSplit, Window
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.widgets import Box, Button, CheckboxList, Dialog, Frame
+
+from downloaders import Downloader
 
 
 class CheckboxSelected[T](CheckboxList[T]):
@@ -27,19 +29,13 @@ class Options:
         kb = KeyBindings()
 
         self.__checkboxes = CheckboxSelected[type[Downloader]](
-            values=sorted(
-                [(dl, dl.__name__) for dl in Downloader.enabled | Downloader.disabled],
-                key=itemgetter(1),
-            ),
+            values=sorted([(dl, dl.__name__) for dl in Downloader.enabled | Downloader.disabled], key=itemgetter(1)),
             default_values=tuple(Downloader.enabled),
         )
         self.__checkboxes.show_scrollbar = False
 
         desc_window = Window(
-            content=FormattedTextControl(
-                text=lambda: self.__checkboxes.current_item.DESCRIPTION
-            ),
-            wrap_lines=True,
+            content=FormattedTextControl(text=lambda: self.__checkboxes.current_item.DESCRIPTION), wrap_lines=True
         )
 
         if is_android:
@@ -52,10 +48,7 @@ class Options:
             body = [
                 Window(content=FormattedTextControl(text='Select downloaders:')),
                 VSplit(
-                    [
-                        Box(body=self.__checkboxes, width=35),
-                        Frame(body=desc_window, title='Description', width=75),
-                    ],
+                    [Box(body=self.__checkboxes, width=35), Frame(body=desc_window, title='Description', width=75)],
                     padding=1,
                 ),
             ]
@@ -72,10 +65,7 @@ class Options:
         self.dialog = Dialog(
             title=f'Keybox Downloader v{self.APP_VERSION}',
             body=HSplit(children=body, key_bindings=kb),
-            buttons=[
-                Button(text='Save', handler=self.__save),
-                Button(text='Cancel', handler=self.__cancel),
-            ],
+            buttons=[Button(text='Save', handler=self.__save), Button(text='Cancel', handler=self.__cancel)],
         )
 
     def __save(self):
