@@ -41,13 +41,54 @@ build = [
     "pyinstaller>=6.21.0",
 ]
 
+licenses = [
+    "pip-licenses>=5.0.0",
+    "poethepoet>=0.46.0",
+]
+
 [tool.ruff]
 target-version = "py314"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+fixable = ["ALL"]
+unfixable = []
+preview = true
+ignore = [
+    # Incompatible with Ruff formatter
+    "COM812",
+    "ISC001",
+    # Mutually exclusive pydocstyle rules
+    "D203",
+    "D213",
+]
 
 [tool.ruff.format]
 quote-style = "single"
+indent-style = "space"
+docstring-code-format = true
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+multiline-quotes = "double"
+docstring-quotes = "double"
 
 [tool.poe.tasks]
+lint = "ruff check"
+fix = "ruff check --fix && ruff format"
+format = "ruff format"
+
+licenses = """
+    pip-licenses
+    --ignore-packages keybox-downloader ruff imageio nuitka pillow poethepoet pyinstaller pastel pyyaml
+    --from=meta
+    --format=plain-vertical
+    --with-urls
+    --output-file=THIRD_PARTY_LICENSES.txt
+"""
+
 build_nuitka = """
     nuitka
     --clang
@@ -55,23 +96,31 @@ build_nuitka = """
     --include-distribution-metadata=keybox-downloader
     --mode=onefile
     --include-data-dir=scripts=scripts
+    --include-data-files=LICENSE=LICENSE
+    --include-data-files=THIRD_PARTY_LICENSES.txt=THIRD_PARTY_LICENSES.txt
     --include-package-data=cloudscraper
     --onefile-no-compression
     --enable-plugin=upx
     main.py
 """
+
 build_pyinstaller = """
     pyinstaller
     --copy-metadata keybox-downloader
     --onefile
     --add-data "scripts:scripts"
+    --add-data "THIRD_PARTY_LICENSES.txt:."
+    --add-data "LICENSE:."
     main.py
 """
+
 build_github = """
     pyinstaller
     --copy-metadata keybox-downloader
     --onefile
     --add-data "scripts:scripts"
+    --add-data "THIRD_PARTY_LICENSES.txt:."
+    --add-data "LICENSE:."
     --icon=images/key-icon.png
     --name=KeyDL
     main.py

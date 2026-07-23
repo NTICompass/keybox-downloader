@@ -1,5 +1,7 @@
-from pathlib import Path
+# SPDX-FileCopyrightText: 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
 import sys
+from pathlib import Path
 
 # https://nuitka.net/user-documentation/common-issue-solutions.html#onefile-finding-files
 is_nuitka = '__compiled__' in globals()
@@ -11,19 +13,17 @@ is_pyinstaller = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 root = Path(sys._MEIPASS) if is_pyinstaller else Path(__file__).resolve().parent
 
 # `exe_root` is where the program was run from, where "keyboxes" and such go
-exe_root = (
-    Path(sys.executable).parent
-    if is_pyinstaller
-    else (Path(sys.argv[0]).parent if is_nuitka else root)
-)
+exe_root = Path(sys.executable).parent if is_pyinstaller else (Path(sys.argv[0]).parent if is_nuitka else root)
 
-# ruff: disable[E402]
+# ruff: disable[module-import-not-at-top-of-file]
+import argparse
+import asyncio
+
 from downloaders import Downloader
 from program.action import get_downloaders, go
 from program.install import menu
-import argparse
-import asyncio
-# ruff: enable[E402]
+
+# ruff: enable[module-import-not-at-top-of-file]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

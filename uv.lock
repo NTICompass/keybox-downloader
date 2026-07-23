@@ -430,6 +430,10 @@ dev = [
     { name = "python-dotenv", extra = ["cli"] },
     { name = "ruff" },
 ]
+licenses = [
+    { name = "pip-licenses" },
+    { name = "poethepoet" },
+]
 pc = [
     { name = "adbutils" },
     { name = "cryptography" },
@@ -446,7 +450,9 @@ requires-dist = [
     { name = "imageio", marker = "extra == 'build'", specifier = ">=2.37.4" },
     { name = "nuitka", extras = ["app"], marker = "extra == 'build'", git = "https://github.com/Nuitka/Nuitka.git?rev=develop" },
     { name = "pillow", marker = "extra == 'build'", specifier = ">=12.2.0" },
+    { name = "pip-licenses", marker = "extra == 'licenses'", specifier = ">=5.0.0" },
     { name = "poethepoet", marker = "extra == 'build'", specifier = ">=0.46.0" },
+    { name = "poethepoet", marker = "extra == 'licenses'", specifier = ">=0.46.0" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
     { name = "pydantic", marker = "sys_platform != 'android'", specifier = ">=2.13.4,<2.14.0a1" },
     { name = "pydantic", marker = "sys_platform == 'android'", specifier = "==2.12.5" },
@@ -459,7 +465,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.22" },
     { name = "tqdm", specifier = ">=4.69.0" },
 ]
-provides-extras = ["dev", "pc", "build"]
+provides-extras = ["dev", "pc", "build", "licenses"]
 
 [[package]]
 name = "macholib"
@@ -564,6 +570,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pip-licenses"
+version = "5.5.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "prettytable" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/18/ddd93af610a04f56a51a27095ddfe55238e1ec236f6758730a0d2c0b49f2/pip_licenses-5.5.5.tar.gz", hash = "sha256:60750c006adf7a0910347b726e8ee9fee3bc8d2e7c8307a5c4ec0776c8e2a276", size = 54955, upload-time = "2026-03-28T22:12:56.48Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/9a/6acfdb8d463eac7cdae7534d35d72237eca63f5fbafe797289d8a5fae447/pip_licenses-5.5.5-py3-none-any.whl", hash = "sha256:f4c4c6d9e6a03612cf59f29f19dc8ab54904d82e055b8e191498f2279a224e14", size = 23247, upload-time = "2026-03-28T22:12:54.89Z" },
+]
+
+[[package]]
 name = "poethepoet"
 version = "0.48.0"
 source = { registry = "https://pypi.org/simple" }
@@ -574,6 +592,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5c/92/93a4af9511b8c7c647874521d9e6c904266be98067c2ee1eb2e74520d208/poethepoet-0.48.0.tar.gz", hash = "sha256:a06f49d244fadfc2e2e7faa78b54e64a9694727e4ce1d50e08f23cea3ded74f1", size = 148679, upload-time = "2026-07-05T21:48:30.106Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/59/8d/d7c9455b15f8d2d7ce57e7b71a8ef8d02d9992ae4283c9777120620c9022/poethepoet-0.48.0-py3-none-any.whl", hash = "sha256:98da6096d060f49b8d84034770265863fb7dc92a40233b7694b9d216ac68737d", size = 185808, upload-time = "2026-07-05T21:48:28.601Z" },
+]
+
+[[package]]
+name = "prettytable"
+version = "3.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wcwidth" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/81/74/ba08d81e668ccfe8658d7520a307e63c19862c08eb4ccb26f356c5239a7a/prettytable-3.18.0.tar.gz", hash = "sha256:439217116152244369caf3d9f1caf2f9fe29b03bd79e88d2928c8e718c95d680", size = 76373, upload-time = "2026-06-22T16:07:50.174Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/be/2e6798ace5cc036f5d05d36b7b2fd85346f1a708c87060890b070d0ec607/prettytable-3.18.0-py3-none-any.whl", hash = "sha256:b3346e0e6f79180833aebaac088ae926340586cf6d7d991b9eb125b65f72313a", size = 37357, upload-time = "2026-06-22T16:07:48.595Z" },
 ]
 
 [[package]]
