@@ -1,5 +1,7 @@
-# SPDX-FileCopyrightText: 2026 gen\Eric Computers
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
 # SPDX-License-Identifier: MIT
+"""Keybox-Downloader main launcher."""
+
 import sys
 from pathlib import Path
 
@@ -10,7 +12,11 @@ is_nuitka = '__compiled__' in globals()
 is_pyinstaller = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
 # `root` is where "internal files" are, like the "scripts" directory
-root = Path(sys._MEIPASS) if is_pyinstaller else Path(__file__).resolve().parent
+root = (
+    Path(sys._MEIPASS)  # noqa: SLF001
+    if is_pyinstaller
+    else Path(__file__).resolve().parent
+)
 
 # `exe_root` is where the program was run from, where "keyboxes" and such go
 exe_root = Path(sys.executable).parent if is_pyinstaller else (Path(sys.argv[0]).parent if is_nuitka else root)
@@ -35,7 +41,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     context = Downloader.start()
 
-    async def run_dl():
+    async def run_dl() -> None:
+        """Run all configured downloaders."""
         async with context:
             await go(*get_downloaders())
 
@@ -44,4 +51,4 @@ if __name__ == '__main__':
     elif args.install:
         menu(context)
     else:
-        menu(context, True)
+        menu(context, ignore_empty=True)

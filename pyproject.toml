@@ -69,6 +69,9 @@ quote-style = "single"
 indent-style = "space"
 docstring-code-format = true
 
+[tool.ruff.lint.flake8-copyright]
+author = "gen\\Eric Computers"
+
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
 multiline-quotes = "double"
