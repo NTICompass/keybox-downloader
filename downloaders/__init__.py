@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""The downloaders are the main modules of this program, each one downloads a keybox from a different source."""
+
+from .downloader import Downloader  # ruff: ignore[unsorted-imports]
 from .alwaysstrong import AlwaysStrong
-from .downloader import Downloader
 from .droidwin import DroidWin
 from .fixintegrity import FixIntegrity
 from .integritybox import IntegrityBox

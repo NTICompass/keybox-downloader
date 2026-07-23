@@ -62,6 +62,10 @@ ignore = [
     # Mutually exclusive pydocstyle rules
     "D203",
     "D213",
+    # Personal code-style
+    "TD002",
+    "TD003",
+    "G004",
 ]
 
 [tool.ruff.format]
