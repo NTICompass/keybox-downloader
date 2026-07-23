@@ -1,5 +1,9 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""`BaseData` for all JSON cache files."""
+
 import json
-from abc import ABC
 from dataclasses import dataclass, field, fields
 from json import JSONDecodeError
 from pathlib import Path
@@ -9,7 +13,9 @@ import __main__
 
 
 @dataclass
-class BaseData(ABC):
+class BaseData[T]:
+    """Override and add your options to save as a JSON file."""
+
     _loaded = False
 
     _root: ClassVar[Path] = __main__.exe_root
@@ -17,13 +23,16 @@ class BaseData(ABC):
     _manifest_json = 'manifest.json'
     _manifest_file: Path = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        """Initialize the JSON file when loading child classes."""
         self._manifest_file = self._manifest_path / self._manifest_json
 
         self._manifest_path.mkdir(exist_ok=True)
         self._manifest_file.touch(exist_ok=True)
 
-        with Path(self._manifest_file).open() as file:
+        with Path(
+            self._manifest_file,
+        ).open(encoding='utf-8') as file:
             try:
                 for k, v in json.load(file).items():
                     object.__setattr__(self, k, v)
@@ -32,12 +41,14 @@ class BaseData(ABC):
             finally:
                 self._loaded = True
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: T) -> None:
+        """Keys starting with an `_` are "private", the rest are saved into the JSON."""
         super().__setattr__(name, value)
 
         if not name.startswith('_') and self._loaded:
             self.save()
 
-    def save(self):
-        with Path(self._manifest_file).open('w') as file:
+    def save(self) -> None:
+        """Write the saved data into a JSON file."""
+        with Path(self._manifest_file).open('w', encoding='utf-8') as file:
             json.dump({f.name: getattr(self, f.name) for f in fields(self) if not f.name.startswith('_')}, file)

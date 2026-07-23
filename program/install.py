@@ -328,7 +328,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             Downloader.disabled.update(all_downloaders - dl_selected)
 
             for dl in all_downloaders:
-                overrides.toggle(dl, dl in dl_selected)
+                overrides.toggle(dl, value=dl in dl_selected)
             overrides.save()
 
         root_float.floats.pop()
