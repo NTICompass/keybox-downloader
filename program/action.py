@@ -138,7 +138,7 @@ async def go(*downloaders: Downloader, progress: Callable[[int, int, str], Await
 
         def as_completed[T](fs: Iterable[Awaitable[T]]) -> Iterator[Future[T]]:
             func = tqdm_asyncio.as_completed if progress is None else asyncio.as_completed
-            return func(fs)
+            yield from func(fs)
 
         tasks = [run(dl) for dl in downloaders]
         total = len(tasks)
