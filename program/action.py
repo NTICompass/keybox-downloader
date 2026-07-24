@@ -107,7 +107,7 @@ async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
     """
     files: list[KeyPath] = []
 
-    async for idx, keybox_file in a_enumerate(dl()):
+    async for idx, keybox_file in a_enumerate(dl.run()):
         keybox_idx = idx + 1
 
         if keybox_file is None:

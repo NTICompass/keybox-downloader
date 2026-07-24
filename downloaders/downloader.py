@@ -165,7 +165,7 @@ class Downloader(ABC):
             yield
 
     @final
-    async def __call__(self) -> AsyncIterator[Keybox | None]:
+    async def run(self) -> AsyncIterator[Keybox | None]:
         """Run the downloader.
 
         Yields:
