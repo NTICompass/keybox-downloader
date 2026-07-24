@@ -4,13 +4,13 @@
 """Downloader base class, does all the work and makes adding new download modules easy."""
 
 import asyncio
+import inspect
 import logging
 import os
 import re
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from io import BytesIO
-from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal, Self, final, overload
 from zipfile import Path as ZipPath
 from zipfile import ZipFile
@@ -27,8 +27,9 @@ from cache_data import Overrides
 from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator, Sequence
+    from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Sequence
 
+    from anyio import Path
     from httpx2 import Response as HttpResponse
     from requests import Response as CloudflareResponse
     from requests import Session
@@ -106,7 +107,7 @@ class Downloader(ABC):
     disabled: ClassVar[set[type[Self]]] = set()
     overrides: ClassVar[Overrides[type[Self]]] = Overrides[type[Self]]()
 
-    env_file: ClassVar[Path] = Path(__main__.exe_root / '.env')
+    env_file: ClassVar[Path] = __main__.exe_root / '.env'
     _env_loaded: ClassVar[bool] = False
 
     client: ClassVar[AsyncClient]
@@ -116,8 +117,10 @@ class Downloader(ABC):
     URL: str
     URLS: list[str]
 
+    type ExtraHeaders = dict[str, str] | list[dict[str, str]] | None
+
     current_url: HTTP_URL | str
-    extra_headers: dict[str, str] | list[dict[str, str]] | None = None
+    extra_headers: ExtraHeaders | Awaitable[ExtraHeaders] = None
 
     def __init__(self) -> None:
         """Init the `logger`, child classes can override `__init__` if needed."""
@@ -217,7 +220,7 @@ class Downloader(ABC):
 
     @final
     @classmethod
-    def get_github_token(cls) -> str | None:
+    async def get_github_token(cls) -> dict[str, str] | None:
         """Use `GITHUB_TOKEN` from the environment for the GitHub API.
 
         Returns:
@@ -225,10 +228,11 @@ class Downloader(ABC):
 
         """
         if not cls._env_loaded:
-            load_dotenv(cls.env_file if cls.env_file.exists() else None)
+            load_dotenv(cls.env_file if await cls.env_file.exists() else None)
             cls._env_loaded = True
 
-        return os.getenv('GITHUB_TOKEN')
+        github_token = os.getenv('GITHUB_TOKEN')
+        return {'Authorization': f'Bearer {github_token}'} if github_token else None
 
     @final
     async def get_latest_github_release(self, data: GitHubRelease | dict | str) -> bytes | None:
@@ -323,7 +327,7 @@ class Downloader(ABC):
         return dict(re.findall(rf'(?<! )({"|".join(var)})="(.+?)"', str(script)))
 
     @final
-    def _get_headers(self, idx: int) -> dict[str, str]:
+    async def _get_headers(self, idx: int) -> dict[str, str]:
         """Get the headers for each URL download request (can be overriden/extended via `extra_headers`).
 
         Args:
@@ -333,6 +337,12 @@ class Downloader(ABC):
             A map of headers and their values
 
         """
+        if inspect.isawaitable(self.extra_headers):
+            self.extra_headers = await self.extra_headers
+
+        self.logger.info(
+            f'Using headers: {"Future" if inspect.isawaitable(self.extra_headers) else (self.extra_headers or "None")!r}'
+        )
         if self.extra_headers is None:
             return {}
         if isinstance(self.extra_headers, dict):
@@ -351,7 +361,10 @@ class Downloader(ABC):
 
         """
         for r in await asyncio.gather(
-            *[self.client.get(get_download_url(dl), headers=self._get_headers(idx)) for idx, dl in enumerate(download)]
+            *[
+                self.client.get(get_download_url(dl), headers=await self._get_headers(idx))
+                for idx, dl in enumerate(download)
+            ]
         ):
             try:
                 r.raise_for_status()
@@ -373,7 +386,7 @@ class Downloader(ABC):
         """
         for r in await asyncio.gather(
             *[
-                asyncio.to_thread(self.cloudflare_client.get, dl, headers=self._get_headers(idx))
+                asyncio.to_thread(self.cloudflare_client.get, dl, headers=await self._get_headers(idx))
                 for idx, dl in enumerate(download)
             ]
         ):

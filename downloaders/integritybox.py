@@ -46,10 +46,23 @@ class IntegrityBox(Downloader):
             'github:freekeybox/mona::meow.tar',
         ]
 
-        github_token = Downloader.get_github_token()
+        self.extra_headers = self.__get_headers()
+
+    async def __get_headers(self) -> list[dict[str, str]] | None:
+        """Set the headers to use a set GitHub token for the API request.
+
+        Returns:
+            The `Authorization` header if the token is set
+
+        """
+        github_token = await Downloader.get_github_token()
+
         if github_token:
-            self.extra_headers = [{} for _ in self.URLS]
-            self.extra_headers[0]['Authorization'] = f'Bearer {github_token}'
+            extra_headers = [{} for _ in self.URLS]
+            extra_headers[0].update(github_token)
+
+            return extra_headers
+        return None
 
     def _get_keybox_url(self, keybox_script: str | bytes) -> str:
         """Extract keybox URL from module's shell scripts.

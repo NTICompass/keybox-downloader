@@ -35,9 +35,7 @@ class PlayIntegrityFix(Downloader, enabled=False):
     def __init__(self) -> None:
         super().__init__()
 
-        github_token = Downloader.get_github_token()
-        if github_token:
-            self.extra_headers = {'Authorization': f'Bearer {github_token}'}
+        self.extra_headers = Downloader.get_github_token()
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[Keybox | None]:
