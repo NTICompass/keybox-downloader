@@ -7,11 +7,11 @@ import asyncio
 import logging
 from asyncio import Future
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
 from typing import TYPE_CHECKING
 
+from anyio import Path
 from asyncstdlib import enumerate as a_enumerate
 from tqdm.asyncio import tqdm_asyncio
 
@@ -58,22 +58,22 @@ def force_run() -> None:
     manifest.last_checked = 0
 
 
-def make_folders() -> None:
+async def make_folders() -> None:
     """Create the folders needed for keybox downloads."""
-    path.mkdir(exist_ok=True)
+    await path.mkdir(exist_ok=True)
 
     for key_type in KeyType:
-        (path / key_type).mkdir()
+        await (path / key_type).mkdir()
 
 
-def init() -> None:
+async def init() -> None:
     """Initialize the app, checking the last download time and creating needed folders.
 
     Raises:
         RuntimeError: If downloaders were ran in the last 24 hours
 
     """
-    log_path.mkdir(exist_ok=True)
+    await log_path.mkdir(exist_ok=True)
     logging.basicConfig(filename=f'{log_path}/keybox-downloader-{time():.0f}.log', level=logging.INFO)
     logger.info('Starting Keybox Downloader')
 
@@ -81,15 +81,15 @@ def init() -> None:
         msg = f'Last download was less than 24hrs ago: {manifest.last_checked}'
         raise RuntimeError(msg)
 
-    if not path.exists():
-        make_folders()
+    if not await path.exists():
+        await make_folders()
     else:
         logger.info('Backing up existing keyboxes')
 
-        backup_path.mkdir(exist_ok=True)
+        await backup_path.mkdir(exist_ok=True)
         make_archive(f'{backup_path}/keyboxes-{time():.0f}', 'zip', path)
         rmtree(path)
-        make_folders()
+        await make_folders()
 
 
 type KeyPath = tuple[Path, Keybox]
@@ -129,7 +129,7 @@ async def go(*downloaders: Downloader, progress: Callable[[int, int, str], Await
 
     """
     try:
-        init()
+        await init()
     except RuntimeError as e:
         logger.info(e)
     else:

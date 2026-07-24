@@ -10,6 +10,7 @@ import re
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from io import BytesIO
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal, Self, final, overload
 from zipfile import Path as ZipPath
 from zipfile import ZipFile
@@ -27,7 +28,6 @@ from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator, Sequence
-    from pathlib import Path
 
     from httpx2 import Response as HttpResponse
     from requests import Response as CloudflareResponse
@@ -106,7 +106,7 @@ class Downloader(ABC):
     disabled: ClassVar[set[type[Self]]] = set()
     overrides: ClassVar[Overrides[type[Self]]] = Overrides[type[Self]]()
 
-    env_file: ClassVar[Path] = __main__.exe_root / '.env'
+    env_file: ClassVar[Path] = Path(__main__.exe_root / '.env')
     _env_loaded: ClassVar[bool] = False
 
     client: ClassVar[AsyncClient]

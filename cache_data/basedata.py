@@ -14,11 +14,15 @@ import __main__
 
 @dataclass
 class BaseData[T]:
-    """Override and add your options to save as a JSON file."""
+    """Override and add your options to save as a JSON file.
+
+    Everywhere else, I am using `anyio.Path`, but in here,
+    we may be inside `Downloader.__init_subclass__` which happens BEFORE the event loop.
+    """
 
     _loaded = False
 
-    _root: ClassVar[Path] = __main__.exe_root
+    _root: ClassVar[Path] = Path(__main__.exe_root)
     _manifest_path: ClassVar[Path] = _root / 'cache'
     _manifest_json = 'manifest.json'
     _manifest_file: Path = field(init=False)
@@ -30,9 +34,7 @@ class BaseData[T]:
         self._manifest_path.mkdir(exist_ok=True)
         self._manifest_file.touch(exist_ok=True)
 
-        with Path(
-            self._manifest_file,
-        ).open(encoding='utf-8') as file:
+        with self._manifest_file.open(encoding='utf-8') as file:
             try:
                 for k, v in json.load(file).items():
                     object.__setattr__(self, k, v)
@@ -50,5 +52,5 @@ class BaseData[T]:
 
     def save(self) -> None:
         """Write the saved data into a JSON file."""
-        with Path(self._manifest_file).open('w', encoding='utf-8') as file:
+        with self._manifest_file.open('w', encoding='utf-8') as file:
             json.dump({f.name: getattr(self, f.name) for f in fields(self) if not f.name.startswith('_')}, file)

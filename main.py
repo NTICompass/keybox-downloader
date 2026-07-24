@@ -28,9 +28,11 @@ exe_root = Path(sys.executable).parent if is_pyinstaller else (Path(sys.argv[0])
 import argparse
 import asyncio
 
+import anyio
+
 from downloaders import Downloader
 from program.action import get_downloaders, go
-from program.install import menu
+from program.install import main_menu
 
 # ruff: enable[module-import-not-at-top-of-file]
 
@@ -42,16 +44,15 @@ if __name__ == '__main__':
     group.add_argument('-i', '--install', dest='install', action='store_true')
 
     args = parser.parse_args()
-    context = Downloader.start()
 
-    async def run_dl() -> None:
-        """Run all configured downloaders."""
-        async with context:
-            await go(*get_downloaders())
+    async def main() -> None:
+        """Select which entrypoint to run."""
+        async with Downloader.start():
+            if args.download:
+                await go(*get_downloaders())
+            elif args.install:
+                await main_menu()
+            else:
+                await main_menu(ignore_empty=True)
 
-    if args.download:
-        asyncio.run(run_dl())
-    elif args.install:
-        menu(context)
-    else:
-        menu(context, ignore_empty=True)
+    anyio.run(main, backend='asyncio')

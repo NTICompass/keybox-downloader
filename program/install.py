@@ -35,8 +35,6 @@ from .options import Options
 from .scrollable import ScrollableTextControl
 
 if TYPE_CHECKING:
-    from contextlib import AbstractAsyncContextManager
-
     from prompt_toolkit.formatted_text import StyleAndTextTuples
 
 is_android = hasattr(sys, 'getandroidapilevel')
@@ -561,60 +559,54 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
     return await app.run_async()
 
 
-def menu(context: AbstractAsyncContextManager, *, ignore_empty: bool = False) -> None:
+async def main_menu(*, ignore_empty: bool = False) -> None:
     """Launcher for the file-browser.
 
     Args:
-        context: Context manager to open/close downloaders
         ignore_empty: `True` to allow empty file list, `False` to quit on empty file list
 
     """
+    selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=ignore_empty)
 
-    async def main_menu() -> None:
-        async with context:
-            selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=ignore_empty)
+    if selected_file is None:
+        print('Exiting')
+    else:
+        print(f'Installing {selected_file}')
+        selected = folder / selected_file
 
-            if selected_file is None:
-                print('Exiting')
+        if is_android:
+            install = await asyncio.gather((root / f'scripts/{runner["android"]}').absolute(), selected.absolute())
+            try:
+                await run_process(
+                    ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
+                    stdout=sys.stdout,
+                    check=True,
+                )
+            except CalledProcessError as e:
+                print(str(e))
             else:
-                print(f'Installing {selected_file}')
-                selected = folder / selected_file
+                print('Keybox successfully installed')
+        elif adb is not None:
+            try:
+                global device
 
-                if is_android:
-                    install = (await (root / f'scripts/{runner["android"]}').absolute(), await selected.absolute())
-                    try:
-                        await run_process(
-                            ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
-                            stdout=sys.stdout,
-                            check=True,
-                        )
-                    except CalledProcessError as e:
-                        print(str(e))
-                    else:
-                        print('Keybox successfully installed')
-                elif adb is not None:
-                    try:
-                        global device
+                if device is None:
+                    device = adb.device()
 
-                        if device is None:
-                            device = adb.device()
+                if device is not None:
+                    # Copy the selected keybox to the tmp folder
+                    device.sync.push(selected, key_file)
 
-                        if device is not None:
-                            # Copy the selected keybox to the tmp folder
-                            device.sync.push(selected, key_file)
+                    # Also copy the installer script
+                    device.sync.push(root / f'scripts/{runner["pc"]}', f'{tmp_folder}/{runner["pc"]}')
 
-                            # Also copy the installer script
-                            device.sync.push(root / f'scripts/{runner["pc"]}', f'{tmp_folder}/{runner["pc"]}')
+                    # Run the main installer script
+                    with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
+                        print(stream.read_until_close())
 
-                            # Run the main installer script
-                            with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
-                                print(stream.read_until_close())
-
-                            # Remove the scripts (the keybox was moved already)
-                            device.shell(f'rm {tmp_folder}/{runner["pc"]}')
-                    except AdbError as e:
-                        print(str(e))
-                    else:
-                        print('Keybox successfully installed')
-
-    asyncio.run(main_menu())
+                    # Remove the scripts (the keybox was moved already)
+                    device.shell(f'rm {tmp_folder}/{runner["pc"]}')
+            except AdbError as e:
+                print(str(e))
+            else:
+                print('Keybox successfully installed')
