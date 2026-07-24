@@ -1,11 +1,16 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""Script to gather the enabled `Downloader` modules and run them."""
+
 import asyncio
 import logging
 from asyncio import Future
-from collections.abc import Awaitable, Callable, Generator, Iterable, Iterator
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from shutil import make_archive, rmtree
 from time import time
+from typing import TYPE_CHECKING
 
 from asyncstdlib import enumerate as a_enumerate
 from tqdm.asyncio import tqdm_asyncio
@@ -16,47 +21,65 @@ from downloaders import Downloader
 
 from .keybox import Keybox, KeyType
 
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Iterable, Iterator
+
 root: Path = __main__.exe_root
 path = root / 'keyboxes'
 log_path = root / 'logs'
 backup_path = root / 'backups'
 logger = logging.getLogger(__name__)
 manifest: Manifest
+dl_hours = 24
+local_tz = datetime.now(UTC).astimezone().tzinfo
 
 
 def can_run() -> bool:
+    """Return whether the downloaders can be run.
+
+    Returns:
+        If the downloaders have been run in the lat 24 hours
+
+    """
     global manifest
     manifest = Manifest()
 
     # Only download once every 24hrs
     if manifest.last_checked > 0:
-        time_diff = datetime.now() - datetime.fromtimestamp(manifest.last_checked)
-        return (time_diff / timedelta(hours=1)) >= 24
+        time_diff = datetime.now(tz=local_tz) - datetime.fromtimestamp(manifest.last_checked, tz=local_tz)
+        return (time_diff / timedelta(hours=1)) >= dl_hours
 
     return True
 
 
-def force_run():
-    global manifest
-
+def force_run() -> None:
+    """Force downloaders to run even if it's been less than 24 hours since the last run."""
     logger.info('Forcing downloads...')
     manifest.last_checked = 0
 
 
-def make_folders():
+def make_folders() -> None:
+    """Create the folders needed for keybox downloads."""
     path.mkdir(exist_ok=True)
 
     for key_type in KeyType:
         (path / key_type).mkdir()
 
 
-def init():
+def init() -> None:
+    """Initialize the app, checking the last download time and creating needed folders.
+
+    Raises:
+        RuntimeError: If downloaders were ran in the last 24 hours
+
+    """
     log_path.mkdir(exist_ok=True)
     logging.basicConfig(filename=f'{log_path}/keybox-downloader-{time():.0f}.log', level=logging.INFO)
     logger.info('Starting Keybox Downloader')
 
     if not can_run():
-        raise RuntimeError(f'Last download was less than 24hrs ago: {manifest.last_checked}')
+        msg = f'Last download was less than 24hrs ago: {manifest.last_checked}'
+        raise RuntimeError(msg)
 
     if not path.exists():
         make_folders()
@@ -73,6 +96,15 @@ type KeyPath = tuple[Path, Keybox]
 
 
 async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
+    """Coroutine to run the `Downloader` and get its keybox files.
+
+    Args:
+        dl: `Downloader` object to run
+
+    Returns:
+        A tuple containing a list of keybox files and the downloader name (for progress tracking)
+
+    """
     files: list[KeyPath] = []
 
     async for idx, keybox_file in a_enumerate(dl()):
@@ -88,7 +120,14 @@ async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
     return files, type(dl).__name__
 
 
-async def go(*downloaders: Downloader, progress: Callable[[int, int, str], Awaitable[None]] | None = None):
+async def go(*downloaders: Downloader, progress: Callable[[int, int, str], Awaitable[None]] | None = None) -> None:
+    """Run the passed `Downloader` objects and save their keybox files (main entry point).
+
+    Args:
+         downloaders: A collection of `Downloader` objects to run
+         progress: A callback to send the download progress to (if `None`, then `tqdm` is used)
+
+    """
     try:
         init()
     except RuntimeError as e:
@@ -121,8 +160,14 @@ async def go(*downloaders: Downloader, progress: Callable[[int, int, str], Await
         groups = Keybox.group(*keyboxes)
         logger.info(groups)
 
-        manifest.last_checked = datetime.now().timestamp()
+        manifest.last_checked = datetime.now(tz=local_tz).timestamp()
 
 
-def get_downloaders() -> Generator[Downloader]:
-    return (cls() for cls in Downloader.enabled)
+def get_downloaders() -> list[Downloader]:
+    """Collect the enabled `Downloader` modules to run.
+
+    Returns:
+        List of `Downloader` objects
+
+    """
+    return [cls() for cls in Downloader.enabled]
