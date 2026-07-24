@@ -7,7 +7,7 @@ dependencies = [
     "asyncstdlib>=3.14.0",
     "beautifulsoup4>=4.15.0",
     "cloudscraper>=1.2.71",
-    "httpx2[brotli,http2,zstd]>=2.9.0",
+    "httpx2[brotli,http2,zstd]>=2.9.1",
     "prompt-toolkit>=3.0.52",
     # On Android, I have a pre-built wheel of `pydantic-core==2.41.5` (for `pydantic==2.12.5`)
     "pydantic==2.12.5; platform_system == 'Android'",
