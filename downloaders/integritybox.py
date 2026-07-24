@@ -109,7 +109,7 @@ class IntegrityBox(Downloader):
 
                     yield kb
                 except KeyboxError as e:
-                    self.logger.info(e.msg)
+                    self.logger.info(str(e))
                     yield None
 
     @override

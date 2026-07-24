@@ -1,27 +1,37 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""`Keybox` module to wrap `xml.etree.ElementTree` objects."""
+
 import logging
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum, auto
 from io import IOBase
 from logging import Logger
 from pathlib import Path
 from time import time
-from typing import ClassVar, Literal, Self, final, override
+from typing import TYPE_CHECKING, ClassVar, Literal, Self, final
 from xml.etree.ElementTree import Element, ElementTree, ParseError
-from zipfile import Path as ZipPath
 
 from cryptography import x509
-from cryptography.x509.base import Certificate
-from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict, Field
 
 import __main__
 from cache_data import Manifest
 
+if TYPE_CHECKING:
+    from zipfile import Path as ZipPath
+
+    from cryptography.x509.base import Certificate
+    from httpx2 import AsyncClient
+
 
 class KeyType(StrEnum):
+    """Folder to sort each `Keybox` into."""
+
     VALID = auto()
     SEMI_VALID = auto()
     REVOKED = auto()
@@ -30,26 +40,29 @@ class KeyType(StrEnum):
 
 @dataclass
 class KeyboxMetadata:
+    """Information about each `Keybox`, including its source."""
+
     file_idx: int = 0
     source: str = ''
     original: Path | ZipPath | None = None
 
     @property
     def name(self) -> str:
+        """The file name to save the `Keybox` as.
+
+        Returns:
+            source_idx.xml
+
+        """
         return f'{self.source if len(self.source) > 0 else "keybox"}_{self.file_idx:d}.xml'
 
 
-class KeyboxError(SyntaxError):
-    @override
-    def __init__(self, msg: str, orig_err: ParseError):
-        super().__init__(msg)
-        self.original_error: ParseError = orig_err
+class KeyboxError(ValueError):
+    """Custom error when an XML string cannot be read."""
 
 
-# See: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
-class Attestation(BaseModel):
+class Attestation(BaseModel):  # ruff: ignore[undocumented-public-class]
     model_config = ConfigDict(frozen=True)
-
     status: Literal['REVOKED', 'SUSPENDED']
     reason: Literal['UNSPECIFIED', 'KEY_COMPROMISE', 'CA_COMPROMISE', 'SUPERSEDED', 'SOFTWARE_FLAW'] | None = None
     expires: str | None = None
@@ -57,13 +70,23 @@ class Attestation(BaseModel):
 
 
 class AttestationList(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    """Attestation status from Google.
 
+    Docs: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status
+    """
+
+    model_config = ConfigDict(frozen=True)
     entries: dict[str, Attestation]
+
+
+dl_hours = 24
+local_tz = datetime.now(UTC).astimezone().tzinfo
 
 
 @final
 class Keybox:
+    """`ElementTree` Wrapper class to read certificates from a keybox.xml."""
+
     root: Element
     meta: KeyboxMetadata
     logger: Logger
@@ -82,7 +105,19 @@ class Keybox:
     _URL: ClassVar[str] = f'https://android.googleapis.com/attestation/status?{time():.0f}'
     _AOSP_CERTS: ClassVar[Counter[int]] = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
-    def __init__(self, keybox_data: Element | Path | IOBase | str | bytes, metadata: KeyboxMetadata | None = None):
+    def __init__(
+        self, keybox_data: Element | Path | IOBase | str | bytes, metadata: KeyboxMetadata | None = None
+    ) -> None:
+        """Wrap a keybox.xml file.
+
+        Args:
+            keybox_data: The XML file to load
+            metadata: A `KeyboxMetadata` object to attach
+
+        Raises:
+            KeyboxError: If the XML cannot be parsed
+
+        """
         if isinstance(keybox_data, Element):
             self.root = keybox_data
         elif isinstance(keybox_data, (Path, IOBase)):
@@ -91,7 +126,8 @@ class Keybox:
             try:
                 self.root = ET.fromstring(keybox_data)
             except ParseError as e:
-                raise KeyboxError(f'Cannot parse "{keybox_data}"', e)
+                msg = f'Cannot parse "{keybox_data}"'
+                raise KeyboxError(msg) from e
 
         # Fix certs, remove excess new lines
         for cert in self.root.iterfind('.//Keybox//Certificate[@format="pem"]'):
@@ -112,7 +148,13 @@ class Keybox:
         self.__load_certs()
 
     @classmethod
-    async def init_attestation(cls, dl: AsyncClient):
+    async def init_attestation(cls, dl: AsyncClient) -> None:
+        """Download the Attestation status from Google (or use cached version).
+
+        Args:
+            dl: The `AsyncClient` from `httpx2`
+
+        """
         cls._cache_folder.mkdir(exist_ok=True)
         cls._cached.touch(exist_ok=True)
 
@@ -122,9 +164,9 @@ class Keybox:
             do_download = len(cache_json) == 0
 
             if not do_download and manifest.attestation_date >= 0:
-                time_diff = datetime.now() - datetime.fromtimestamp(manifest.attestation_date)
+                time_diff = datetime.now(tz=local_tz) - datetime.fromtimestamp(manifest.attestation_date, tz=local_tz)
 
-                if (time_diff / timedelta(hours=1)) >= 24:
+                if (time_diff / timedelta(hours=1)) >= dl_hours:
                     do_download = True
 
             if not do_download:
@@ -137,7 +179,7 @@ class Keybox:
                 cached_status.truncate()
                 cached_status.write(cls.status_list.model_dump_json())
 
-                manifest.attestation_date = datetime.now().timestamp()
+                manifest.attestation_date = datetime.now(tz=local_tz).timestamp()
 
             cls.revoked = {key for key, status in cls.status_list.entries.items() if status.status == 'REVOKED'}
 
@@ -145,6 +187,15 @@ class Keybox:
 
     @classmethod
     def group(cls, *keyboxes: Self) -> KeyboxGroup:
+        """Group keyboxes by their serials.
+
+        Args:
+            keyboxes: The `Keybox` objects to group
+
+        Returns:
+            A dict of keys and keybox names
+
+        """
         groups: cls.KeyboxGroup = defaultdict(list)
 
         for keybox in keyboxes:
@@ -157,13 +208,20 @@ class Keybox:
 
         return groups
 
-    def save(self, folder: Path):
+    def save(self, folder: Path) -> None:
+        """Save the keybox into an XML file.
+
+        Args:
+            folder: Where to save the file to
+
+        """
         file_name = folder / self.meta.name
         self.logger.info('Saving keybox to %s', file_name)
 
-        ElementTree(self.root).write(file_name, 'unicode', True)
+        ElementTree(self.root).write(file_name, 'unicode', xml_declaration=True)
 
-    def __load_certs(self):
+    def __load_certs(self) -> None:
+        """Read the certificates from the XML and save them into `self._cert_data`."""
         self.logger.info('Loading certs from keybox')
 
         ec_certs = self.root.findall('.//Key[@algorithm="ecdsa"]/CertificateChain/Certificate')
@@ -180,12 +238,20 @@ class Keybox:
         except ValueError:
             self._cert_data = []
 
+    @property
     def __is_aosp_keybox(self) -> bool:
         return self.serials == self._AOSP_CERTS
 
-    def __check_cert_validity(self):
+    def __check_cert_validity(self) -> None:
+        """Check the XML against Google's Attestation status (saves into `self._cert_valid`).
+
+        Raises:
+            RuntimeError: If Attestation status is not loaded (call `init_attestation()`)
+
+        """
         if not hasattr(self, 'status_list'):
-            raise RuntimeError(f'Please load attestation status with "await {type(self).__name__}.init_attestation()"')
+            msg = f'Please load attestation status with "await {type(self).__name__}.init_attestation()"'
+            raise RuntimeError(msg)
 
         self._cert_valid: dict[int, bool] = {}
 
@@ -205,25 +271,43 @@ class Keybox:
             )
 
             self.logger.info('Cert is revoked' if found else 'Cert is valid')
-            self._cert_valid[cert.serial_number] = False if found else True
+            self._cert_valid[cert.serial_number] = not found
 
     @property
     def serials(self) -> Counter[int]:
+        """Group the serial numbers for all the certs in this XML file.
+
+        Returns:
+            `Counter` of serial numbers
+
+        """
         return Counter(cert.serial_number for cert in self._cert_data)
 
     @property
     def key_type(self) -> KeyType:
+        """What type of key this is (what folder do we store it in?).
+
+        Returns:
+            `KeyType`
+
+        """
         if not hasattr(self, '_cert_valid'):
             self.__check_cert_validity()
 
         if all(self._cert_valid.values()):
-            return KeyType.AOSP if self.__is_aosp_keybox() else KeyType.VALID
+            return KeyType.AOSP if self.__is_aosp_keybox else KeyType.VALID
         if next(iter(self._cert_valid.values())):
             return KeyType.SEMI_VALID
         return KeyType.REVOKED
 
     @property
     def keys_valid(self) -> dict[str, bool]:
+        """Which certs in this XML file are valid.
+
+        Returns:
+            Map of serials to their validity
+
+        """
         if not hasattr(self, '_cert_valid'):
             self.__check_cert_validity()
 
@@ -231,15 +315,33 @@ class Keybox:
 
     @property
     def key_counts(self) -> tuple[int, int]:
+        """How many of each cert (EC/RSA) does this XML have.
+
+        Returns:
+            EC cert count, RSA cert count
+
+        """
         return self._cert_counts
 
     @property
     def device_id(self) -> str | None:
+        """The XML's `DeviceID` (if it has one).
+
+        Returns:
+            DeviceID or `None`
+
+        """
         device = self.root.find('.//Keybox[@DeviceID]')
         return device.get('DeviceID') if device is not None else None
 
     @device_id.setter
-    def device_id(self, value: str):
+    def device_id(self, value: str) -> None:
+        """Set the DeviceID on the XML file.
+
+        Args:
+            value: The new DeviceID
+
+        """
         device = self.root.find('.//Keybox')
 
         if device is not None:

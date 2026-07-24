@@ -185,7 +185,7 @@ class Downloader(ABC):
                 try:
                     yield Keybox(data, KeyboxMetadata(source=type(self).__name__, file_idx=idx))
                 except KeyboxError as e:
-                    self.logger.info(e.msg)
+                    self.logger.info(str(e))
                     yield None
             else:
                 yield data
@@ -201,7 +201,6 @@ class Downloader(ABC):
             Decoded keybox.xml
 
         """
-        ...
 
     def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | Keybox | None]:
         """Process each downloaded URL and send to `decode()` method, can be overridden.
