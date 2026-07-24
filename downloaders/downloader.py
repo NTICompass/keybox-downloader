@@ -100,6 +100,9 @@ def get_download_url(dl: str) -> str:
     return dl
 
 
+type ExtraHeaders = dict[str, str] | list[dict[str, str]] | None
+
+
 class Downloader(ABC):
     """To implement: set `DESCRIPTION` and `URL` and implement `decode(self, encoded: str) -> str`."""
 
@@ -116,8 +119,6 @@ class Downloader(ABC):
     DESCRIPTION = ''
     URL: str
     URLS: list[str]
-
-    type ExtraHeaders = dict[str, str] | list[dict[str, str]] | None
 
     current_url: HTTP_URL | str
     extra_headers: ExtraHeaders | Awaitable[ExtraHeaders] = None
@@ -337,17 +338,19 @@ class Downloader(ABC):
             A map of headers and their values
 
         """
-        if inspect.isawaitable(self.extra_headers):
-            self.extra_headers = await self.extra_headers
-
-        self.logger.info(
-            f'Using headers: {"Future" if inspect.isawaitable(self.extra_headers) else (self.extra_headers or "None")!r}'
+        log_headers: ExtraHeaders = (
+            await self.extra_headers if inspect.isawaitable(self.extra_headers) else self.extra_headers
         )
+        self.extra_headers = log_headers
+
         if self.extra_headers is None:
             return {}
         if isinstance(self.extra_headers, dict):
+            self.logger.info(f'Using extra headers: {log_headers or "None"!r}')
             return self.extra_headers
-        return self.extra_headers[idx]
+
+        self.logger.info(f'Using extra headers: {log_headers[idx] if isinstance(log_headers, list) else "None"!r}')
+        return self.extra_headers[idx] if isinstance(self.extra_headers, list) else {}
 
     @final
     async def _download_all(self, *download: str) -> AsyncIterator[HttpResponse]:
