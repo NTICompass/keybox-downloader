@@ -26,7 +26,6 @@ exe_root = Path(sys.executable).parent if is_pyinstaller else (Path(sys.argv[0])
 
 # ruff: disable[module-import-not-at-top-of-file]
 import argparse
-import asyncio
 
 import anyio
 
