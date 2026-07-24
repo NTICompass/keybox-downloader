@@ -4,6 +4,7 @@
 """Specter download module."""
 
 from base64 import b64decode
+from datetime import datetime  # ruff: ignore[typing-only-standard-library-import]
 from typing import TYPE_CHECKING, final, override
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field
@@ -12,7 +13,6 @@ from . import Downloader
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
-    from datetime import datetime
 
 
 class CatalogEntry(BaseModel):  # ruff: ignore[undocumented-public-class]
@@ -36,6 +36,8 @@ class CatalogWorking(BaseModel):  # ruff: ignore[undocumented-public-class]
 
 
 class CatalogWorkingEntry(CatalogWorking):  # ruff: ignore[undocumented-public-class]
+    source: str
+    version: str
     text: str
 
 
