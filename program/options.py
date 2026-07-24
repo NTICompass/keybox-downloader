@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""Application options, right now just toggles the enabled `Downloader` modules."""
+
 from asyncio import Future, get_running_loop
 from importlib.metadata import version
 from operator import itemgetter
@@ -12,19 +17,35 @@ from downloaders import Downloader
 
 
 class CheckboxSelected[T](CheckboxList[T]):
+    """A `CheckboxList`, that lets you get the value of the currently selected item."""
+
     @property
     def current_item(self) -> T:
+        """The value of the currently selected checkbox.
+
+        Returns:
+            The checkbox's value (not its label)
+
+        """
         return self.values[self._selected_index][0]
 
 
 class Options:
+    """Open a `Dialog` and let you select which `Downloader` modules you want to run."""
+
     APP_VERSION: ClassVar[str] = version('keybox-downloader')
 
     future: Future[list[type[Downloader]] | None]
     dialog: Dialog
     __checkboxes: CheckboxSelected[type[Downloader]]
 
-    def __init__(self, is_android: bool):
+    def __init__(self, *, is_android: bool) -> None:
+        """Initialize the `dialog`/`future` for the `Options` dialog.
+
+        Args:
+            is_android: Use a different layout when running on a phone (portrait mode).
+
+        """
         self.future = get_running_loop().create_future()
         kb = KeyBindings()
 
@@ -54,12 +75,12 @@ class Options:
             ]
 
         @kb.add('s')
-        def _(event: KeyPressEvent):
+        def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
             self.__save()
 
         @kb.add('c')
         @kb.add('q')
-        def _(event: KeyPressEvent):
+        def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
             self.__cancel()
 
         self.dialog = Dialog(
@@ -68,8 +89,8 @@ class Options:
             buttons=[Button(text='Save', handler=self.__save), Button(text='Cancel', handler=self.__cancel)],
         )
 
-    def __save(self):
+    def __save(self) -> None:
         self.future.set_result(self.__checkboxes.current_values)
 
-    def __cancel(self):
+    def __cancel(self) -> None:
         self.future.set_result(None)

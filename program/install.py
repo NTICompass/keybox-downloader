@@ -367,7 +367,7 @@ async def select_file(keyboxes: list[Path], *, ignore_empty: bool = False) -> Pa
 
             # TODO: Make sure this works  # ruff: ignore[line-contains-todo]
             # TODO: Replace `pathlib.Path` with `anyio.Path` everywhere # ruff: ignore[line-contains-todo]
-            keyboxes: list[Path] = []
+            keyboxes = []
             async for keybox_file in AsyncPath(folder).rglob('*.xml'):
                 keyboxes.append(keybox_file)
 
@@ -411,7 +411,7 @@ async def select_file(keyboxes: list[Path], *, ignore_empty: bool = False) -> Pa
         dialog_shown = 'options'
 
         my_app = evt_app if evt_app is not None else app
-        opts = Options(is_android)
+        opts = Options(is_android=is_android)
         root_float.floats.append(Float(content=opts.dialog))
 
         if my_app.layout:
