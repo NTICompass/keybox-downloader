@@ -149,7 +149,7 @@ Also show program version:
 ```python
 from importlib.metadata import version
 
-APP_VERSION = version("keybox-downloader")
+APP_VERSION = version('keybox-downloader')
 ```
 
 Needs `pyinstaller --copy-metadata` during build.
