@@ -16,6 +16,8 @@ from . import Downloader
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Callable
 
+    from bs4 import Tag
+
     from program.keybox import Keybox
 
 
@@ -48,15 +50,23 @@ class DroidWin(Downloader):
                 'a', {'href': re.compile(r'^https://droidwin.com/wp-content/.+/droidwin-keybox-.+\.zip')}
             )
 
+            def link_dl(curr_link: Tag) -> AsyncGenerator[bytes]:
+                """Create a generator to download the `href` from the specified `<a />` tag.
+
+                Args:
+                    curr_link: The `<a />` element
+
+                Returns:
+                    An `AsyncGenerator` yielding `bytes`
+
+                """
+                return self.download_urls(
+                    binary=True, cloudflare=self.cloudflare, download=[str(curr_link.attrs['href'])]
+                )
+
             for link in links:
                 self.logger.info('Downloading module ZIP file')
-                dl_func = partial(
-                    lambda curr_link: self.download_urls(
-                        binary=True, cloudflare=self.cloudflare, download=[str(curr_link.attrs['href'])]
-                    ),
-                    link,
-                )
-                zip_dl = await self.do_download(dl_func, force_zip=True)
+                zip_dl = await self.do_download(partial(link_dl, link), force_zip=True)
 
                 yield self.unzip_keybox(zip_dl) if zip_dl is not None else None
 
