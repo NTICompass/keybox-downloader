@@ -404,6 +404,7 @@ name = "keybox-downloader"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "asyncstdlib" },
     { name = "beautifulsoup4" },
     { name = "cloudscraper" },
@@ -442,6 +443,7 @@ pc = [
 [package.metadata]
 requires-dist = [
     { name = "adbutils", marker = "extra == 'pc'", specifier = ">=2.12.0" },
+    { name = "anyio", specifier = ">=4.14.2" },
     { name = "asyncstdlib", specifier = ">=3.14.0" },
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "cloudscraper", specifier = ">=1.2.71" },

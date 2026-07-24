@@ -1,15 +1,21 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""The main `prompt_toolkit` menu and the keybox installer."""
+
 import asyncio
 import sys
 from collections.abc import Awaitable, Callable
-from contextlib import AbstractAsyncContextManager
+from contextlib import suppress
+from functools import partial
 from itertools import groupby
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
+from anyio import Path as AsyncPath
 from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
-from prompt_toolkit.formatted_text import StyleAndTextTuples
 from prompt_toolkit.key_binding import ConditionalKeyBindings, KeyBindings, KeyPressEvent, merge_key_bindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import ConditionalContainer, Float, FloatContainer, HSplit, Layout, VSplit, Window
@@ -29,17 +35,26 @@ from .dialog import AwaitableDialog
 from .options import Options
 from .scrollable import ScrollableTextControl
 
+if TYPE_CHECKING:
+    from contextlib import AbstractAsyncContextManager
+
+    from prompt_toolkit.formatted_text import StyleAndTextTuples
+
 is_android = hasattr(sys, 'getandroidapilevel')
 
 try:
-    from adbutils import AdbDevice, AdbError, adb
+    from adbutils import AdbError, adb
+
+    if TYPE_CHECKING:
+        from adbutils import AdbDevice
 
     device: AdbDevice | None
-except ImportError:
+except ImportError as err:
     if is_android:
         import subprocess
     else:
-        raise RuntimeError('adbutils is required on PC')
+        msg = 'adbutils is required on PC'
+        raise RuntimeError(msg) from err
 finally:
     device = None
 
@@ -62,6 +77,15 @@ type EventFunc = (
 
 
 async def get_prop(prop: str | None = None) -> str:
+    """Get a property value from the currently connected Android phone (or the phone we're running on).
+
+    Args:
+        prop: The property name, like "ro.system.build.fingerprint"
+
+    Returns:
+        The property value
+
+    """
     global device
 
     if is_android and prop is not None:
@@ -69,29 +93,29 @@ async def get_prop(prop: str | None = None) -> str:
             '/system/bin/getprop', prop, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
 
-        stdout, stderr = await proc.communicate()
-
+        stdout, _stderr = await proc.communicate()
         return stdout.decode().strip() if stdout else ''
     if not is_android and adb is not None:
-        try:
+        with suppress(AdbError):
             if device is None:
                 # Connect to the 1st device (throws exception if there are zero or multiple)
                 device = adb.device()
 
             if device is not None:
                 return str(device.getprop(prop) if prop is not None else device.prop).strip()
-            raise RuntimeError('No device found')
-        except AdbError, RuntimeError:
-            return ''
-    else:
-        return ''
+    return ''
 
 
 async def get_device() -> str:
-    global device
+    """Show device info in the side-panel.
 
+    Returns:
+        Device information - manufacturer and fingerprint (if connected).
+
+    """
     if is_android:
         return await get_prop('ro.system.build.fingerprint')
+
     manufacturer, fingerprint = await asyncio.gather(
         get_prop('ro.product.manufacturer'), get_prop('ro.system.build.fingerprint')
     )
@@ -99,10 +123,20 @@ async def get_device() -> str:
         [await get_prop('ro.vendor.asus.product.mkt_name') if manufacturer == 'asus' else await get_prop(), fingerprint]
     )
 
-    return props if props.strip() != '' else 'No device found, press "r" to re-try'
+    return props if props.strip() else 'No device found, press "r" to re-try'
 
 
-def get_cert_serials(file: Path, certs_only=False) -> list[str]:
+def get_cert_serials(file: Path, *, certs_only: bool = False) -> list[str]:
+    """Get the serial numbers for the keybox file.
+
+    Args:
+        file: The keybox file
+        certs_only: `True` to skip the validity check
+
+    Returns:
+        A list of certificate serials in the keybox
+
+    """
     if file.name not in files:
         files[file.name] = Keybox(file)
 
@@ -115,13 +149,23 @@ def get_cert_serials(file: Path, certs_only=False) -> list[str]:
     return all_certs if certs_only else [f'{ec_certs} EC certs, {rsa_certs} RSA certs', *all_certs]
 
 
-async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
+async def select_file(keyboxes: list[Path], *, ignore_empty: bool = False) -> Path | None:
+    """Run `prompt_toolkit` and show the file-picker menu.  Return the selected file.
+
+    Args:
+        keyboxes: List of keyboxes to display in the file browser
+        ignore_empty: `True` to allow empty file list, `False` to error out on empty file list
+
+    Returns:
+        The selected keybox file (or `None` if "quit" was pressed)
+
+    """
     if not ignore_empty and len(keyboxes) == 0:
         print('No valid keyboxes found')
         return None
 
     await Keybox.init_attestation(Downloader.client)
-    keyboxes.sort(key=lambda file: (file.parent.name, get_cert_serials(file, True)[0], file.name))
+    keyboxes.sort(key=lambda file: (file.parent.name, get_cert_serials(file, certs_only=True)[0], file.name))
 
     selected_index = 0
     selectable_rows: list[int] = []
@@ -137,13 +181,25 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     menu_control: Window
     root_float: FloatContainer
 
-    async def refresh_device(evt_app: Application[Path | None] | None = None):
+    async def refresh_device(evt_app: Application[Path | None] | None = None) -> None:
+        """Reload the device info side-panel (like, when a phone is connected).
+
+        Args:
+            evt_app: The running `Application` (`None` to get automatically)
+
+        """
         nonlocal device_info_text
 
         device_info_text = await get_device()
         (evt_app if evt_app is not None else app).invalidate()
 
-    async def keybox_info(do_invalidate=True):
+    def keybox_info(*, do_invalidate: bool = True) -> None:
+        """Show serials/validity for selected keybox in side-panel.
+
+        Args:
+            do_invalidate: `True` to call `app.invalidate()`
+
+        """
         nonlocal keybox_info_text
 
         keybox_info_text = (
@@ -159,15 +215,26 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             app.invalidate()
 
     def file_list() -> StyleAndTextTuples:
-        def handler(idx: int) -> Callable[[MouseEvent], Awaitable[None]]:
-            async def click(mouse_event: MouseEvent):
-                nonlocal selected_index
+        """Show the list of keybox files in the main panel.
 
-                if mouse_event.button == MouseButton.LEFT and mouse_event.event_type == MouseEventType.MOUSE_UP:
-                    selected_index = idx
-                    await app.create_background_task(keybox_info(False))
+        Returns:
+            List of keybox file rows
 
-            return click
+        """
+
+        def click(idx: int, mouse_event: MouseEvent) -> None:
+            """Click on a file, to select it and show its info in the side-panel.
+
+            Args:
+                idx: Which file did you click on?
+                mouse_event: `MouseEvent` - used to get which mouse button was pressed
+
+            """
+            nonlocal selected_index
+
+            if mouse_event.button == MouseButton.LEFT and mouse_event.event_type == MouseEventType.MOUSE_UP:
+                selected_index = idx
+                keybox_info(do_invalidate=False)
 
         rows: StyleAndTextTuples = []
         start = 0
@@ -182,7 +249,7 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                     (
                         'class:selected' if kb_idx == selected_index else '',
                         f'{"->" if kb_idx == selected_index else "  "} {kb_folder} / {kb_file.name}\n',
-                        handler(kb_idx),
+                        partial(click, kb_idx),
                     )
                 )
                 selectable_rows.append(cursor)
@@ -192,8 +259,21 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
 
         return rows
 
+    def move(delta: int) -> None:
+        """Move the `selected_index` (on the file-browser) up and down.
+
+        Args:
+            delta: How many positions (files) to move (positive for down, negative for up)
+
+        """
+        nonlocal selected_index
+
+        selected_index = (selected_index + delta) % len(keyboxes)
+        keybox_info(do_invalidate=False)
+
+    # Start the app and preload the panels with information
     if len(keyboxes) > 0:
-        app.create_background_task(keybox_info())
+        keybox_info()
 
     app.create_background_task(refresh_device())
 
@@ -202,50 +282,61 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             text=file_list,
             focusable=True,
             get_cursor_position=lambda: Point(0, selectable_rows[selected_index] if len(selectable_rows) > 0 else 0),
-            on_scroll=lambda delta: app.create_background_task(move(delta)),
+            on_scroll=move,
         )
     )
     preview = Window(FormattedTextControl(text=lambda: keybox_info_text, focusable=False))
 
+    # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
+    @Condition
+    def keybox_filter() -> bool:
+        return len(keyboxes) > 0
+
+    # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
+    @Condition
+    def device_attached() -> bool:
+        return is_android or device is not None
+
     continue_button = ConditionalContainer(
         Button(text='Continue', handler=lambda: app.exit(result=keyboxes[selected_index])),
-        Condition(lambda: is_android or device is not None),
+        device_attached,
         Button(text='No Device Found'),
     )
 
     device_info = Window(FormattedTextControl(text=lambda: device_info_text))
 
-    async def move(delta: int, evt_app: Application[Path | None] | None = None):
-        nonlocal selected_index
+    # Keyboard events
+    @kb.add(Keys.Up, filter=keybox_filter)
+    def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
+        move(-1)
 
-        selected_index = (selected_index + delta) % len(keyboxes)
-        await (evt_app if evt_app is not None else app).create_background_task(keybox_info(False))
+    @kb.add(Keys.Down, filter=keybox_filter)
+    def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
+        move(1)
 
-    @kb.add(Keys.Up, filter=Condition(lambda: len(keyboxes) > 0))
-    async def _(event: KeyPressEvent):
-        await move(-1, event.app)
-
-    @kb.add(Keys.Down, filter=Condition(lambda: len(keyboxes) > 0))
-    async def _(event: KeyPressEvent):
-        await move(1, event.app)
-
-    @kb.add(Keys.Enter, filter=Condition(lambda: is_android or device is not None))
-    def _(event: KeyPressEvent):
+    @kb.add(Keys.Enter, filter=device_attached)
+    def _(event: KeyPressEvent) -> None:
         if len(keyboxes) > 0:
             event.app.exit(result=keyboxes[selected_index])
 
-    async def do_download(evt_app: Application[Path | None] | None = None):
+    async def do_download(evt_app: Application[Path | None] | None = None) -> None:
+        """Run the `Download` modules from `action.py` and show progress in a dialog.
+
+        Args:
+            evt_app: The currently running `Application` (`None` to get automatically)
+
+        """
         nonlocal dialog_shown, dl_dialog
         my_app = evt_app if evt_app is not None else app
 
-        async def run():
+        async def run() -> None:
             nonlocal keyboxes, dialog_shown
 
             dialog_shown = 'progress'
             progress_bar = ProgressBar()
             completed: list[str] = []
 
-            async def update_progress(current: int, total: int, dl_complete: str):
+            async def update_progress(current: int, total: int, dl_complete: str) -> None:
                 progress_bar.percentage = (current * 100) // total
                 completed.append(dl_complete)
 
@@ -273,8 +364,14 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
             await asyncio.sleep(1)
 
             root_float.floats.pop()
-            keyboxes = list(folder.rglob('*.xml'))
-            await keybox_info(True)
+
+            # TODO: Make sure this works  # ruff: ignore[line-contains-todo]
+            # TODO: Replace `pathlib.Path` with `anyio.Path` everywhere # ruff: ignore[line-contains-todo]
+            keyboxes: list[Path] = []
+            async for keybox_file in AsyncPath(folder).rglob('*.xml'):
+                keyboxes.append(keybox_file)
+
+            keybox_info(do_invalidate=True)
             dialog_shown = False
 
         if can_run():
@@ -303,7 +400,13 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
                 force_run()
                 await my_app.create_background_task(run())
 
-    async def open_options(evt_app: Application[Path | None] | None = None):
+    async def open_options(evt_app: Application[Path | None] | None = None) -> None:
+        """Open the options dialog to set which `Downloader` modules are enabled.
+
+        Args:
+            evt_app: The currently running `Application` (`None` to get automatically)
+
+        """
         nonlocal dialog_shown, opts
         dialog_shown = 'options'
 
@@ -340,32 +443,32 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
         dialog_shown = False
 
     @kb.add('d')
-    async def _(event: KeyPressEvent):
+    async def _(event: KeyPressEvent) -> None:
         await do_download(event.app)
 
     @kb.add('o')
-    async def _(event: KeyPressEvent):
+    async def _(event: KeyPressEvent) -> None:
         await open_options(event.app)
 
     @kb.add(Keys.F5)
     @kb.add('r')
-    async def _(event: KeyPressEvent):
+    async def _(event: KeyPressEvent) -> None:
         await event.app.create_background_task(refresh_device(event.app))
 
     @kb.add('q')
-    def _(event: KeyPressEvent):
+    def _(event: KeyPressEvent) -> None:
         event.app.exit(result=None)
 
     @dl_kb.add('f')
-    def _(event: KeyPressEvent):
+    def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
         dl_dialog.finish('force')
 
     def status_handler(func: EventFunc) -> Callable[[MouseEvent], Awaitable[None]]:
-        async def click(mouse_event: MouseEvent):
+        async def click(mouse_event: MouseEvent) -> None:
             if (
                 mouse_event.button == MouseButton.LEFT
                 and mouse_event.event_type == MouseEventType.MOUSE_UP
-                and (not dialog_shown == 'progress')
+                and dialog_shown != 'progress'
             ):
                 result = func()
 
@@ -460,7 +563,15 @@ async def select_file(keyboxes: list[Path], ignore_empty=False) -> Path | None:
     return await app.run_async()
 
 
-def menu(context: AbstractAsyncContextManager, ignore_empty=False):
+def menu(context: AbstractAsyncContextManager, *, ignore_empty: bool = False) -> None:
+    """Launcher for the file-browser.
+
+    Args:
+        context: Context manager to open/close downloaders
+        ignore_empty: `True` to allow empty file list, `False` to quit on empty file list
+
+    """
+
     async def main_menu[T](main: Awaitable[T]) -> T:
         async with context:
             return await main
@@ -475,9 +586,16 @@ def menu(context: AbstractAsyncContextManager, ignore_empty=False):
 
         if is_android:
             install = ((root / f'scripts/{runner["android"]}').absolute(), selected.absolute())
-            subprocess.run(['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'], stdout=sys.stdout)
-
-            print('Keybox successfully installed')
+            try:
+                subprocess.run(  # ruff: ignore[subprocess-without-shell-equals-true]
+                    ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],  # ruff: ignore[start-process-with-partial-path]
+                    check=True,
+                    stdout=sys.stdout,
+                )
+            except subprocess.CalledProcessError as e:
+                sys.exit(str(e))
+            else:
+                print('Keybox successfully installed')
         elif adb is not None:
             try:
                 global device

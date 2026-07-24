@@ -4,6 +4,7 @@ version = "1.0.0"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = "~=3.14.0"
 dependencies = [
+    "anyio>=4.14.2",
     "asyncstdlib>=3.14.0",
     "beautifulsoup4>=4.15.0",
     "cloudscraper>=1.2.71",
@@ -66,10 +67,18 @@ ignore = [
     "TD002",
     "TD003",
     "G004",
+    "PLW0603",
+    "T201",
+    # I should probably simplify `select_file()` at some point
+    "PLR0914",
+    "PLR0915",
+    "PLW0717",
+    "C901",
     # Allow `xml.etree.ElementTree`
     "S405",
     "S314",
-    "PLW0603",
+    # Allow `subprocess`
+    "S404",
 ]
 
 [tool.ruff.format]
