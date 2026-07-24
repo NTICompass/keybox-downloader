@@ -446,7 +446,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "cloudscraper", specifier = ">=1.2.71" },
     { name = "cryptography", marker = "extra == 'pc'", specifier = ">=49.0.0" },
-    { name = "httpx2", extras = ["brotli", "http2", "zstd"], specifier = "==2.9.1" },
+    { name = "httpx2", extras = ["brotli", "http2", "zstd"], specifier = ">=2.9.1" },
     { name = "imageio", marker = "extra == 'build'", specifier = ">=2.37.4" },
     { name = "nuitka", extras = ["app"], marker = "extra == 'build'", git = "https://github.com/Nuitka/Nuitka.git?rev=develop" },
     { name = "pillow", marker = "extra == 'build'", specifier = ">=12.2.0" },
