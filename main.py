@@ -4,7 +4,9 @@
 """Keybox-Downloader main launcher."""
 
 import sys
-from pathlib import Path
+from pathlib import Path as SysPath
+
+from anyio import Path
 
 # https://nuitka.net/user-documentation/common-issue-solutions.html#onefile-finding-files
 is_nuitka = '__compiled__' in globals()
@@ -16,7 +18,7 @@ is_pyinstaller = getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 root = (
     Path(sys._MEIPASS)  # ruff: ignore[private-member-access]
     if is_pyinstaller
-    else Path(__file__).resolve().parent
+    else Path(SysPath(__file__).resolve().parent)
 )
 
 # `exe_root` is where the program was run from, where "keyboxes" and such go

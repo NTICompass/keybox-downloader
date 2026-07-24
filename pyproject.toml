@@ -67,8 +67,10 @@ ignore = [
     "missing-todo-author",
     "missing-todo-link",
     "logging-f-string",
+    "logging-string-format",
     "global-statement",
     "print",
+    "too-many-nested-blocks",
     # I should probably simplify `select_file()` at some point
     "too-many-locals",
     "too-many-statements",

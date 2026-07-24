@@ -16,7 +16,6 @@ from time import time
 from typing import TYPE_CHECKING, ClassVar, Literal, Self, final
 from xml.etree.ElementTree import Element, ElementTree, ParseError
 
-from anyio import Path
 from cryptography import x509
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,10 +23,9 @@ import __main__
 from cache_data import Manifest
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
     from zipfile import Path as ZipPath
 
-    from anyio import AsyncFile
+    from anyio import Path
     from cryptography.x509.base import Certificate
     from httpx2 import AsyncClient
 
@@ -47,7 +45,7 @@ class KeyboxMetadata:
 
     file_idx: int = 0
     source: str = ''
-    original: Path | ZipPath | None = None
+    original: PathLike | ZipPath | None = None
 
     @property
     def name(self) -> str:
@@ -101,7 +99,7 @@ class Keybox:
     revoked: ClassVar[set[str]]
     status_list: ClassVar[AttestationList]
 
-    _root: ClassVar[Path] = Path(__main__.exe_root)
+    _root: ClassVar[Path] = __main__.exe_root
     _cache_folder: ClassVar[Path] = _root / 'cache'
     _cached: ClassVar[Path] = _cache_folder / 'attestation.json'
 
