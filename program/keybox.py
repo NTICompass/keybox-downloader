@@ -11,11 +11,12 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum, auto
 from io import IOBase
 from logging import Logger
-from pathlib import Path
+from os import PathLike
 from time import time
 from typing import TYPE_CHECKING, ClassVar, Literal, Self, final
 from xml.etree.ElementTree import Element, ElementTree, ParseError
 
+from anyio import Path
 from cryptography import x509
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,8 +24,10 @@ import __main__
 from cache_data import Manifest
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
     from zipfile import Path as ZipPath
 
+    from anyio import AsyncFile
     from cryptography.x509.base import Certificate
     from httpx2 import AsyncClient
 
@@ -98,7 +101,7 @@ class Keybox:
     revoked: ClassVar[set[str]]
     status_list: ClassVar[AttestationList]
 
-    _root: ClassVar[Path] = __main__.exe_root
+    _root: ClassVar[Path] = Path(__main__.exe_root)
     _cache_folder: ClassVar[Path] = _root / 'cache'
     _cached: ClassVar[Path] = _cache_folder / 'attestation.json'
 
@@ -106,7 +109,7 @@ class Keybox:
     _AOSP_CERTS: ClassVar[Counter[int]] = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
     def __init__(
-        self, keybox_data: Element | Path | IOBase | str | bytes, metadata: KeyboxMetadata | None = None
+        self, keybox_data: Element | PathLike | IOBase | str | bytes, metadata: KeyboxMetadata | None = None
     ) -> None:
         """Wrap a keybox.xml file.
 
@@ -120,7 +123,7 @@ class Keybox:
         """
         if isinstance(keybox_data, Element):
             self.root = keybox_data
-        elif isinstance(keybox_data, (Path, IOBase)):
+        elif isinstance(keybox_data, (PathLike, IOBase)):
             self.root = ET.parse(keybox_data).getroot()
         elif isinstance(keybox_data, (str, bytes)):
             try:
@@ -155,12 +158,12 @@ class Keybox:
             dl: The `AsyncClient` from `httpx2`
 
         """
-        cls._cache_folder.mkdir(exist_ok=True)
-        cls._cached.touch(exist_ok=True)
+        await cls._cache_folder.mkdir(exist_ok=True)
+        await cls._cached.touch(exist_ok=True)
 
-        with Path(cls._cached).open('r+') as cached_status:
+        async with await cls._cached.open('r+', encoding='utf-8') as cached_status:
             manifest = Manifest()
-            cache_json = cached_status.read()
+            cache_json = await cached_status.read()
             do_download = len(cache_json) == 0
 
             if not do_download and manifest.attestation_date >= 0:
@@ -175,9 +178,9 @@ class Keybox:
                 data = await dl.get(cls._URL)
                 cls.status_list = AttestationList.model_validate(data.json())
 
-                cached_status.seek(0)
-                cached_status.truncate()
-                cached_status.write(cls.status_list.model_dump_json())
+                await cached_status.seek(0)
+                await cached_status.truncate()
+                await cached_status.write(cls.status_list.model_dump_json())
 
                 manifest.attestation_date = datetime.now(tz=local_tz).timestamp()
 
