@@ -168,6 +168,9 @@ class Downloader(ABC):
     async def run(self) -> AsyncIterator[Keybox | None]:
         """Run the downloader.
 
+        Renamed to `run()` from `__call__()` due to PyCharm bug:
+        https://youtrack.jetbrains.com/issue/PY-89873
+
         Yields:
             `Keybox` or `None`
 
