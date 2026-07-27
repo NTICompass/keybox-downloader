@@ -9,7 +9,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "cloudscraper>=1.2.71",
     "httpx2[brotli,http2,zstd]>=2.9.1",
-    "prompt-toolkit>=3.0.52",
+    "prompt-toolkit>=3.0.53",
     # On Android, I have a pre-built wheel of `pydantic-core==2.41.5` (for `pydantic==2.12.5`)
     "pydantic==2.12.5; platform_system == 'Android'",
     "pydantic>=2.13.4, <2.14.0a1; platform_system != 'Android'", # Don't install "alpha" version
@@ -17,7 +17,7 @@ dependencies = [
     "pydantic-core>=2.46.4, <2.47.0; platform_system != 'Android'", # 2.47.0 is for pydantic 2.14.0a1
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
-    "tqdm>=4.69.1",
+    "tqdm>=4.70.0",
 ]
 
 [project.optional-dependencies]
