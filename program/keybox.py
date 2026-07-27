@@ -13,7 +13,7 @@ from io import IOBase
 from logging import Logger
 from os import PathLike
 from time import time
-from typing import TYPE_CHECKING, ClassVar, Literal, Self, final
+from typing import TYPE_CHECKING, ClassVar, Literal, Protocol, Self, final
 from xml.etree.ElementTree import Element, ElementTree, ParseError
 
 from cryptography import x509
@@ -39,13 +39,24 @@ class KeyType(StrEnum):
     AOSP = auto()
 
 
+class KeyboxPath(PathLike[str], Protocol):
+    """A `PathLike` that also has a `.stem` property.
+
+    Could probably be either `pathlib.Path` or `anyio.Path`.
+
+    """
+
+    @property
+    def stem(self) -> str: ...  # ruff: ignore[undocumented-public-method]
+
+
 @dataclass
 class KeyboxMetadata:
     """Information about each `Keybox`, including its source."""
 
     file_idx: int = 0
     source: str = ''
-    original: PathLike | ZipPath | None = None
+    original: KeyboxPath | ZipPath | None = None
 
     @property
     def name(self) -> str:
@@ -229,7 +240,9 @@ class Keybox:
         rsa_certs = self.root.findall('.//Key[@algorithm="rsa"]/CertificateChain/Certificate')
 
         self._cert_counts = (len(ec_certs), len(rsa_certs))
-        self.logger.info(f'Found {self._cert_counts[0]} EC and {self._cert_counts[1]} RSA certs for "{self.device_id}"')
+        self.logger.info(
+            f'Found {self._cert_counts[0]} EC and {self._cert_counts[1]} RSA certs for "{self.device_id or "DeviceID"}"'
+        )
 
         try:
             self._cert_data = x509.load_pem_x509_certificates(
