@@ -28,8 +28,7 @@ Also: https://t.me/meetstrong/132
 > Public RKA Server is determined to close on June 21, 2026
 > No new tokens will be issued.
 
-Is that `rp.mhmrdd.me` or another server? How can I set up my own server?
-Is this at all legit?
+Is that `rp.mhmrdd.me` or another server? How can I set up my own server? Is this at all legit?
 
 ---
 
@@ -38,8 +37,8 @@ New "page" for IntegrityBox:  https://integritybox2.vercel.app/
 No keybox download, just links to Telegram: https://t.me/s/IntegrityBox
 
 ---
-How can I download files from Telegram? They have an API, but then I'd need to make an account.
-Maybe use something like telegram@totallysecure.email?
+How can I download files from Telegram? They have an API, but then I'd need to make an account. Maybe use something like
+telegram@totallysecure.email?
 
 Use: https://codeberg.org/Lonami/Telethon
 
@@ -64,8 +63,7 @@ This lets you get "device" integrity, is that good enough?
 
 ---
 In https://github.com/FBIVIP/Play-IntegrityFix/releases, there is no longer just a `keybox.xml` (well, there is, but
-it's an AOSP keybox).
-What there is... is 3 ELF files:
+it's an AOSP keybox). What there is... is 3 ELF files:
 
 - fateh7_enc_armv7
 - libs/arm64-v8a/inject
@@ -73,8 +71,8 @@ What there is... is 3 ELF files:
 
 What are these doing?
 
-It's not generating a keybox, is it? The module purposely removes Tricky Store and
-PlayIntegrityFork, so what could it be doing?
+It's not generating a keybox, is it? The module purposely removes Tricky Store and PlayIntegrityFork, so what could it
+be doing?
 
 I think `inject` does something with the built-in keystore and `keymint` may create a key, but's just gonna be
 self-signed.
@@ -84,8 +82,8 @@ That could be this: https://github.com/qwq233/OhMyKeymint
 
 The `injector.toml` file matches the one in that repo.
 
-So yeah, it seems the "Play-IntegrityFix" modules just re-packages "OhMyKeymint" and assumes that's good enough.
-Yep, even the `README.md` is exactly the same, except they _tried_ to replace the names.
+So yeah, it seems the "Play-IntegrityFix" modules just re-packages "OhMyKeymint" and assumes that's good enough. Yep,
+even the `README.md` is exactly the same, except they _tried_ to replace the names.
 
 It's just "OhMyKeymint" with a sketchy `fateh7_enc_armv7` ELF added as well as `autopif4.sh` from PlayIntregityFork.
 
@@ -110,12 +108,11 @@ Even more info about "OhMyKeymint" from Citra (https://t.me/s/citraintegritytric
 I found a "fork" of the "original" YuriKey called "Specter":
 https://github.com/dpejoh/specter
 
-Need to figure out where this gets its keyboxes from, it wants a file called `kb_provider.val`.
-Or it falls back to `$CATALOG_URL`, which is in `https://github.com/dpejoh/specter/blob/main/src/lib/urls.sh`
+Need to figure out where this gets its keyboxes from, it wants a file called `kb_provider.val`. Or it falls back to
+`$CATALOG_URL`, which is in `https://github.com/dpejoh/specter/blob/main/src/lib/urls.sh`
 
 ---
-Can I release this tool to the public?
-If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
+Can I release this tool to the public? If so, make an `.exe` using [PyInstaller](https://pyinstaller.org/en/stable/).
 
 ```
 pyinstaller.exe --copy-metadata keybox-downloader --add-data "scripts:scripts" --onefile --noupx .\main.py
@@ -132,8 +129,7 @@ I also need to include the following libs from termux:
 Then you can run with:
 `LD_LIBRARY_PATH=$PWD ./main`
 
-This works over `adb shell`, but not in Termius. It works in Termux.
-What other local terminal emulators could I try?
+This works over `adb shell`, but not in Termius. It works in Termux. What other local terminal emulators could I try?
 
 ---
 With `uv`: `uv sync`
@@ -157,7 +153,7 @@ Needs `pyinstaller --copy-metadata` during build.
 Also needs `uv pip install -e .`
 
 ---
-Try https://nuitka.net/ instead of PyInstaller?
+Try https://nuitka.net/ instead of PyInstaller? Or [`cx_freeze`](https://cx-freeze.readthedocs.io)?
 
 `python -m nuitka --include-distribution-metadata=keybox-downloader --mode=onefile --include-data-dir=scripts=scripts main.py`
 (or `--mode=standalone --follow-imports`)
