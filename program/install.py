@@ -9,6 +9,7 @@ from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
 from contextlib import suppress
 from functools import partial
 from itertools import groupby
+from pathlib import Path as SysPath
 from typing import TYPE_CHECKING, Literal
 
 from anyio import Path
@@ -595,10 +596,10 @@ async def main_menu(*, ignore_empty: bool = False) -> None:
 
                 if device is not None:
                     # Copy the selected keybox to the tmp folder
-                    device.sync.push(selected, key_file)
+                    device.sync.push(SysPath(selected), key_file)
 
                     # Also copy the installer script
-                    device.sync.push(root / f'scripts/{runner["pc"]}', f'{tmp_folder}/{runner["pc"]}')
+                    device.sync.push(SysPath(root / f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}')
 
                     # Run the main installer script
                     with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
