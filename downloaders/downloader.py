@@ -314,7 +314,7 @@ class Downloader(ABC):
         return files
 
     @final
-    def get_var_from_shell(self, script: str | bytes, var: list[str]) -> dict[str, str]:  # ruff: ignore[no-self-use]
+    def get_var_from_shell[K: str](self, script: str | bytes, var: list[K]) -> dict[K, str]:  # ruff: ignore[no-self-use]
         """Extract values from a Unix shell script (like `ABC="xyz"`).
 
         Args:
