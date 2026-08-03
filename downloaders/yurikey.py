@@ -18,7 +18,7 @@ class YuriKey(Downloader):
     https://t.me/s/yuriservice
 
     GitHub:
-    https://Yurii0307/yurikey
+    https://github.com/Yurii0307/yurikey
     """
 
     DESCRIPTION = 'YuriKey module (Yurii0307 @ GitHub)'
