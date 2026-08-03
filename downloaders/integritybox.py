@@ -6,7 +6,6 @@
 import re
 from base64 import b64decode
 from codecs import decode
-from collections import deque
 from typing import TYPE_CHECKING, final, override
 
 from program.keybox import Keybox, KeyboxError, KeyboxMetadata
