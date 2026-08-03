@@ -261,7 +261,7 @@ class Downloader(ABC):
             return None
 
         for release in releases.assets:
-            if release.content_type == 'application/zip':
+            if release.content_type in {'application/zip', 'application/x-zip-compressed'}:
                 self.logger.info(f'Downloading {release.name}')
 
                 orig_headers = self.extra_headers
