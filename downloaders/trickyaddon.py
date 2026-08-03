@@ -17,7 +17,7 @@ class TrickyAddon(Downloader):
     https://t.me/s/kowchannel
 
     GitHub:
-    https://github.com/MeowDump/Integrity-Box
+    https://github.com/KOWX712/Tricky-Addon-Update-Target-List
     """
 
     DESCRIPTION = 'Tricky Addon - Update Target List module (KOWX712 @ GitHub)'
