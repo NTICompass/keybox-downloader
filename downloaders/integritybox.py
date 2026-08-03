@@ -29,40 +29,14 @@ class IntegrityBox(Downloader):
     """
 
     DESCRIPTION = 'IntegrityBox module (Mona/MEOWna @ GitHub)'
+    URL = 'github-api:MeowDump/Integrity-Box'
 
     @override
     def __init__(self) -> None:
         super().__init__()
+
         self.junk: tuple[str, ...] | None = None
-
-        self.URLS = [
-            # Key + Cleanup Scripts
-            'github-api:MeowDump/Integrity-Box',
-            # Cleanup Script (for extra)
-            'github:MeowDump/Integrity-Box::webroot/common_scripts/cleanup.sh',
-            # Extra Keybox(es)
-            'github:MeowDump/MeowDump::NullVoid/OptimusPrime',
-            # https://integritybox.vercel.app/
-            'github:freekeybox/mona::meow.tar',
-        ]
-
-        self.extra_headers = self.__get_headers()
-
-    async def __get_headers(self) -> list[dict[str, str]] | None:
-        """Set the headers to use a set GitHub token for the API request.
-
-        Returns:
-            The `Authorization` header if the token is set
-
-        """
-        github_token = await Downloader.get_github_token()
-
-        if github_token:
-            extra_headers = [{} for _ in self.URLS]
-            extra_headers[0].update(github_token)
-
-            return extra_headers
-        return None
+        self.extra_headers = Downloader.get_github_token()
 
     def _get_keybox_url(self, keybox_script: str | bytes) -> str:
         """Extract keybox URL from module's shell scripts.
@@ -74,56 +48,35 @@ class IntegrityBox(Downloader):
             Keybox download URL
 
         """
-        keybox_vars = self.get_var_from_shell(keybox_script, ['I', 'J', 'K', 'LOL'])
-        return b64decode(keybox_vars['I'] + keybox_vars['J'] + keybox_vars['K'] + keybox_vars['LOL']).decode('ascii')
+        keybox_url = self.get_var_from_shell(keybox_script, ['KEYBOX_URL'])
+        return keybox_url['KEYBOX_URL']
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[Keybox | None]:
         self.logger.info('Downloading keybox scripts')
 
-        # The module download and the code in the `main` branch on the repo are slightly different
-        download_urls: list[str] = []
-        junk_data: deque[tuple[str, ...] | None] = deque()
-
         zip_dl = await self.get_latest_github_release(await anext(downloaded))
+        self.extra_headers = None
+
         if zip_dl is not None:
             keybox_script, cleanup_script = self.unzip_files(
                 zip_dl, ['webroot/common_scripts/key.sh', 'webroot/common_scripts/cleanup.sh']
             )
+
             junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
+            self.junk = tuple(junk_vars['X'].split(','))
 
-            download_urls.append(self._get_keybox_url(keybox_script))
-            junk_data.append(tuple(junk_vars['X'].split(',')))
+            # Download / decode the keybox
+            keybox = self.decode((await self.client.get(self._get_keybox_url(keybox_script))).text)
 
-        # Also download the keybox from the webapp, which is probably the same
-        cleanup_script, encoded_keybox, web_keybox = [data async for data in downloaded]
-
-        junk_vars = self.get_var_from_shell(cleanup_script, ['X'])
-        junk_data.append(tuple(junk_vars['X'].split(',')))
-
-        keyboxes: list[str | bytes | None] = [web_keybox]
-
-        # Decode the keyboxes
-        for encoded in (*[(await self.client.get(dl)).text for dl in download_urls], encoded_keybox):
-            self.junk = junk_data.popleft()
-            keyboxes.append(self.decode(encoded))
-
-        # Output keyboxes as XML
-        for idx, keybox in enumerate(keyboxes):
-            if keybox is None:
+            # Output keybox as XML
+            try:
+                yield Keybox(keybox, KeyboxMetadata(source=type(self).__name__))
+            except KeyboxError as e:
+                self.logger.info(str(e))
                 yield None
-            else:
-                try:
-                    kb = Keybox(keybox, KeyboxMetadata(source=type(self).__name__, file_idx=idx))
-
-                    keybox_id = kb.device_id
-                    if keybox_id is not None:
-                        kb.device_id = f'{keybox_id} {idx + 1:d}'
-
-                    yield kb
-                except KeyboxError as e:
-                    self.logger.info(str(e))
-                    yield None
+        else:
+            yield None
 
     @override
     def decode(self, encoded: str) -> str:
