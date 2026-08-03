@@ -72,7 +72,7 @@ class Specter(Downloader):
     https://github.com/dpejoh/specter/
 
     Docs:
-    https://specter.dpejoh.com/reference/config.html#urls
+    https://specter.dpejoh.com/reference/config#urls
     """
 
     DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
