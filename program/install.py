@@ -10,7 +10,7 @@ from contextlib import suppress
 from functools import partial
 from itertools import groupby
 from pathlib import Path as SysPath
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Protocol
 
 from anyio import Path
 from prompt_toolkit.application import Application, get_app
@@ -68,12 +68,11 @@ current_keybox: Keybox | None = None
 files: dict[str, Keybox] = {}
 overrides: Overrides[type[Downloader]] = Overrides()
 
-type EventFunc = (
-    Callable[[Application[Path | None]], None]
-    | Callable[[], None]
-    | Callable[[Application[Path | None]], Awaitable[None]]
-    | Callable[[], Awaitable[None]]
-)
+
+class EventFunc(Protocol):
+    """Callback to be run on key press or mouse click."""
+
+    def __call__(self, evt_app: Application[Path | None] | None = None) -> Awaitable[None] | None: ...  # ruff: ignore[undocumented-public-method]
 
 
 async def get_prop(prop: str | None = None) -> str:
@@ -469,16 +468,19 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
             ):
                 result = func()
 
-                if asyncio.iscoroutine(result):
+                if result is not None:
                     await result
 
         return click
 
-    status_keys: dict[str, tuple[str, EventFunc]] = {
+    status_keys: dict[Literal['d', 'r', 'o', 'q'], tuple[str, EventFunc]] = {
         'd': ('Run downloaders', do_download),
-        'r': ('Reload / Re-scan devices', lambda: app.create_background_task(refresh_device())),
+        'r': (
+            'Reload / Re-scan devices',
+            lambda evt_app=None: (evt_app if evt_app is not None else app).create_background_task(refresh_device()),
+        ),
         'o': ('Options', open_options),
-        'q': ('Quit', lambda: app.exit(result=None)),
+        'q': ('Quit', lambda evt_app=None: (evt_app if evt_app is not None else app).exit(result=None)),
     }
 
     status_bar = Window(
