@@ -12,6 +12,8 @@ from itertools import groupby
 from pathlib import Path as SysPath
 from typing import TYPE_CHECKING, Literal, Protocol
 
+import anyio
+import anyio.lowlevel
 from anyio import Path
 from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.data_structures import Point
@@ -344,7 +346,9 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
 
                 # Both lines below are needed to actually draw the progress bar updates
                 my_app.invalidate()
-                await asyncio.sleep(0)
+
+                # https://docs.astral.sh/ruff/rules/async-zero-sleep/
+                await anyio.lowlevel.checkpoint()
 
             root_float.floats.append(
                 Float(
@@ -363,7 +367,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
             progress_bar.percentage = 0
             my_app.invalidate()
             await action(*Action.get_downloaders(), progress=update_progress)
-            await asyncio.sleep(1)
+            await anyio.sleep(1)
 
             root_float.floats.pop()
 
