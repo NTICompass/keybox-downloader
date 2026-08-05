@@ -17,9 +17,7 @@ class Waitable[T]:
     _event: Event
     _result: T | None = None
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        """Automatically set `self._event`, so classes don't have to."""
-        super().__init__(*args, **kwargs)
+    def _init_waitable(self) -> None:
         self._event = Event()
 
     def finish(self, result: T | None) -> None:

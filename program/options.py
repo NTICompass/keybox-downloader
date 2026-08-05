@@ -47,8 +47,7 @@ class Options[T = type[Downloader]](Waitable[list[T]]):
             is_android: Use a different layout when running on a phone (portrait mode).
 
         """
-        super().__init__()
-
+        self._init_waitable()
         kb = KeyBindings()
 
         self.__checkboxes = CheckboxSelected[T](
