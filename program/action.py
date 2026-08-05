@@ -41,16 +41,6 @@ async def make_folders() -> None:
         await (path / key_type).mkdir()
 
 
-def get_downloaders() -> list[Downloader]:
-    """Collect the enabled `Downloader` modules to run.
-
-    Returns:
-        List of `Downloader` objects
-
-    """
-    return [cls() for cls in Downloader.enabled]
-
-
 async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
     """Coroutine to run the `Downloader` and get its keybox files.
 
@@ -84,7 +74,16 @@ class Action:
     log_path = root / 'logs'
     backup_path = root / 'backups'
     local_tz = datetime.now(UTC).astimezone().tzinfo
-    get_downloaders: Callable[[], list[Downloader]]
+
+    @staticmethod
+    def get_downloaders() -> list[Downloader]:
+        """Collect the enabled `Downloader` modules to run.
+
+        Returns:
+            List of `Downloader` objects
+
+        """
+        return [cls() for cls in Downloader.enabled]
 
     def can_run(self) -> bool:
         """Return whether the downloaders can be run.
@@ -175,6 +174,3 @@ class Action:
             logger.info(groups)
 
             self.manifest.last_checked = datetime.now(tz=self.local_tz).timestamp()
-
-
-Action.get_downloaders = lambda _self: get_downloaders()

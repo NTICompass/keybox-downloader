@@ -49,7 +49,7 @@ if __name__ == '__main__':
         async with Downloader.start():
             if args.download:
                 action = Action()
-                await action(*action.get_downloaders())
+                await action(*Action.get_downloaders())
             elif args.install:
                 await main_menu()
             else:

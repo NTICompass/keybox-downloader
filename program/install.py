@@ -362,7 +362,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
 
             progress_bar.percentage = 0
             my_app.invalidate()
-            await action(*action.get_downloaders(), progress=update_progress)
+            await action(*Action.get_downloaders(), progress=update_progress)
             await asyncio.sleep(1)
 
             root_float.floats.pop()
