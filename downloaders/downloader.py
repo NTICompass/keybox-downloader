@@ -10,11 +10,13 @@ import os
 import re
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from functools import partial
 from io import BytesIO
 from typing import TYPE_CHECKING, ClassVar, Literal, Self, final, overload
 from zipfile import Path as ZipPath
 from zipfile import ZipFile
 
+import anyio.to_thread
 from asyncstdlib import enumerate as a_enumerate
 from cloudscraper import CloudScraper
 from dotenv import load_dotenv
@@ -389,7 +391,7 @@ class Downloader(ABC):
         """
         for r in await asyncio.gather(
             *[
-                asyncio.to_thread(self.cloudflare_client.get, dl, headers=await self._get_headers(idx))
+                anyio.to_thread.run_sync(partial(self.cloudflare_client.get, headers=await self._get_headers(idx)), dl)
                 for idx, dl in enumerate(download)
             ]
         ):
