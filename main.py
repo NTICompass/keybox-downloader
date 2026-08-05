@@ -29,8 +29,7 @@ import argparse
 
 import anyio
 
-from program import Action
-from program.install import main_menu
+from program import Action, main_menu
 
 # ruff: enable[module-import-not-at-top-of-file]
 

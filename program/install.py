@@ -28,10 +28,10 @@ from prompt_toolkit.widgets import Box, Button, Dialog, Frame, ProgressBar
 import __main__
 from cache_data import Overrides
 from downloaders import Downloader
-from program.keybox import Keybox
 
 from . import Action
 from .dialog import AwaitableDialog
+from .keybox import Keybox
 from .options import Options
 from .scrollable import ScrollableTextControl
 

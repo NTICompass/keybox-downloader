@@ -4,5 +4,6 @@
 """Module containing the files needed to run the main application."""
 
 from .action import Action
+from .install import main_menu
 
-__all__ = ['Action']
+__all__ = ['Action', 'main_menu']
