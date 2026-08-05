@@ -3,7 +3,6 @@
 
 """Downloader base class, does all the work and makes adding new download modules easy."""
 
-import asyncio
 import inspect
 import logging
 import os
@@ -26,6 +25,7 @@ from pydantic import BaseModel, ConfigDict
 
 import __main__
 from cache_data import Overrides
+from program.helpers import gather
 from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 if TYPE_CHECKING:
@@ -365,12 +365,12 @@ class Downloader(ABC):
             The `Response` from each download, in order
 
         """
-        for r in await asyncio.gather(
-            *[
-                self.client.get(get_download_url(dl), headers=await self._get_headers(idx))
-                for idx, dl in enumerate(download)
-            ]
-        ):
+        tasks = [
+            self.client.get(get_download_url(dl), headers=await self._get_headers(idx))
+            for idx, dl in enumerate(download)
+        ]
+
+        for r in await gather(*tasks):
             try:
                 r.raise_for_status()
             except HTTPStatusError as exc:
@@ -389,12 +389,12 @@ class Downloader(ABC):
             The `Response` from each download, in order
 
         """
-        for r in await asyncio.gather(
-            *[
-                anyio.to_thread.run_sync(partial(self.cloudflare_client.get, headers=await self._get_headers(idx)), dl)
-                for idx, dl in enumerate(download)
-            ]
-        ):
+        tasks: list[Awaitable[CloudflareResponse]] = [
+            anyio.to_thread.run_sync(partial(self.cloudflare_client.get, headers=await self._get_headers(idx)), dl)
+            for idx, dl in enumerate(download)
+        ]
+
+        for r in await gather(*tasks):
             self.logger.info(f'Downloaded {r.url} via "CloudScraper"')
             yield r
 

@@ -3,7 +3,6 @@
 
 """The main `prompt_toolkit` menu and the keybox installer."""
 
-import asyncio
 import sys
 from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
 from contextlib import suppress
@@ -33,6 +32,7 @@ from downloaders import Downloader
 
 from . import Action
 from .dialog import AwaitableDialog
+from .helpers import gather
 from .keybox import Keybox
 from .options import Options
 from .scrollable import ScrollableTextControl
@@ -114,7 +114,7 @@ async def get_device() -> str:
     if is_android:
         return await get_prop('ro.system.build.fingerprint')
 
-    manufacturer, fingerprint = await asyncio.gather(
+    manufacturer, fingerprint = await gather(
         get_prop('ro.product.manufacturer'), get_prop('ro.system.build.fingerprint')
     )
     props = '\n'.join(
@@ -583,7 +583,7 @@ async def main_menu(*, ignore_empty: bool = False) -> None:
         selected = folder / selected_file
 
         if is_android:
-            install = await asyncio.gather((root / f'scripts/{runner["android"]}').absolute(), selected.absolute())
+            install = await gather((root / f'scripts/{runner["android"]}').absolute(), selected.absolute())
             try:
                 await run_process(
                     ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],

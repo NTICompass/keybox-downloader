@@ -3,9 +3,7 @@
 
 """Class to gather the enabled `Downloader` modules and run them."""
 
-import asyncio
 import logging
-from asyncio import Future
 from datetime import UTC, datetime, timedelta
 from shutil import make_archive, rmtree
 from time import time
@@ -19,11 +17,11 @@ import __main__
 from cache_data import Manifest
 from downloaders import Downloader
 
+from .helpers import as_completed
 from .keybox import Keybox, KeyType
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Iterable, Iterator
-
+    from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
 
 root: Path = __main__.exe_root
 path = root / 'keyboxes'
@@ -149,14 +147,18 @@ class Action:
             await Keybox.init_attestation(Downloader.client)
             keyboxes: list[Keybox] = []
 
-            def as_completed[T](fs: Iterable[Awaitable[T]]) -> Iterator[Future[T]]:
-                func = tqdm_asyncio.as_completed if progress is None else asyncio.as_completed
-                yield from func(fs)
+            async def _as_completed[T](fs: Iterable[Awaitable[T]]) -> AsyncIterable[Awaitable[T]]:
+                if progress is None:
+                    for value in tqdm_asyncio.as_completed(fs):
+                        yield value
+                else:
+                    async for value in as_completed(fs):
+                        yield value
 
             tasks = [run(dl) for dl in downloaders]
             total = len(tasks)
 
-            for idx, task in enumerate(as_completed(tasks), start=1):
+            async for idx, task in a_enumerate(_as_completed(tasks), start=1):
                 dl_info, dl_complete = await task
                 dl_count = 0
 
