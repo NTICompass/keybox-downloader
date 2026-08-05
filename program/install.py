@@ -419,7 +419,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
             my_app.layout.focus(opts.dialog)
         my_app.invalidate()
 
-        enabled = await opts.future
+        enabled = await opts
 
         if enabled is not None:
             dl_selected = set(enabled)

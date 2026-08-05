@@ -3,17 +3,19 @@
 
 """Application options, right now just toggles the enabled `Downloader` modules."""
 
-from asyncio import Future, get_running_loop
 from importlib.metadata import version
 from operator import itemgetter
 from typing import ClassVar
 
+import anyio
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout.containers import HSplit, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.widgets import Box, Button, CheckboxList, Dialog, Frame
 
 from downloaders import Downloader
+
+from .waitable import Waitable
 
 
 class CheckboxSelected[T](CheckboxList[T]):
@@ -30,14 +32,13 @@ class CheckboxSelected[T](CheckboxList[T]):
         return self.values[self._selected_index][0]
 
 
-class Options:
+class Options[T = type[Downloader]](Waitable[list[T] | None]):
     """Open a `Dialog` and let you select which `Downloader` modules you want to run."""
 
     APP_VERSION: ClassVar[str] = version('keybox-downloader')
 
-    future: Future[list[type[Downloader]] | None]
     dialog: Dialog
-    __checkboxes: CheckboxSelected[type[Downloader]]
+    __checkboxes: CheckboxSelected[T]
 
     def __init__(self, *, is_android: bool) -> None:
         """Initialize the `dialog`/`future` for the `Options` dialog.
@@ -46,10 +47,10 @@ class Options:
             is_android: Use a different layout when running on a phone (portrait mode).
 
         """
-        self.future = get_running_loop().create_future()
+        self._event = anyio.Event()
         kb = KeyBindings()
 
-        self.__checkboxes = CheckboxSelected[type[Downloader]](
+        self.__checkboxes = CheckboxSelected[T](
             values=sorted([(dl, dl.__name__) for dl in Downloader.enabled | Downloader.disabled], key=itemgetter(1)),
             default_values=tuple(Downloader.enabled),
         )
@@ -90,7 +91,7 @@ class Options:
         )
 
     def __save(self) -> None:
-        self.future.set_result(self.__checkboxes.current_values)
+        self.finish(self.__checkboxes.current_values)
 
     def __cancel(self) -> None:
-        self.future.set_result(None)
+        self.finish(None)
