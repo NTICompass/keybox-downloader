@@ -21,7 +21,7 @@ class Waitable[T]:
         self._event = Event()
 
     def finish(self, result: T | None) -> None:
-        """Mark the Event as set (the equivalent of `future.set_result`)."""
+        """Mark the Event as set (the equivalent of `future.set_result()`)."""
         if not self._event.is_set():
             self._result = result
             self._event.set()
@@ -37,7 +37,7 @@ class Waitable[T]:
         return self._result
 
     def __await__(self) -> Generator[Any, None, T | None]:
-        """Lets you just `await obj` instead of `await future`.
+        """Lets you just `await obj` instead of `await obj.wait()`.
 
         Returns:
             The value set by the `finish()` method
