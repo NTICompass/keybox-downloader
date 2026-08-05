@@ -30,7 +30,7 @@ from cache_data import Overrides
 from downloaders import Downloader
 from program.keybox import Keybox
 
-from .action import can_run, force_run, get_downloaders, go
+from . import Action
 from .dialog import AwaitableDialog
 from .options import Options
 from .scrollable import ScrollableTextControl
@@ -175,6 +175,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
     dialog_shown: Literal[False, 'options', 'download', 'progress'] = False
     dl_dialog: AwaitableDialog[Literal['force']]
 
+    action = Action()
     app: Application[Path | None] = get_app()
     kb = KeyBindings()
     dl_kb = KeyBindings()
@@ -361,7 +362,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
 
             progress_bar.percentage = 0
             my_app.invalidate()
-            await go(*get_downloaders(), progress=update_progress)
+            await action(*action.get_downloaders(), progress=update_progress)
             await asyncio.sleep(1)
 
             root_float.floats.pop()
@@ -370,7 +371,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
             keybox_info(do_invalidate=True)
             dialog_shown = False
 
-        if can_run():
+        if action.can_run():
             await my_app.create_background_task(run())
         else:
             dialog_shown = 'download'
@@ -393,7 +394,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
             my_app.invalidate()
 
             if result == 'force':
-                force_run()
+                action.force_run()
                 await my_app.create_background_task(run())
 
     async def open_options(evt_app: Application[Path | None] | None = None) -> None:

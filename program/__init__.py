@@ -2,3 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """Module containing the files needed to run the main application."""
+
+from .action import Action
+
+__all__ = ['Action']

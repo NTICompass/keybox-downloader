@@ -29,13 +29,14 @@ import argparse
 
 import anyio
 
-from downloaders import Downloader
-from program.action import get_downloaders, go
+from program import Action
 from program.install import main_menu
 
 # ruff: enable[module-import-not-at-top-of-file]
 
 if __name__ == '__main__':
+    from downloaders import Downloader
+
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
 
@@ -48,7 +49,8 @@ if __name__ == '__main__':
         """Select which entrypoint to run."""
         async with Downloader.start():
             if args.download:
-                await go(*get_downloaders())
+                action = Action()
+                await action(*action.get_downloaders())
             elif args.install:
                 await main_menu()
             else:
