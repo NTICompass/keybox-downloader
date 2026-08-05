@@ -20,8 +20,6 @@ class AwaitableDialog[T: str](Waitable[T], Dialog):
 
     @override
     def __init__(self, buttons: Sequence[Button] | None = None, **kwargs: Any) -> None:
-        self._event = anyio.Event()
-
         dialog_buttons: list[Button] = list(buttons or [])
         dialog_buttons.append(Button(text='Ok', handler=lambda: self.finish(None)))
 

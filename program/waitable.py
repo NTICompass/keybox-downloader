@@ -5,17 +5,22 @@
 
 from typing import TYPE_CHECKING, Any
 
+from anyio import Event
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from anyio import Event
-
 
 class Waitable[T]:
-    """Makes any class "awaitable", just call `finish()` and set `self._event = anyio.Event()` in `__init__`."""
+    """Makes any class "awaitable", just call `finish()`."""
 
     _event: Event
     _result: T | None = None
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        """Automatically set `self._event`, so classes don't have to."""
+        super().__init__(*args, **kwargs)
+        self._event = Event()
 
     def finish(self, result: T | None) -> None:
         """Mark the Event as set (the equivalent of `future.set_result`)."""

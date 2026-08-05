@@ -32,7 +32,7 @@ class CheckboxSelected[T](CheckboxList[T]):
         return self.values[self._selected_index][0]
 
 
-class Options[T = type[Downloader]](Waitable[list[T] | None]):
+class Options[T = type[Downloader]](Waitable[list[T]]):
     """Open a `Dialog` and let you select which `Downloader` modules you want to run."""
 
     APP_VERSION: ClassVar[str] = version('keybox-downloader')
@@ -47,7 +47,8 @@ class Options[T = type[Downloader]](Waitable[list[T] | None]):
             is_android: Use a different layout when running on a phone (portrait mode).
 
         """
-        self._event = anyio.Event()
+        super().__init__()
+
         kb = KeyBindings()
 
         self.__checkboxes = CheckboxSelected[T](
