@@ -5,9 +5,8 @@
 
 from importlib.metadata import version
 from operator import itemgetter
-from typing import ClassVar
+from typing import ClassVar, final
 
-import anyio
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.layout.containers import HSplit, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
@@ -18,6 +17,7 @@ from downloaders import Downloader
 from .waitable import Waitable
 
 
+@final
 class CheckboxSelected[T](CheckboxList[T]):
     """A `CheckboxList`, that lets you get the value of the currently selected item."""
 
@@ -32,6 +32,7 @@ class CheckboxSelected[T](CheckboxList[T]):
         return self.values[self._selected_index][0]
 
 
+@final
 class Options[T = type[Downloader]](Waitable[list[T]]):
     """Open a `Dialog` and let you select which `Downloader` modules you want to run."""
 

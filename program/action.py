@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from shutil import make_archive, rmtree
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, final
 
 from anyio import Path
 from asyncstdlib import enumerate as a_enumerate
@@ -64,6 +64,7 @@ async def run(dl: Downloader) -> tuple[list[KeyPath], str]:
     return files, type(dl).__name__
 
 
+@final
 class Action:
     """Run the downloaders, save the keyboxes into files and scan them for duplicates."""
 
