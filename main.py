@@ -29,7 +29,7 @@ import argparse
 
 import anyio
 
-from program import Action, main_menu
+from program import Action, FileMenu
 
 # ruff: enable[module-import-not-at-top-of-file]
 
@@ -51,8 +51,10 @@ if __name__ == '__main__':
                 action = Action()
                 await action(*Action.get_downloaders())
             elif args.install:
+                main_menu = FileMenu()
                 await main_menu()
             else:
+                main_menu = FileMenu()
                 await main_menu(ignore_empty=True)
 
     anyio.run(main, backend='asyncio')

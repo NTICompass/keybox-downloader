@@ -567,18 +567,31 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
     return await app.run_async()
 
 
-async def main_menu(*, ignore_empty: bool = False) -> None:
-    """Launcher for the file-browser.
+class FileMenu:
+    """Launcher for the file-browser, can download new keyboxes or install them on a phone."""
 
-    Args:
-        ignore_empty: `True` to allow empty file list, `False` to quit on empty file list
+    async def __call__(self, *, ignore_empty: bool = False) -> None:
+        """Start the `prompt_toolkit` app and wait for it to complete.
 
-    """
-    selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=ignore_empty)
+        Args:
+            ignore_empty: `True` to allow empty file list, `False` to quit on empty file list
 
-    if selected_file is None:
-        print('Exiting')
-    else:
+        """
+        selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=ignore_empty)
+
+        if selected_file is None:
+            print('Exiting')
+        else:
+            await self.__install(selected_file)
+
+    @staticmethod
+    async def __install(selected_file: Path) -> None:
+        """Install the selected keybox file on a phone.
+
+        Args:
+            selected_file: The selected keybox file to install
+
+        """
         print(f'Installing {selected_file}')
         selected = folder / selected_file
 

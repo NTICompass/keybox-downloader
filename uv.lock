@@ -456,7 +456,7 @@ requires-dist = [
     { name = "poethepoet", marker = "extra == 'build'", specifier = ">=0.46.0" },
     { name = "poethepoet", marker = "extra == 'licenses'", specifier = ">=0.46.0" },
     { name = "prompt-toolkit", specifier = ">=3.0.53" },
-    { name = "pydantic", marker = "sys_platform != 'android'", specifier = ">=2.13.4,<2.14.0a1" },
+    { name = "pydantic", marker = "sys_platform != 'android'", specifier = ">=2.13.4,<2.14.0b1" },
     { name = "pydantic", marker = "sys_platform == 'android'", specifier = "==2.12.5" },
     { name = "pydantic-core", marker = "sys_platform != 'android'", specifier = ">=2.46.4,<2.47.0" },
     { name = "pydantic-core", marker = "sys_platform == 'android'", specifier = "==2.41.5", index = "https://labs.nticompassinc.com/idk-lol/repo/" },
