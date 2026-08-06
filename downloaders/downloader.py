@@ -296,7 +296,8 @@ class Downloader(ABC):
             return Keybox(data, KeyboxMetadata(source=type(self).__name__, original=zip_file, file_idx=1))
 
     @final
-    def unzip_files(self, zipfile: bytes, filenames: list[str]) -> list[str]:  # ruff: ignore[no-self-use]
+    @staticmethod
+    def unzip_files(zipfile: bytes, filenames: list[str]) -> list[str]:
         """Extract a list of files from a Zip file.
 
         Args:
@@ -316,7 +317,8 @@ class Downloader(ABC):
         return files
 
     @final
-    def get_var_from_shell[K: str](self, script: str | bytes, var: list[K]) -> dict[K, str]:  # ruff: ignore[no-self-use]
+    @staticmethod
+    def get_var_from_shell[K: str](script: str | bytes, var: list[K]) -> dict[K, str]:
         """Extract values from a Unix shell script (like `ABC="xyz"`).
 
         Args:
