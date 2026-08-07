@@ -3,6 +3,7 @@
 
 """Make something "awaitable" using `anyio.Event` instead of `asyncio.Future`."""
 
+from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from anyio import Event
@@ -14,11 +15,12 @@ if TYPE_CHECKING:
 class Waitable[T]:
     """Makes any class "awaitable", just call `finish()`."""
 
-    _event: Event
-    _result: T | None = None
+    __UNSET = object()
+    _result: T | object | None = __UNSET
 
-    def _init_waitable(self) -> None:
-        self._event = Event()
+    @cached_property
+    def _event(self) -> Event:
+        return Event()
 
     def finish(self, result: T | None) -> None:
         """Mark the Event as set (the equivalent of `future.set_result()`)."""

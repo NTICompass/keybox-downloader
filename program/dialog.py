@@ -24,4 +24,3 @@ class AwaitableDialog[T: str](Waitable[T], Dialog):
         dialog_buttons.append(Button(text='Ok', handler=lambda: self.finish(None)))
 
         super().__init__(buttons=dialog_buttons, **kwargs)
-        self._init_waitable()
