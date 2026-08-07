@@ -5,7 +5,6 @@
 
 from typing import TYPE_CHECKING, Any, final, override
 
-import anyio
 from prompt_toolkit.widgets import Button, Dialog
 
 from .waitable import Waitable
