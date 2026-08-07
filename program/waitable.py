@@ -16,7 +16,7 @@ class Waitable[T]:
     """Makes any class "awaitable", just call `finish()`."""
 
     __UNSET = object()
-    _result: T | object | None = __UNSET
+    _result: T | None = __UNSET
 
     @final
     @cached_property
