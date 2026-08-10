@@ -1,15 +1,12 @@
 # SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
 # SPDX-License-Identifier: MIT
 
-"""The main `prompt_toolkit` menu and the keybox installer."""
+"""The main program/file picker."""
 
-import sys
 from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
-from contextlib import suppress
 from functools import partial
 from itertools import groupby
-from pathlib import Path as SysPath
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol, final
 
 import anyio
 import anyio.lowlevel
@@ -31,8 +28,10 @@ from cache_data import Overrides
 from downloaders import Downloader
 
 from . import Action
+from .android import Android
 from .dialog import AwaitableDialog
 from .helpers import gather
+from .installer import Installer
 from .keybox import Keybox
 from .options import Options
 from .scrollable import ScrollableTextControl
@@ -40,68 +39,17 @@ from .scrollable import ScrollableTextControl
 if TYPE_CHECKING:
     from prompt_toolkit.formatted_text import StyleAndTextTuples
 
-is_android = hasattr(sys, 'getandroidapilevel')
-
-try:
-    from adbutils import AdbError, adb
-
-    if TYPE_CHECKING:
-        from adbutils import AdbDevice
-
-    device: AdbDevice | None
-except ImportError as err:
-    if is_android:
-        from subprocess import CalledProcessError
-
-        from anyio import run_process
-    else:
-        msg = 'adbutils is required on PC'
-        raise RuntimeError(msg) from err
-finally:
-    device = None
-
 root: Path = __main__.root
 folder: Path = __main__.exe_root / 'keyboxes'
-tmp_folder = '/data/local/tmp'
-key_file = f'{tmp_folder}/my_keybox.xml'
-runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
-
-current_keybox: Keybox | None = None
 files: dict[str, Keybox] = {}
 overrides: Overrides[type[Downloader]] = Overrides()
+android = Android()
 
 
 class EventFunc(Protocol):
     """Callback to be run on key press or mouse click."""
 
     def __call__(self, evt_app: Application[Path | None] | None = None) -> Awaitable[None] | None: ...  # ruff: ignore[undocumented-public-method]
-
-
-async def get_prop(prop: str | None = None) -> str:
-    """Get a property value from the currently connected Android phone (or the phone we're running on).
-
-    Args:
-        prop: The property name, like "ro.system.build.fingerprint"
-
-    Returns:
-        The property value
-
-    """
-    global device
-
-    if is_android and prop is not None:
-        with suppress(CalledProcessError):
-            proc = await run_process(['/system/bin/getprop', prop], check=True)
-            return proc.stdout.decode().strip()
-    if not is_android and adb is not None:
-        with suppress(AdbError):
-            if device is None:
-                # Connect to the 1st device (throws exception if there are zero or multiple)
-                device = adb.device()
-
-            if device is not None:
-                return str(device.getprop(prop) if prop is not None else device.prop).strip()
-    return ''
 
 
 async def get_device() -> str:
@@ -111,14 +59,19 @@ async def get_device() -> str:
         Device information - manufacturer and fingerprint (if connected).
 
     """
-    if is_android:
-        return await get_prop('ro.system.build.fingerprint')
+    if Android.is_android:
+        return await android.get_prop('ro.system.build.fingerprint')
 
     manufacturer, fingerprint = await gather(
-        get_prop('ro.product.manufacturer'), get_prop('ro.system.build.fingerprint')
+        android.get_prop('ro.product.manufacturer'), android.get_prop('ro.system.build.fingerprint')
     )
     props = '\n'.join(
-        [await get_prop('ro.vendor.asus.product.mkt_name') if manufacturer == 'asus' else await get_prop(), fingerprint]
+        [
+            await android.get_prop('ro.vendor.asus.product.mkt_name')
+            if manufacturer == 'asus'
+            else await android.get_prop(),
+            fingerprint,
+        ]
     )
 
     return props if props.strip() else 'No device found, press "r" to re-try'
@@ -299,7 +252,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
     # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
     @Condition
     def device_attached() -> bool:
-        return is_android or device is not None
+        return Android.is_android or device is not None
 
     continue_button = ConditionalContainer(
         Button(text='Continue', handler=lambda: app.exit(result=keyboxes[selected_index])),
@@ -412,7 +365,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
         dialog_shown = 'options'
 
         my_app = evt_app if evt_app is not None else app
-        opts = Options(is_android=is_android)
+        opts = Options(is_android=Android.is_android)
         root_float.floats.append(Float(content=opts.dialog))
 
         if my_app.layout:
@@ -499,11 +452,11 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
                 )
             ]
         ),
-        height=2 if is_android else 1,
+        height=2 if Android.is_android else 1,
         style='class:toolbar',
     )
 
-    if is_android:
+    if Android.is_android:
         root_win = HSplit(
             [
                 VSplit(
@@ -541,7 +494,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
                 ConditionalKeyBindings(dl_kb, filter=Condition(lambda: dialog_shown == 'download')),
             ]
         ),
-        mouse_support=Condition(lambda: not is_android),
+        mouse_support=Condition(lambda: not Android.is_android),
         style=Style.from_dict(
             {
                 'checkbox': 'fg:black',
@@ -558,7 +511,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
         ),
     )
 
-    if not is_android:
+    if not Android.is_android:
         app.output.show_cursor = lambda: None
 
     if app.layout:
@@ -567,6 +520,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
     return await app.run_async()
 
 
+@final
 class FileMenu:
     """Launcher for the file-browser, can download new keyboxes or install them on a phone."""
 
@@ -582,52 +536,6 @@ class FileMenu:
         if selected_file is None:
             print('Exiting')
         else:
-            await self.__install(selected_file)
-
-    @staticmethod
-    async def __install(selected_file: Path) -> None:
-        """Install the selected keybox file on a phone.
-
-        Args:
-            selected_file: The selected keybox file to install
-
-        """
-        print(f'Installing {selected_file}')
-        selected = folder / selected_file
-
-        if is_android:
-            install = await gather((root / f'scripts/{runner["android"]}').absolute(), selected.absolute())
-            try:
-                await run_process(
-                    ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
-                    stdout=sys.stdout,
-                    check=True,
-                )
-            except CalledProcessError as e:
-                print(str(e))
-            else:
-                print('Keybox successfully installed')
-        elif adb is not None:
-            try:
-                global device
-
-                if device is None:
-                    device = adb.device()
-
-                if device is not None:
-                    # Copy the selected keybox to the tmp folder
-                    device.sync.push(SysPath(selected), key_file)
-
-                    # Also copy the installer script
-                    device.sync.push(SysPath(root / f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}')
-
-                    # Run the main installer script
-                    with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
-                        print(stream.read_until_close())
-
-                    # Remove the scripts (the keybox was moved already)
-                    device.shell(f'rm {tmp_folder}/{runner["pc"]}')
-            except AdbError as e:
-                print(str(e))
-            else:
-                print('Keybox successfully installed')
+            print(f'Installing {selected_file}')
+            install = Installer(folder / selected_file)
+            await install.go()
