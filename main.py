@@ -54,7 +54,7 @@ if __name__ == '__main__':
                 main_menu = FileMenu()
                 await main_menu()
             else:
-                main_menu = FileMenu()
-                await main_menu(ignore_empty=True)
+                main_menu = FileMenu(ignore_empty=True)
+                await main_menu()
 
     anyio.run(main, backend='asyncio')

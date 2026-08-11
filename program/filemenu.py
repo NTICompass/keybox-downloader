@@ -524,14 +524,18 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
 class FileMenu:
     """Launcher for the file-browser, can download new keyboxes or install them on a phone."""
 
-    async def __call__(self, *, ignore_empty: bool = False) -> None:
-        """Start the `prompt_toolkit` app and wait for it to complete.
+    def __init__(self, *, ignore_empty: bool = False) -> None:
+        """Set the options for the file-browser.
 
         Args:
             ignore_empty: `True` to allow empty file list, `False` to quit on empty file list
 
         """
-        selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=ignore_empty)
+        self.ignore_empty = ignore_empty
+
+    async def __call__(self) -> None:
+        """Start the `prompt_toolkit` app and wait for it to complete."""
+        selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=self.ignore_empty)
 
         if selected_file is None:
             print('Exiting')
