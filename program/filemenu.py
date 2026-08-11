@@ -31,7 +31,6 @@ from . import Action
 from .android import Android
 from .dialog import AwaitableDialog
 from .helpers import gather
-from .installer import Installer
 from .keybox import Keybox
 from .options import Options
 from .scrollable import ScrollableTextControl
@@ -253,7 +252,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
     # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
     @Condition
     def device_attached() -> bool:
-        return Android.is_android or device is not None
+        return Android.is_android or android.device is not None
 
     continue_button = ConditionalContainer(
         Button(text='Continue', handler=lambda: app.exit(result=keyboxes[selected_index])),
@@ -538,5 +537,4 @@ class FileMenu:
             print('Exiting')
         else:
             print(f'Installing {selected_file}')
-            install = Installer(folder / selected_file)
-            await install.go()
+            await android.install(folder / selected_file)
