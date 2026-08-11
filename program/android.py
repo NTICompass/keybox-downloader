@@ -16,20 +16,21 @@ from .helpers import gather
 if TYPE_CHECKING:
     from anyio import Path
 
-try:
-    from adbutils import AdbError, adb
+# Use `subprocess` on Android
+if hasattr(sys, 'getandroidapilevel'):
+    from subprocess import CalledProcessError
 
-    if TYPE_CHECKING:
-        from adbutils import AdbDevice
-except ImportError as err:
-    if hasattr(sys, 'getandroidapilevel'):
-        from subprocess import CalledProcessError
+    from anyio import run_process
+# Use `adb` on PC
+else:
+    try:
+        from adbutils import AdbError, adb
 
-        from anyio import run_process
-    else:
+        if TYPE_CHECKING:
+            from adbutils import AdbDevice
+    except ImportError as err:
         msg = 'adbutils is required on PC'
         raise RuntimeError(msg) from err
-
 
 root: Path = __main__.root
 tmp_folder = '/data/local/tmp'
@@ -58,7 +59,8 @@ class Android:
 
     def reset_device(self) -> None:
         """Invalidate the cache and re-connect to a device."""
-        del self.device
+        if not self.is_android:
+            del self.device
 
     async def get_prop(self, prop: str | None = None) -> str:
         """Get a property value from the currently connected Android phone (or the phone we're running on).
