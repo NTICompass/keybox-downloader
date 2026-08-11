@@ -5,6 +5,7 @@
 
 import sys
 from contextlib import suppress
+from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar
 
 try:
@@ -26,7 +27,23 @@ class Android:
     """Commands are either ran via adb or subprocess."""
 
     is_android: ClassVar[bool] = hasattr(sys, 'getandroidapilevel')
-    device: AdbDevice | None = None
+
+    @cached_property
+    def device(self) -> AdbDevice | None:
+        """Connect to an Android device via adb.
+
+        Returns:
+            An `AdbDevice` if you are on a PC and an Android device is connected.
+
+        """
+        try:
+            return adb.device() if not self.is_android else None
+        except AdbError:
+            return None
+
+    def reset_device(self) -> None:
+        """Invalidate the cache and re-connect to a device."""
+        del self.device
 
     async def get_prop(self, prop: str | None = None) -> str:
         """Get a property value from the currently connected Android phone (or the phone we're running on).
@@ -42,12 +59,10 @@ class Android:
             with suppress(CalledProcessError):
                 proc = await run_process(['/system/bin/getprop', prop], check=True)
                 return proc.stdout.decode().strip()
-        if not self.is_android and adb is not None:
-            with suppress(AdbError):
-                if self.device is None:
-                    # Connect to the 1st device (throws exception if there are zero or multiple)
-                    self.device = adb.device()
 
-                if self.device is not None:
-                    return str(self.device.getprop(prop) if prop is not None else self.device.prop).strip()
+        # If we're on a PC, then try to connect via adb
+        device = self.device
+        if device is not None:
+            return str(device.getprop(prop) if prop is not None else device.prop).strip()
+
         return ''

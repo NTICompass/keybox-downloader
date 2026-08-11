@@ -147,6 +147,7 @@ async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, igno
         """
         nonlocal device_info_text
 
+        android.reset_device()
         device_info_text = await get_device()
         (evt_app if evt_app is not None else app).invalidate()
 

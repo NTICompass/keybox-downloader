@@ -25,11 +25,10 @@ runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 class Installer:
     """Install the keybox on a phone, either using adb or `subprocess`."""
 
-    device: AdbDevice | None = None
-
     def __init__(self, file: Path) -> None:
         """Initialize the installer with the specific file."""
         self._selected_file = file
+        self.android = Android()
 
     async def go(self) -> None:
         """On Android, call the script via `subprocess` otherwise use adb.
