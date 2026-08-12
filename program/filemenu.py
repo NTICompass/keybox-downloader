@@ -56,6 +56,7 @@ class FileMenu:
     overrides: ClassVar[Overrides[type[Downloader]]] = Overrides()
 
     action: Action
+    app: Application[Path | None]
     device_info_text = ''
     dialog_shown: Literal[False, 'options', 'download', 'progress'] = False
     dl_dialog: AwaitableDialog[Literal['force']]
@@ -82,19 +83,11 @@ class FileMenu:
         self.keybox_info_text = []
         self.action = Action()
 
-    @cached_property
-    def app(self) -> Application[Path | None]:
-        """The currently-running `prompt_toolkit` application."""
-        return get_app()
-
-    async def _select_file(self, keybox_iter: Iterable[Path] | AsyncIterable[Path]) -> Path | None:
+    async def _init_app(self, keybox_iter: Iterable[Path] | AsyncIterable[Path]) -> None:
         """Run `prompt_toolkit` and show the file-picker menu.  Return the selected file.
 
         Args:
             keybox_iter: (Async) Iterable of keyboxes to display in the file browser
-
-        Returns:
-            The selected keybox file (or `None` if "quit" was pressed)
 
         """
         if isinstance(keybox_iter, AsyncIterable):
@@ -104,7 +97,7 @@ class FileMenu:
 
         if not self.ignore_empty and len(self.keyboxes) == 0:
             print('No valid keyboxes found')
-            return None
+            return
 
         await Keybox.init_attestation(Downloader.client)
         self.keyboxes.sort(
@@ -115,9 +108,9 @@ class FileMenu:
 
         # Start the app and preload the panels with information
         if len(self.keyboxes) > 0:
-            self._keybox_info()
+            self._keybox_info(do_invalidate=False)
 
-        self.app.create_background_task(self._refresh_device())
+        await self._refresh_device(do_invalidate=False)
 
         self.menu_control = Window(
             ScrollableTextControl(
@@ -141,7 +134,7 @@ class FileMenu:
             return Android.is_android or self.android.device is not None
 
         continue_button = ConditionalContainer(
-            Button(text='Continue', handler=lambda: app.exit(result=self.keyboxes[self.selected_index])),
+            Button(text='Continue', handler=lambda: self.app.exit(result=self.keyboxes[self.selected_index])),
             device_attached,
             Button(text='No Device Found'),
         )
@@ -201,12 +194,12 @@ class FileMenu:
             'd': ('Run downloaders', self._do_download),
             'r': (
                 'Reload / Re-scan devices',
-                lambda evt_app=None: (evt_app if evt_app is not None else app).create_background_task(
+                lambda evt_app=None: (evt_app if evt_app is not None else self.app).create_background_task(
                     self._refresh_device()
                 ),
             ),
             'o': ('Options', self._open_options),
-            'q': ('Quit', lambda evt_app=None: (evt_app if evt_app is not None else app).exit(result=None)),
+            'q': ('Quit', lambda evt_app=None: (evt_app if evt_app is not None else self.app).exit(result=None)),
         }
 
         status_bar = Window(
@@ -256,7 +249,7 @@ class FileMenu:
             )
 
         self.root_float = FloatContainer(content=root_win, floats=[])
-        app = Application[Path | None](
+        self.app = Application[Path | None](
             layout=Layout(self.root_float, focused_element=self.menu_control),
             full_screen=True,
             key_bindings=merge_key_bindings(
@@ -283,12 +276,10 @@ class FileMenu:
         )
 
         if not Android.is_android:
-            app.output.show_cursor = lambda: None
+            self.app.output.show_cursor = lambda: None
 
-        if app.layout:
-            app.layout.focus(self.menu_control)
-
-        return await app.run_async()
+        if self.app.layout:
+            self.app.layout.focus(self.menu_control)
 
     async def _get_device(self) -> str:
         """Show device info in the side-panel.
@@ -314,16 +305,21 @@ class FileMenu:
 
         return props if props.strip() else 'No device found, press "r" to re-try'
 
-    async def _refresh_device(self, evt_app: Application[Path | None] | None = None) -> None:
+    async def _refresh_device(
+        self, evt_app: Application[Path | None] | None = None, *, do_invalidate: bool = True
+    ) -> None:
         """Reload the device info side-panel (like, when a phone is connected).
 
         Args:
             evt_app: The running `Application` (`None` to get automatically)
+            do_invalidate: `True` to call `app.invalidate()`
 
         """
         self.android.reset_device()
         self.device_info_text = await self._get_device()
-        (evt_app if evt_app is not None else self.app).invalidate()
+
+        if do_invalidate:
+            (evt_app if evt_app is not None else self.app).invalidate()
 
     def _get_cert_serials(self, file: Path, *, certs_only: bool = False) -> list[str]:
         """Get the serial numbers for the keybox file.
@@ -547,7 +543,8 @@ class FileMenu:
 
     async def __launch(self) -> None:
         """Start the `prompt_toolkit` app and wait for it to complete."""
-        selected_file = await self._select_file(folder.rglob('*.xml'))
+        await self._init_app(folder.rglob('*.xml'))
+        selected_file = await self.app.run_async()
 
         if selected_file is None:
             print('Exiting')

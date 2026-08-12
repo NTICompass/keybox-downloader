@@ -59,7 +59,7 @@ class Android:
 
     def reset_device(self) -> None:
         """Invalidate the cache and re-connect to a device."""
-        if not self.is_android:
+        if not self.is_android and hasattr(self, 'device'):
             del self.device
 
     async def get_prop(self, prop: str | None = None) -> str:
