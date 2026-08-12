@@ -3,10 +3,10 @@
 
 """The main program/file picker."""
 
-from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
+from collections.abc import AsyncIterable, Awaitable, Callable, Generator, Iterable
 from functools import partial
 from itertools import groupby
-from typing import TYPE_CHECKING, Literal, Protocol, final
+from typing import TYPE_CHECKING, ClassVar, Literal, Protocol, final
 
 import anyio
 import anyio.lowlevel
@@ -40,9 +40,6 @@ if TYPE_CHECKING:
 
 root: Path = __main__.root
 folder: Path = __main__.exe_root / 'keyboxes'
-files: dict[str, Keybox] = {}
-overrides: Overrides[type[Downloader]] = Overrides()
-android = Android()
 
 
 class EventFunc(Protocol):
@@ -51,478 +48,15 @@ class EventFunc(Protocol):
     def __call__(self, evt_app: Application[Path | None] | None = None) -> Awaitable[None] | None: ...  # ruff: ignore[undocumented-public-method]
 
 
-async def get_device() -> str:
-    """Show device info in the side-panel.
-
-    Returns:
-        Device information - manufacturer and fingerprint (if connected).
-
-    """
-    if Android.is_android:
-        return await android.get_prop('ro.system.build.fingerprint')
-
-    manufacturer, fingerprint = await gather(
-        android.get_prop('ro.product.manufacturer'), android.get_prop('ro.system.build.fingerprint')
-    )
-    props = '\n'.join(
-        [
-            await android.get_prop('ro.vendor.asus.product.mkt_name')
-            if manufacturer == 'asus'
-            else await android.get_prop(),
-            fingerprint,
-        ]
-    )
-
-    return props if props.strip() else 'No device found, press "r" to re-try'
-
-
-def get_cert_serials(file: Path, *, certs_only: bool = False) -> list[str]:
-    """Get the serial numbers for the keybox file.
-
-    Args:
-        file: The keybox file
-        certs_only: `True` to skip the validity check
-
-    Returns:
-        A list of certificate serials in the keybox
-
-    """
-    if file.name not in files:
-        files[file.name] = Keybox(file)
-
-    all_certs = [
-        cert if certs_only else f'{cert} ({"Valid" if valid else "Revoked"})'
-        for cert, valid in files[file.name].keys_valid.items()
-    ]
-    ec_certs, rsa_certs = files[file.name].key_counts
-
-    return all_certs if certs_only else [f'{ec_certs} EC certs, {rsa_certs} RSA certs', *all_certs]
-
-
-async def select_file(keybox_iter: Iterable[Path] | AsyncIterable[Path], *, ignore_empty: bool = False) -> Path | None:
-    """Run `prompt_toolkit` and show the file-picker menu.  Return the selected file.
-
-    Args:
-        keybox_iter: (Async) Iterable of keyboxes to display in the file browser
-        ignore_empty: `True` to allow empty file list, `False` to error out on empty file list
-
-    Returns:
-        The selected keybox file (or `None` if "quit" was pressed)
-
-    """
-    if isinstance(keybox_iter, AsyncIterable):
-        keyboxes = [keybox_file async for keybox_file in keybox_iter]
-    else:
-        keyboxes = list(keybox_iter)
-
-    if not ignore_empty and len(keyboxes) == 0:
-        print('No valid keyboxes found')
-        return None
-
-    await Keybox.init_attestation(Downloader.client)
-    keyboxes.sort(key=lambda file: (file.parent.name, get_cert_serials(file, certs_only=True)[0], file.name))
-
-    selected_index = 0
-    selectable_rows: list[int] = []
-    device_info_text = ''
-    keybox_info_text: StyleAndTextTuples = []
-    dialog_shown: Literal[False, 'options', 'download', 'progress'] = False
-    dl_dialog: AwaitableDialog[Literal['force']]
-
-    action = Action()
-    app: Application[Path | None] = get_app()
-    kb = KeyBindings()
-    dl_kb = KeyBindings()
-    opts: Options
-    menu_control: Window
-    root_float: FloatContainer
-
-    async def refresh_device(evt_app: Application[Path | None] | None = None) -> None:
-        """Reload the device info side-panel (like, when a phone is connected).
-
-        Args:
-            evt_app: The running `Application` (`None` to get automatically)
-
-        """
-        nonlocal device_info_text
-
-        android.reset_device()
-        device_info_text = await get_device()
-        (evt_app if evt_app is not None else app).invalidate()
-
-    def keybox_info(*, do_invalidate: bool = True) -> None:
-        """Show serials/validity for selected keybox in side-panel.
-
-        Args:
-            do_invalidate: `True` to call `app.invalidate()`
-
-        """
-        nonlocal keybox_info_text
-
-        keybox_info_text = (
-            [
-                (f'class:validity class:{keyboxes[selected_index].parent.name}', keyboxes[selected_index].parent.name),
-                ('', f' / {keyboxes[selected_index].name}: {"\n".join(get_cert_serials(keyboxes[selected_index]))}'),
-            ]
-            if len(keyboxes) > 0
-            else []
-        )
-
-        if do_invalidate:
-            app.invalidate()
-
-    def file_list() -> StyleAndTextTuples:
-        """Show the list of keybox files in the main panel.
-
-        Returns:
-            List of keybox file rows
-
-        """
-
-        def click(idx: int, mouse_event: MouseEvent) -> None:
-            """Click on a file, to select it and show its info in the side-panel.
-
-            Args:
-                idx: Which file did you click on?
-                mouse_event: `MouseEvent` - used to get which mouse button was pressed
-
-            """
-            nonlocal selected_index
-
-            if mouse_event.button == MouseButton.LEFT and mouse_event.event_type == MouseEventType.MOUSE_UP:
-                selected_index = idx
-                keybox_info(do_invalidate=False)
-
-        rows: StyleAndTextTuples = []
-        start = 0
-        cursor = 0
-
-        for kb_folder, kb_files in groupby(keyboxes, key=lambda file: file.parent.name):
-            rows.append((f'class:{kb_folder}', f'{kb_folder}\n'))
-            cursor += 1
-
-            for kb_idx, kb_file in enumerate(kb_files, start=start):
-                rows.append(
-                    (
-                        'class:selected' if kb_idx == selected_index else '',
-                        f'{"->" if kb_idx == selected_index else "  "} {kb_folder} / {kb_file.name}\n',
-                        partial(click, kb_idx),
-                    )
-                )
-                selectable_rows.append(cursor)
-
-                start += 1
-                cursor += 1
-
-        return rows
-
-    def move(delta: int) -> None:
-        """Move the `selected_index` (on the file-browser) up and down.
-
-        Args:
-            delta: How many positions (files) to move (positive for down, negative for up)
-
-        """
-        nonlocal selected_index
-
-        selected_index = (selected_index + delta) % len(keyboxes)
-        keybox_info(do_invalidate=False)
-
-    # Start the app and preload the panels with information
-    if len(keyboxes) > 0:
-        keybox_info()
-
-    app.create_background_task(refresh_device())
-
-    menu_control = Window(
-        ScrollableTextControl(
-            text=file_list,
-            focusable=True,
-            get_cursor_position=lambda: Point(0, selectable_rows[selected_index] if len(selectable_rows) > 0 else 0),
-            on_scroll=move,
-        )
-    )
-    preview = Window(FormattedTextControl(text=lambda: keybox_info_text, focusable=False))
-
-    # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
-    @Condition
-    def keybox_filter() -> bool:
-        return len(keyboxes) > 0
-
-    # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
-    @Condition
-    def device_attached() -> bool:
-        return Android.is_android or android.device is not None
-
-    continue_button = ConditionalContainer(
-        Button(text='Continue', handler=lambda: app.exit(result=keyboxes[selected_index])),
-        device_attached,
-        Button(text='No Device Found'),
-    )
-
-    device_info = Window(FormattedTextControl(text=lambda: device_info_text))
-
-    # Keyboard events
-    @kb.add(Keys.Up, filter=keybox_filter)
-    def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
-        move(-1)
-
-    @kb.add(Keys.Down, filter=keybox_filter)
-    def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
-        move(1)
-
-    @kb.add(Keys.Enter, filter=device_attached)
-    def _(event: KeyPressEvent) -> None:
-        if len(keyboxes) > 0:
-            event.app.exit(result=keyboxes[selected_index])
-
-    async def do_download(evt_app: Application[Path | None] | None = None) -> None:
-        """Run the `Download` modules from `action.py` and show progress in a dialog.
-
-        Args:
-            evt_app: The currently running `Application` (`None` to get automatically)
-
-        """
-        nonlocal dialog_shown, dl_dialog
-        my_app = evt_app if evt_app is not None else app
-
-        async def run() -> None:
-            nonlocal keyboxes, dialog_shown
-
-            dialog_shown = 'progress'
-            progress_bar = ProgressBar()
-            completed: list[str] = []
-
-            async def update_progress(current: int, total: int, dl_complete: str) -> None:
-                progress_bar.percentage = (current * 100) // total
-                completed.append(dl_complete)
-
-                # Both lines below are needed to actually draw the progress bar updates
-                my_app.invalidate()
-
-                # https://docs.astral.sh/ruff/rules/async-zero-sleep/
-                await anyio.lowlevel.checkpoint()
-
-            root_float.floats.append(
-                Float(
-                    content=Dialog(
-                        title='Downloading...',
-                        body=HSplit(
-                            [
-                                Box(progress_bar, width=30, padding_right=2, padding_left=2),
-                                Frame(Window(FormattedTextControl(text=lambda: '\n'.join(completed))), 'Completed'),
-                            ]
-                        ),
-                    )
-                )
-            )
-
-            progress_bar.percentage = 0
-            my_app.invalidate()
-            await action(*Action.get_downloaders(), progress=update_progress)
-            await anyio.sleep(1)
-
-            root_float.floats.pop()
-
-            keyboxes = [keybox_file async for keybox_file in folder.rglob('*.xml')]
-            keybox_info(do_invalidate=True)
-            dialog_shown = False
-
-        if action.can_run():
-            await my_app.create_background_task(run())
-        else:
-            dialog_shown = 'download'
-
-            dl_dialog = AwaitableDialog[Literal['force']](
-                title='Notice', body=Window(FormattedTextControl(text='Downloaders can only be ran once every 24hrs'))
-            )
-
-            root_float.floats.append(Float(content=dl_dialog))
-            if my_app.layout:
-                my_app.layout.focus(dl_dialog)
-            my_app.invalidate()
-
-            result = await dl_dialog
-            dialog_shown = False
-            root_float.floats.pop()
-
-            if my_app.layout:
-                my_app.layout.focus(menu_control)
-            my_app.invalidate()
-
-            if result == 'force':
-                action.force_run()
-                await my_app.create_background_task(run())
-
-    async def open_options(evt_app: Application[Path | None] | None = None) -> None:
-        """Open the options dialog to set which `Downloader` modules are enabled.
-
-        Args:
-            evt_app: The currently running `Application` (`None` to get automatically)
-
-        """
-        nonlocal dialog_shown, opts
-        dialog_shown = 'options'
-
-        my_app = evt_app if evt_app is not None else app
-        opts = Options(is_android=Android.is_android)
-        root_float.floats.append(Float(content=opts.dialog))
-
-        if my_app.layout:
-            my_app.layout.focus(opts.dialog)
-        my_app.invalidate()
-
-        enabled = await opts
-
-        if enabled is not None:
-            dl_selected = set(enabled)
-            all_downloaders: set[type[Downloader]] = Downloader.enabled | Downloader.disabled
-
-            Downloader.enabled.clear()
-            Downloader.disabled.clear()
-
-            Downloader.enabled.update(dl_selected)
-            Downloader.disabled.update(all_downloaders - dl_selected)
-
-            for dl in all_downloaders:
-                overrides.toggle(dl, value=dl in dl_selected)
-            overrides.save()
-
-        root_float.floats.pop()
-
-        if my_app.layout:
-            my_app.layout.focus(menu_control)
-        my_app.invalidate()
-
-        dialog_shown = False
-
-    @kb.add('d')
-    async def _(event: KeyPressEvent) -> None:
-        await do_download(event.app)
-
-    @kb.add('o')
-    async def _(event: KeyPressEvent) -> None:
-        await open_options(event.app)
-
-    @kb.add(Keys.F5)
-    @kb.add('r')
-    async def _(event: KeyPressEvent) -> None:
-        await event.app.create_background_task(refresh_device(event.app))
-
-    @kb.add('q')
-    def _(event: KeyPressEvent) -> None:
-        event.app.exit(result=None)
-
-    @dl_kb.add('f')
-    def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
-        dl_dialog.finish('force')
-
-    def status_handler(func: EventFunc) -> Callable[[MouseEvent], Awaitable[None]]:
-        async def click(mouse_event: MouseEvent) -> None:
-            if (
-                mouse_event.button == MouseButton.LEFT
-                and mouse_event.event_type == MouseEventType.MOUSE_UP
-                and dialog_shown != 'progress'
-            ):
-                result = func()
-
-                if result is not None:
-                    await result
-
-        return click
-
-    status_keys: dict[Literal['d', 'r', 'o', 'q'], tuple[str, EventFunc]] = {
-        'd': ('Run downloaders', do_download),
-        'r': (
-            'Reload / Re-scan devices',
-            lambda evt_app=None: (evt_app if evt_app is not None else app).create_background_task(refresh_device()),
-        ),
-        'o': ('Options', open_options),
-        'q': ('Quit', lambda evt_app=None: (evt_app if evt_app is not None else app).exit(result=None)),
-    }
-
-    status_bar = Window(
-        content=FormattedTextControl(
-            [
-                item
-                for key, (text, func) in status_keys.items()
-                for item in (
-                    ('class:key', f'[{key.upper()}] ', status_handler(func)),
-                    ('', f'{text.title()} ', status_handler(func)),
-                )
-            ]
-        ),
-        height=2 if Android.is_android else 1,
-        style='class:toolbar',
-    )
-
-    if Android.is_android:
-        root_win = HSplit(
-            [
-                VSplit(
-                    [Frame(menu_control, title='Available Keyboxes'), Frame(device_info, title='Device Info')],
-                    width=Dimension(weight=1),
-                ),
-                Frame(preview, title='Keybox Info', width=Dimension(weight=1)),
-                status_bar,
-            ]
-        )
-    else:
-        root_win = HSplit(
-            [
-                VSplit(
-                    [
-                        HSplit(
-                            [Frame(menu_control, title='Available Keyboxes'), Frame(device_info, title='Device Info')],
-                            width=Dimension(weight=1),
-                        ),
-                        Frame(preview, title='Keybox Info', width=Dimension(weight=2)),
-                    ]
-                ),
-                continue_button,
-                status_bar,
-            ]
-        )
-
-    root_float = FloatContainer(content=root_win, floats=[])
-    app = Application[Path | None](
-        layout=Layout(root_float, focused_element=menu_control),
-        full_screen=True,
-        key_bindings=merge_key_bindings(
-            [
-                ConditionalKeyBindings(kb, filter=Condition(lambda: not dialog_shown)),
-                ConditionalKeyBindings(dl_kb, filter=Condition(lambda: dialog_shown == 'download')),
-            ]
-        ),
-        mouse_support=Condition(lambda: not Android.is_android),
-        style=Style.from_dict(
-            {
-                'checkbox': 'fg:black',
-                'checkbox-checked': 'fg:red bold',
-                'checkbox-selected': 'reverse bold',
-                'toolbar': 'reverse',
-                'key': 'bold',
-                'validity': 'bold',
-                'valid': 'fg:green',
-                'revoked': 'fg:red',
-                'semi_valid': 'fg:blue',
-                'aosp': 'fg:purple',
-            }
-        ),
-    )
-
-    if not Android.is_android:
-        app.output.show_cursor = lambda: None
-
-    if app.layout:
-        app.layout.focus(menu_control)
-
-    return await app.run_async()
-
-
 @final
 class FileMenu:
     """Launcher for the file-browser, can download new keyboxes or install them on a phone."""
+
+    ignore_empty: bool
+    files: dict[str, Keybox]
+
+    overrides: ClassVar[Overrides[type[Downloader]]] = Overrides()
+    android: ClassVar[Android] = Android()
 
     def __init__(self, *, ignore_empty: bool = False) -> None:
         """Set the options for the file-browser.
@@ -532,13 +66,502 @@ class FileMenu:
 
         """
         self.ignore_empty = ignore_empty
+        self.files = {}
 
-    async def __call__(self) -> None:
+    async def _select_file(
+        self, keybox_iter: Iterable[Path] | AsyncIterable[Path], *, ignore_empty: bool = False
+    ) -> Path | None:
+        """Run `prompt_toolkit` and show the file-picker menu.  Return the selected file.
+
+        Args:
+            keybox_iter: (Async) Iterable of keyboxes to display in the file browser
+            ignore_empty: `True` to allow empty file list, `False` to error out on empty file list
+
+        Returns:
+            The selected keybox file (or `None` if "quit" was pressed)
+
+        """
+        if isinstance(keybox_iter, AsyncIterable):
+            keyboxes = [keybox_file async for keybox_file in keybox_iter]
+        else:
+            keyboxes = list(keybox_iter)
+
+        if not ignore_empty and len(keyboxes) == 0:
+            print('No valid keyboxes found')
+            return None
+
+        await Keybox.init_attestation(Downloader.client)
+        keyboxes.sort(key=lambda file: (file.parent.name, self._get_cert_serials(file, certs_only=True)[0], file.name))
+
+        selected_index = 0
+        selectable_rows: list[int] = []
+        device_info_text = ''
+        keybox_info_text: StyleAndTextTuples = []
+        dialog_shown: Literal[False, 'options', 'download', 'progress'] = False
+        dl_dialog: AwaitableDialog[Literal['force']]
+
+        action = Action()
+        app: Application[Path | None] = get_app()
+        kb = KeyBindings()
+        dl_kb = KeyBindings()
+        opts: Options
+        menu_control: Window
+        root_float: FloatContainer
+
+        async def refresh_device(evt_app: Application[Path | None] | None = None) -> None:
+            """Reload the device info side-panel (like, when a phone is connected).
+
+            Args:
+                evt_app: The running `Application` (`None` to get automatically)
+
+            """
+            nonlocal device_info_text
+
+            self.android.reset_device()
+            device_info_text = await self._get_device()
+            (evt_app if evt_app is not None else app).invalidate()
+
+        def keybox_info(*, do_invalidate: bool = True) -> None:
+            """Show serials/validity for selected keybox in side-panel.
+
+            Args:
+                do_invalidate: `True` to call `app.invalidate()`
+
+            """
+            nonlocal keybox_info_text
+
+            keybox_info_text = (
+                [
+                    (
+                        f'class:validity class:{keyboxes[selected_index].parent.name}',
+                        keyboxes[selected_index].parent.name,
+                    ),
+                    (
+                        '',
+                        f' / {keyboxes[selected_index].name}: {"\n".join(self._get_cert_serials(keyboxes[selected_index]))}',
+                    ),
+                ]
+                if len(keyboxes) > 0
+                else []
+            )
+
+            if do_invalidate:
+                app.invalidate()
+
+        def file_list() -> StyleAndTextTuples:
+            """Show the list of keybox files in the main panel.
+
+            Returns:
+                List of keybox file rows
+
+            """
+
+            def click(idx: int, mouse_event: MouseEvent) -> None:
+                """Click on a file, to select it and show its info in the side-panel.
+
+                Args:
+                    idx: Which file did you click on?
+                    mouse_event: `MouseEvent` - used to get which mouse button was pressed
+
+                """
+                nonlocal selected_index
+
+                if mouse_event.button == MouseButton.LEFT and mouse_event.event_type == MouseEventType.MOUSE_UP:
+                    selected_index = idx
+                    keybox_info(do_invalidate=False)
+
+            rows: StyleAndTextTuples = []
+            start = 0
+            cursor = 0
+
+            for kb_folder, kb_files in groupby(keyboxes, key=lambda file: file.parent.name):
+                rows.append((f'class:{kb_folder}', f'{kb_folder}\n'))
+                cursor += 1
+
+                for kb_idx, kb_file in enumerate(kb_files, start=start):
+                    rows.append(
+                        (
+                            'class:selected' if kb_idx == selected_index else '',
+                            f'{"->" if kb_idx == selected_index else "  "} {kb_folder} / {kb_file.name}\n',
+                            partial(click, kb_idx),
+                        )
+                    )
+                    selectable_rows.append(cursor)
+
+                    start += 1
+                    cursor += 1
+
+            return rows
+
+        def move(delta: int) -> None:
+            """Move the `selected_index` (on the file-browser) up and down.
+
+            Args:
+                delta: How many positions (files) to move (positive for down, negative for up)
+
+            """
+            nonlocal selected_index
+
+            selected_index = (selected_index + delta) % len(keyboxes)
+            keybox_info(do_invalidate=False)
+
+        # Start the app and preload the panels with information
+        if len(keyboxes) > 0:
+            keybox_info()
+
+        app.create_background_task(refresh_device())
+
+        menu_control = Window(
+            ScrollableTextControl(
+                text=file_list,
+                focusable=True,
+                get_cursor_position=lambda: Point(
+                    0, selectable_rows[selected_index] if len(selectable_rows) > 0 else 0
+                ),
+                on_scroll=move,
+            )
+        )
+        preview = Window(FormattedTextControl(text=lambda: keybox_info_text, focusable=False))
+
+        # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
+        @Condition
+        def keybox_filter() -> bool:
+            return len(keyboxes) > 0
+
+        @Condition
+        def device_attached() -> bool:
+            return Android.is_android or self.android.device is not None
+
+        continue_button = ConditionalContainer(
+            Button(text='Continue', handler=lambda: app.exit(result=keyboxes[selected_index])),
+            device_attached,
+            Button(text='No Device Found'),
+        )
+
+        device_info = Window(FormattedTextControl(text=lambda: device_info_text))
+
+        # Keyboard events
+        @kb.add(Keys.Up, filter=keybox_filter)
+        def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
+            move(-1)
+
+        @kb.add(Keys.Down, filter=keybox_filter)
+        def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
+            move(1)
+
+        @kb.add(Keys.Enter, filter=device_attached)
+        def _(event: KeyPressEvent) -> None:
+            if len(keyboxes) > 0:
+                event.app.exit(result=keyboxes[selected_index])
+
+        async def do_download(evt_app: Application[Path | None] | None = None) -> None:
+            """Run the `Download` modules from `action.py` and show progress in a dialog.
+
+            Args:
+                evt_app: The currently running `Application` (`None` to get automatically)
+
+            """
+            nonlocal dialog_shown, dl_dialog
+            my_app = evt_app if evt_app is not None else app
+
+            async def run() -> None:
+                nonlocal keyboxes, dialog_shown
+
+                dialog_shown = 'progress'
+                progress_bar = ProgressBar()
+                completed: list[str] = []
+
+                async def update_progress(current: int, total: int, dl_complete: str) -> None:
+                    progress_bar.percentage = (current * 100) // total
+                    completed.append(dl_complete)
+
+                    # Both lines below are needed to actually draw the progress bar updates
+                    my_app.invalidate()
+
+                    # https://docs.astral.sh/ruff/rules/async-zero-sleep/
+                    await anyio.lowlevel.checkpoint()
+
+                root_float.floats.append(
+                    Float(
+                        content=Dialog(
+                            title='Downloading...',
+                            body=HSplit(
+                                [
+                                    Box(progress_bar, width=30, padding_right=2, padding_left=2),
+                                    Frame(Window(FormattedTextControl(text=lambda: '\n'.join(completed))), 'Completed'),
+                                ]
+                            ),
+                        )
+                    )
+                )
+
+                progress_bar.percentage = 0
+                my_app.invalidate()
+                await action(*Action.get_downloaders(), progress=update_progress)
+                await anyio.sleep(1)
+
+                root_float.floats.pop()
+
+                keyboxes = [keybox_file async for keybox_file in folder.rglob('*.xml')]
+                keybox_info(do_invalidate=True)
+                dialog_shown = False
+
+            if action.can_run():
+                await my_app.create_background_task(run())
+            else:
+                dialog_shown = 'download'
+
+                dl_dialog = AwaitableDialog[Literal['force']](
+                    title='Notice',
+                    body=Window(FormattedTextControl(text='Downloaders can only be ran once every 24hrs')),
+                )
+
+                root_float.floats.append(Float(content=dl_dialog))
+                if my_app.layout:
+                    my_app.layout.focus(dl_dialog)
+                my_app.invalidate()
+
+                result = await dl_dialog
+                dialog_shown = False
+                root_float.floats.pop()
+
+                if my_app.layout:
+                    my_app.layout.focus(menu_control)
+                my_app.invalidate()
+
+                if result == 'force':
+                    action.force_run()
+                    await my_app.create_background_task(run())
+
+        async def open_options(evt_app: Application[Path | None] | None = None) -> None:
+            """Open the options dialog to set which `Downloader` modules are enabled.
+
+            Args:
+                evt_app: The currently running `Application` (`None` to get automatically)
+
+            """
+            nonlocal dialog_shown, opts
+            dialog_shown = 'options'
+
+            my_app = evt_app if evt_app is not None else app
+            opts = Options(is_android=Android.is_android)
+            root_float.floats.append(Float(content=opts.dialog))
+
+            if my_app.layout:
+                my_app.layout.focus(opts.dialog)
+            my_app.invalidate()
+
+            enabled = await opts
+
+            if enabled is not None:
+                dl_selected = set(enabled)
+                all_downloaders: set[type[Downloader]] = Downloader.enabled | Downloader.disabled
+
+                Downloader.enabled.clear()
+                Downloader.disabled.clear()
+
+                Downloader.enabled.update(dl_selected)
+                Downloader.disabled.update(all_downloaders - dl_selected)
+
+                for dl in all_downloaders:
+                    self.overrides.toggle(dl, value=dl in dl_selected)
+                self.overrides.save()
+
+            root_float.floats.pop()
+
+            if my_app.layout:
+                my_app.layout.focus(menu_control)
+            my_app.invalidate()
+
+            dialog_shown = False
+
+        @kb.add('d')
+        async def _(event: KeyPressEvent) -> None:
+            await do_download(event.app)
+
+        @kb.add('o')
+        async def _(event: KeyPressEvent) -> None:
+            await open_options(event.app)
+
+        @kb.add(Keys.F5)
+        @kb.add('r')
+        async def _(event: KeyPressEvent) -> None:
+            await event.app.create_background_task(refresh_device(event.app))
+
+        @kb.add('q')
+        def _(event: KeyPressEvent) -> None:
+            event.app.exit(result=None)
+
+        @dl_kb.add('f')
+        def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
+            dl_dialog.finish('force')
+
+        def status_handler(func: EventFunc) -> Callable[[MouseEvent], Awaitable[None]]:
+            async def click(mouse_event: MouseEvent) -> None:
+                if (
+                    mouse_event.button == MouseButton.LEFT
+                    and mouse_event.event_type == MouseEventType.MOUSE_UP
+                    and dialog_shown != 'progress'
+                ):
+                    result = func()
+
+                    if result is not None:
+                        await result
+
+            return click
+
+        status_keys: dict[Literal['d', 'r', 'o', 'q'], tuple[str, EventFunc]] = {
+            'd': ('Run downloaders', do_download),
+            'r': (
+                'Reload / Re-scan devices',
+                lambda evt_app=None: (evt_app if evt_app is not None else app).create_background_task(refresh_device()),
+            ),
+            'o': ('Options', open_options),
+            'q': ('Quit', lambda evt_app=None: (evt_app if evt_app is not None else app).exit(result=None)),
+        }
+
+        status_bar = Window(
+            content=FormattedTextControl(
+                [
+                    item
+                    for key, (text, func) in status_keys.items()
+                    for item in (
+                        ('class:key', f'[{key.upper()}] ', status_handler(func)),
+                        ('', f'{text.title()} ', status_handler(func)),
+                    )
+                ]
+            ),
+            height=2 if Android.is_android else 1,
+            style='class:toolbar',
+        )
+
+        if Android.is_android:
+            root_win = HSplit(
+                [
+                    VSplit(
+                        [Frame(menu_control, title='Available Keyboxes'), Frame(device_info, title='Device Info')],
+                        width=Dimension(weight=1),
+                    ),
+                    Frame(preview, title='Keybox Info', width=Dimension(weight=1)),
+                    status_bar,
+                ]
+            )
+        else:
+            root_win = HSplit(
+                [
+                    VSplit(
+                        [
+                            HSplit(
+                                [
+                                    Frame(menu_control, title='Available Keyboxes'),
+                                    Frame(device_info, title='Device Info'),
+                                ],
+                                width=Dimension(weight=1),
+                            ),
+                            Frame(preview, title='Keybox Info', width=Dimension(weight=2)),
+                        ]
+                    ),
+                    continue_button,
+                    status_bar,
+                ]
+            )
+
+        root_float = FloatContainer(content=root_win, floats=[])
+        app = Application[Path | None](
+            layout=Layout(root_float, focused_element=menu_control),
+            full_screen=True,
+            key_bindings=merge_key_bindings(
+                [
+                    ConditionalKeyBindings(kb, filter=Condition(lambda: not dialog_shown)),
+                    ConditionalKeyBindings(dl_kb, filter=Condition(lambda: dialog_shown == 'download')),
+                ]
+            ),
+            mouse_support=Condition(lambda: not Android.is_android),
+            style=Style.from_dict(
+                {
+                    'checkbox': 'fg:black',
+                    'checkbox-checked': 'fg:red bold',
+                    'checkbox-selected': 'reverse bold',
+                    'toolbar': 'reverse',
+                    'key': 'bold',
+                    'validity': 'bold',
+                    'valid': 'fg:green',
+                    'revoked': 'fg:red',
+                    'semi_valid': 'fg:blue',
+                    'aosp': 'fg:purple',
+                }
+            ),
+        )
+
+        if not Android.is_android:
+            app.output.show_cursor = lambda: None
+
+        if app.layout:
+            app.layout.focus(menu_control)
+
+        return await app.run_async()
+
+    async def _get_device(self) -> str:
+        """Show device info in the side-panel.
+
+        Returns:
+            Device information - manufacturer and fingerprint (if connected).
+
+        """
+        if Android.is_android:
+            return await self.android.get_prop('ro.system.build.fingerprint')
+
+        manufacturer, fingerprint = await gather(
+            self.android.get_prop('ro.product.manufacturer'), self.android.get_prop('ro.system.build.fingerprint')
+        )
+        props = '\n'.join(
+            [
+                await self.android.get_prop('ro.vendor.asus.product.mkt_name')
+                if manufacturer == 'asus'
+                else await self.android.get_prop(),
+                fingerprint,
+            ]
+        )
+
+        return props if props.strip() else 'No device found, press "r" to re-try'
+
+    def _get_cert_serials(self, file: Path, *, certs_only: bool = False) -> list[str]:
+        """Get the serial numbers for the keybox file.
+
+        Args:
+            file: The keybox file
+            certs_only: `True` to skip the validity check
+
+        Returns:
+            A list of certificate serials in the keybox
+
+        """
+        if file.name not in self.files:
+            self.files[file.name] = Keybox(file)
+
+        all_certs = [
+            cert if certs_only else f'{cert} ({"Valid" if valid else "Revoked"})'
+            for cert, valid in self.files[file.name].keys_valid.items()
+        ]
+        ec_certs, rsa_certs = self.files[file.name].key_counts
+
+        return all_certs if certs_only else [f'{ec_certs} EC certs, {rsa_certs} RSA certs', *all_certs]
+
+    async def __launch(self) -> None:
         """Start the `prompt_toolkit` app and wait for it to complete."""
-        selected_file = await select_file(folder.rglob('*.xml'), ignore_empty=self.ignore_empty)
+        selected_file = await self._select_file(folder.rglob('*.xml'), ignore_empty=self.ignore_empty)
 
         if selected_file is None:
             print('Exiting')
         else:
             print(f'Installing {selected_file}')
-            await android.install(folder / selected_file)
+            await self.android.install(folder / selected_file)
+
+    def __await__(self) -> Generator:
+        """Use `await fileMenu` to run the app.
+
+        Returns:
+            `None`
+
+        """
+        return self.__launch().__await__()
