@@ -4,14 +4,14 @@
 """The main program/file picker."""
 
 from collections.abc import AsyncIterable, Awaitable, Callable, Generator, Iterable
-from functools import cached_property, partial
+from functools import partial
 from itertools import groupby
-from typing import TYPE_CHECKING, ClassVar, Literal, Protocol, final
+from typing import TYPE_CHECKING, ClassVar, Literal, final
 
 import anyio
 import anyio.lowlevel
 from anyio import Path
-from prompt_toolkit.application import Application, get_app
+from prompt_toolkit.application import Application
 from prompt_toolkit.data_structures import Point
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import ConditionalKeyBindings, KeyBindings, KeyPressEvent, merge_key_bindings
@@ -38,14 +38,9 @@ from .scrollable import ScrollableTextControl
 if TYPE_CHECKING:
     from prompt_toolkit.formatted_text import StyleAndTextTuples
 
+type EventFunc = Callable[[], Awaitable[None] | None]
 root: Path = __main__.root
 folder: Path = __main__.exe_root / 'keyboxes'
-
-
-class EventFunc(Protocol):
-    """Callback to be run on key press or mouse click."""
-
-    def __call__(self, evt_app: Application[Path | None] | None = None) -> Awaitable[None] | None: ...  # ruff: ignore[undocumented-public-method]
 
 
 @final
@@ -157,16 +152,16 @@ class FileMenu:
 
         @kb.add('d')
         async def _(event: KeyPressEvent) -> None:
-            await self._do_download(event.app)
+            await self._do_download()
 
         @kb.add('o')
         async def _(event: KeyPressEvent) -> None:
-            await self._open_options(event.app)
+            await self._open_options()
 
         @kb.add(Keys.F5)
         @kb.add('r')
         async def _(event: KeyPressEvent) -> None:
-            await event.app.create_background_task(self._refresh_device(event.app))
+            await event.app.create_background_task(self._refresh_device())
 
         @kb.add('q')
         def _(event: KeyPressEvent) -> None:
@@ -192,14 +187,9 @@ class FileMenu:
 
         status_keys: dict[Literal['d', 'r', 'o', 'q'], tuple[str, EventFunc]] = {
             'd': ('Run downloaders', self._do_download),
-            'r': (
-                'Reload / Re-scan devices',
-                lambda evt_app=None: (evt_app if evt_app is not None else self.app).create_background_task(
-                    self._refresh_device()
-                ),
-            ),
+            'r': ('Reload / Re-scan devices', lambda: self.app.create_background_task(self._refresh_device())),
             'o': ('Options', self._open_options),
-            'q': ('Quit', lambda evt_app=None: (evt_app if evt_app is not None else self.app).exit(result=None)),
+            'q': ('Quit', lambda: self.app.exit(result=None)),
         }
 
         status_bar = Window(
@@ -305,13 +295,10 @@ class FileMenu:
 
         return props if props.strip() else 'No device found, press "r" to re-try'
 
-    async def _refresh_device(
-        self, evt_app: Application[Path | None] | None = None, *, do_invalidate: bool = True
-    ) -> None:
+    async def _refresh_device(self, *, do_invalidate: bool = True) -> None:
         """Reload the device info side-panel (like, when a phone is connected).
 
         Args:
-            evt_app: The running `Application` (`None` to get automatically)
             do_invalidate: `True` to call `app.invalidate()`
 
         """
@@ -319,7 +306,7 @@ class FileMenu:
         self.device_info_text = await self._get_device()
 
         if do_invalidate:
-            (evt_app if evt_app is not None else self.app).invalidate()
+            self.app.invalidate()
 
     def _get_cert_serials(self, file: Path, *, certs_only: bool = False) -> list[str]:
         """Get the serial numbers for the keybox file.
@@ -424,14 +411,8 @@ class FileMenu:
         self.selected_index = (self.selected_index + delta) % len(self.keyboxes)
         self._keybox_info(do_invalidate=False)
 
-    async def _do_download(self, evt_app: Application[Path | None] | None = None) -> None:
-        """Run the `Download` modules from `action.py` and show progress in a dialog.
-
-        Args:
-            evt_app: The currently running `Application` (`None` to get automatically)
-
-        """
-        my_app = evt_app if evt_app is not None else self.app
+    async def _do_download(self) -> None:
+        """Run the `Download` modules from `action.py` and show progress in a dialog."""
 
         async def run() -> None:
             self.dialog_shown = 'progress'
@@ -443,7 +424,7 @@ class FileMenu:
                 completed.append(dl_complete)
 
                 # Both lines below are needed to actually draw the progress bar updates
-                my_app.invalidate()
+                self.app.invalidate()
 
                 # https://docs.astral.sh/ruff/rules/async-zero-sleep/
                 await anyio.lowlevel.checkpoint()
@@ -463,7 +444,7 @@ class FileMenu:
             )
 
             progress_bar.percentage = 0
-            my_app.invalidate()
+            self.app.invalidate()
             await self.action(*Action.get_downloaders(), progress=update_progress)
             await anyio.sleep(1)
 
@@ -474,7 +455,7 @@ class FileMenu:
             self.dialog_shown = False
 
         if self.action.can_run():
-            await my_app.create_background_task(run())
+            await self.app.create_background_task(run())
         else:
             self.dialog_shown = 'download'
 
@@ -484,38 +465,32 @@ class FileMenu:
             )
 
             self.root_float.floats.append(Float(content=self.dl_dialog))
-            if my_app.layout:
-                my_app.layout.focus(self.dl_dialog)
-            my_app.invalidate()
+            if self.app.layout:
+                self.app.layout.focus(self.dl_dialog)
+            self.app.invalidate()
 
             result = await self.dl_dialog
             self.dialog_shown = False
             self.root_float.floats.pop()
 
-            if my_app.layout:
-                my_app.layout.focus(self.menu_control)
-            my_app.invalidate()
+            if self.app.layout:
+                self.app.layout.focus(self.menu_control)
+            self.app.invalidate()
 
             if result == 'force':
                 self.action.force_run()
-                await my_app.create_background_task(run())
+                await self.app.create_background_task(run())
 
-    async def _open_options(self, evt_app: Application[Path | None] | None = None) -> None:
-        """Open the options dialog to set which `Downloader` modules are enabled.
-
-        Args:
-            evt_app: The currently running `Application` (`None` to get automatically)
-
-        """
+    async def _open_options(self) -> None:
+        """Open the options dialog to set which `Downloader` modules are enabled."""
         self.dialog_shown = 'options'
 
-        my_app = evt_app if evt_app is not None else self.app
         opts = Options(is_android=Android.is_android)
         self.root_float.floats.append(Float(content=opts.dialog))
 
-        if my_app.layout:
-            my_app.layout.focus(opts.dialog)
-        my_app.invalidate()
+        if self.app.layout:
+            self.app.layout.focus(opts.dialog)
+        self.app.invalidate()
 
         enabled = await opts
 
@@ -535,9 +510,9 @@ class FileMenu:
 
         self.root_float.floats.pop()
 
-        if my_app.layout:
-            my_app.layout.focus(self.menu_control)
-        my_app.invalidate()
+        if self.app.layout:
+            self.app.layout.focus(self.menu_control)
+        self.app.invalidate()
 
         self.dialog_shown = False
 
