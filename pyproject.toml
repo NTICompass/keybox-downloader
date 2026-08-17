@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.13.4, <2.14.0b1; platform_system != 'Android'", # Don't install "alpha" or "beta" version
     "pydantic-core==2.41.5; platform_system == 'Android'",
     "pydantic-core>=2.46.4, <2.47.0; platform_system != 'Android'", # 2.48.0 is for pydantic 2.14.0b1
-    "python-dotenv>=1.2.2",
+    "python-dotenv>=1.2.3",
     "requests>=2.34.2",
     "tqdm>=4.70.0",
 ]
@@ -23,7 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "python-dotenv[cli]>=1.2.2",
-    "ruff>=0.16.2",
+    "ruff>=0.16.3",
 ]
 
 pc = [
@@ -39,7 +39,7 @@ build = [
     "nuitka[app]",
     "pillow>=12.2.0",
     "poethepoet>=0.46.0",
-    "pyinstaller>=6.22.0",
+    "pyinstaller>=6.22.1",
 ]
 
 licenses = [
