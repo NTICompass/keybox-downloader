@@ -5,6 +5,7 @@
     - [ ] Allow going back and look into backups/*.zip files
     - [ ] Re-validate certs from backup files
     - [ ] Show key "names" in info panel
+- [ ] Add button to extract key from phone and show its serials/status
 - [x] Call `decode_keybox()` from main program
     - [x] Make all downloaders follow API
 - [x] Use PyInstaller to create Windows EXE
