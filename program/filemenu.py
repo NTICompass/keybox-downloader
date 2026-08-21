@@ -151,11 +151,11 @@ class FileMenu:
                 event.app.exit(result=self.keyboxes[self.selected_index])
 
         @kb.add('d')
-        async def _(event: KeyPressEvent) -> None:
+        async def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
             await self._do_download()
 
         @kb.add('o')
-        async def _(event: KeyPressEvent) -> None:
+        async def _(event: KeyPressEvent) -> None:  # ruff: ignore[unused-function-argument]
             await self._open_options()
 
         @kb.add(Keys.F5)
