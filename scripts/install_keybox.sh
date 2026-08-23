@@ -19,7 +19,7 @@ get_keybox_path() {
 if [ -e "$KEY_FILE" ]; then
   get_keybox_path
 
-  if [ -n "$KEY_BOX" ]; then
+  if [ -n "$KEY_BOX" ] && [ -e "$KEY_BOX" ]; then
     mv "$KEY_FILE" "$KEY_BOX"
     chmod 644 "$KEY_BOX"
     chown root:root "$KEY_BOX"

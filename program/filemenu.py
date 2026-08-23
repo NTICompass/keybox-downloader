@@ -163,6 +163,10 @@ class FileMenu:
         async def _(event: KeyPressEvent) -> None:
             await event.app.create_background_task(self._refresh_device())
 
+        @kb.add('g')
+        async def _(event: KeyPressEvent) -> None:
+            await event.app.create_background_task(self._get_current_keybox())
+
         @kb.add('q')
         def _(event: KeyPressEvent) -> None:
             event.app.exit(result=None)
@@ -185,9 +189,10 @@ class FileMenu:
 
             return click
 
-        status_keys: dict[Literal['d', 'r', 'o', 'q'], tuple[str, EventFunc]] = {
+        status_keys: dict[Literal['d', 'r', 'g', 'o', 'q'], tuple[str, EventFunc]] = {
             'd': ('Run downloaders', self._do_download),
             'r': ('Reload / Re-scan devices', lambda: self.app.create_background_task(self._refresh_device())),
+            'g': ('Get current keybox', lambda: self.app.create_background_task(self._get_current_keybox())),
             'o': ('Options', self._open_options),
             'q': ('Quit', lambda: self.app.exit(result=None)),
         }
@@ -304,6 +309,22 @@ class FileMenu:
         """
         self.android.reset_device()
         self.device_info_text = await self._get_device()
+
+        if do_invalidate:
+            self.app.invalidate()
+
+    async def _get_current_keybox(self, *, do_invalidate: bool = True) -> None:
+        self.android.reset_device()
+        current_keybox, module = await self.android.get_current_keybox()
+
+        if current_keybox is not None and module:
+            all_certs = [
+                f'{cert} ({"Valid" if valid else "Revoked"})' for cert, valid in current_keybox.keys_valid.items()
+            ]
+
+            self.keybox_info_text = [('', module + '\n'), ('', '\n'.join(all_certs))]
+        else:
+            self.keybox_info_text = [('', 'Cannot get Keybox from phone')]
 
         if do_invalidate:
             self.app.invalidate()

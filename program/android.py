@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, ClassVar, final
 import __main__
 
 from .helpers import gather
+from .keybox import Keybox, KeyboxMetadata
 
 if TYPE_CHECKING:
     from anyio import Path
@@ -84,6 +85,45 @@ class Android:
             return str(device.getprop(prop) if prop is not None else device.prop).strip()
 
         return ''
+
+    async def get_current_keybox(self) -> tuple[Keybox | None, str]:
+        """Get the currently installed keybox (its serial number), and the module using it.
+
+        Returns:
+            The serial of the currently installed keybox, and the module using it
+
+        """
+        current_keybox: Keybox | None = None
+        keybox_module: str = ''
+
+        if self.is_android:
+            try:
+                result = await run_process(['su', 'root', '-c', str(await (root / 'scripts/get_keybox.sh').absolute())])
+
+                keybox_module = result.stdout.decode().strip()
+                current_keybox = Keybox(Path(f'{tmp_folder}/current_keybox.xml'), metadata=KeyboxMetadata())
+            except CalledProcessError:
+                return None, ''
+        else:
+            try:
+                device = self.device
+
+                if device is not None:
+                    device.sync.push(SysPath(root / 'scripts/get_keybox.sh'), f'{tmp_folder}/get_keybox.sh')
+
+                    with device.shell(f'su root -c "sh {tmp_folder}/get_keybox.sh"', stream=True) as stream:
+                        keybox_module = str(stream.read_until_close()).strip()
+
+                    current_keybox = Keybox(
+                        device.sync.read_text(f'{tmp_folder}/current_keybox.xml'), metadata=KeyboxMetadata()
+                    )
+
+                    device.shell(f'rm {tmp_folder}/get_keybox.sh')
+                    device.shell(f'rm {tmp_folder}/current_keybox.xml')
+            except AdbError:
+                return None, ''
+
+        return current_keybox, keybox_module
 
     async def install(self, file: Path) -> None:
         """Install a keybox: On Android, call the scripts via `subprocess` otherwise use adb.

@@ -5,8 +5,8 @@
     - [ ] Allow going back and look into backups/*.zip files
     - [ ] Re-validate certs from backup files
     - [ ] Show key "names" in info panel
-- [ ] Add button to extract key from phone and show its serials/status
-    - [ ] Include module detection: TrickyStore, OhMyKeymint, TEESimulator <= 3, TEESimulator >= 4
+- [x] Add button to extract key from phone and show its serials/status
+    - [x] Include module detection: TrickyStore, OhMyKeymint, TEESimulator <= 3, TEESimulator >= 4
 - [x] Update installer scripts to detect different modules' folders
     - [x] TrickyStore and forks
     - [x] Oh My Keymint
