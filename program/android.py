@@ -93,15 +93,23 @@ class Android:
         """
         current_keybox: Keybox | None = None
         keybox_module: str = ''
+        current_file: Path | None = None
 
         if self.is_android:
             try:
-                result = await run_process(['su', 'root', '-c', str(await (root / 'scripts/get_keybox.sh').absolute())])
+                result = await run_process(
+                    ['su', 'root', '-c', f'sh {await (root / "scripts/get_keybox.sh").absolute()!s}'],
+                )
 
                 keybox_module = result.stdout.decode().strip()
-                current_keybox = Keybox(Path(f'{tmp_folder}/current_keybox.xml'), metadata=KeyboxMetadata())
+                current_file = Path(f'{tmp_folder}/current_keybox.xml')
+
+                current_keybox = Keybox(current_file, metadata=KeyboxMetadata()) if current_file is not None else None
             except CalledProcessError:
                 return None, ''
+            finally:
+                if current_file is not None:
+                    await current_file.unlink()
         else:
             try:
                 device = self.device
@@ -135,7 +143,7 @@ class Android:
             await keybox_file.copy(key_file)
 
             try:
-                await run_process(['su', 'root', '-c', f'sh {script!s}'], stdout=sys.stdout, check=True)
+                await run_process(['su', 'root', '-c', f'sh {script!s}'], stdout=sys.stdout)
             except CalledProcessError as e:
                 print(str(e))
             else:
