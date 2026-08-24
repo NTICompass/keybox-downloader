@@ -165,7 +165,7 @@ package = true
 # exclude-newer = "7 days"
 
 [tool.uv.sources]
-nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "develop" }
+nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "release/4.2" }
 pydantic-core = { index = "labs", marker = "platform_system == 'Android'" }
 
 [[tool.uv.index]]

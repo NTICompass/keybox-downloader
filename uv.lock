@@ -460,7 +460,7 @@ requires-dist = [
     { name = "cryptography", marker = "extra == 'pc'", specifier = ">=50.0.0" },
     { name = "httpx2", extras = ["brotli", "http2", "zstd"], specifier = ">=2.12.0" },
     { name = "imageio", marker = "extra == 'build'", specifier = ">=2.37.4" },
-    { name = "nuitka", extras = ["app"], marker = "extra == 'build'", git = "https://github.com/Nuitka/Nuitka.git?rev=develop" },
+    { name = "nuitka", extras = ["app"], marker = "extra == 'build'", git = "https://github.com/Nuitka/Nuitka.git?rev=release%2F4.2" },
     { name = "pillow", marker = "extra == 'build'", specifier = ">=12.2.0" },
     { name = "pip-licenses", marker = "extra == 'licenses'", specifier = ">=5.0.0" },
     { name = "poethepoet", marker = "extra == 'build'", specifier = ">=0.46.0" },
@@ -493,8 +493,8 @@ wheels = [
 
 [[package]]
 name = "nuitka"
-version = "4.2rc2"
-source = { git = "https://github.com/Nuitka/Nuitka.git?rev=develop#8b0d96cf424fbc3902a3d93cce4fdcb855d347f4" }
+version = "4.2"
+source = { git = "https://github.com/Nuitka/Nuitka.git?rev=release%2F4.2#cd9b81c4d38c12dbca4d305d9a94f6d0fde7e7e9" }
 
 [[package]]
 name = "numpy"
