@@ -14,7 +14,7 @@ from anyio import Path
 import __main__
 
 from .helpers import gather
-from .keybox import Keybox, KeyboxMetadata
+from .keybox import Keybox
 
 # Use `subprocess` on Android
 if hasattr(sys, 'getandroidapilevel'):
@@ -104,7 +104,7 @@ class Android:
                 keybox_module = result.stdout.decode().strip()
                 current_file = Path(f'{tmp_folder}/current_keybox.xml')
 
-                current_keybox = Keybox(current_file, metadata=KeyboxMetadata()) if current_file is not None else None
+                current_keybox = Keybox(current_file) if current_file is not None else None
             except CalledProcessError:
                 return None, ''
             finally:
@@ -120,9 +120,7 @@ class Android:
                     with device.shell(f'su root -c "sh {tmp_folder}/get_keybox.sh"', stream=True) as stream:
                         keybox_module = str(stream.read_until_close()).strip()
 
-                    current_keybox = Keybox(
-                        device.sync.read_text(f'{tmp_folder}/current_keybox.xml'), metadata=KeyboxMetadata()
-                    )
+                    current_keybox = Keybox(device.sync.read_text(f'{tmp_folder}/current_keybox.xml'))
 
                     device.shell(f'rm {tmp_folder}/get_keybox.sh')
                     device.shell(f'rm {tmp_folder}/current_keybox.xml')
