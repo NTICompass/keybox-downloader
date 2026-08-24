@@ -9,13 +9,12 @@ from functools import cached_property
 from pathlib import Path as SysPath
 from typing import TYPE_CHECKING, ClassVar, final
 
+from anyio import Path
+
 import __main__
 
 from .helpers import gather
 from .keybox import Keybox, KeyboxMetadata
-
-if TYPE_CHECKING:
-    from anyio import Path
 
 # Use `subprocess` on Android
 if hasattr(sys, 'getandroidapilevel'):
@@ -36,7 +35,6 @@ else:
 root: Path = __main__.root
 tmp_folder = '/data/local/tmp'
 key_file = f'{tmp_folder}/my_keybox.xml'
-runner = {'pc': 'install_keybox.sh', 'android': 'install_android.sh'}
 
 
 @final
@@ -133,14 +131,11 @@ class Android:
 
         """
         if self.is_android:
-            install = await gather((root / f'scripts/{runner["android"]}').absolute(), file.absolute())
+            script, keybox_file = await gather((root / 'scripts/install_keybox.sh').absolute(), file.absolute())
+            await keybox_file.copy(key_file)
 
             try:
-                await run_process(
-                    ['su', 'root', '-c', f'sh {" ".join(str(arg) for arg in install)}'],
-                    stdout=sys.stdout,
-                    check=True,
-                )
+                await run_process(['su', 'root', '-c', f'sh {script!s}'], stdout=sys.stdout, check=True)
             except CalledProcessError as e:
                 print(str(e))
             else:
@@ -154,14 +149,14 @@ class Android:
                     device.sync.push(SysPath(file), key_file)
 
                     # Also copy the installer script
-                    device.sync.push(SysPath(root / f'scripts/{runner["pc"]}'), f'{tmp_folder}/{runner["pc"]}')
+                    device.sync.push(SysPath(root / 'scripts/install_keybox.sh'), f'{tmp_folder}/install_keybox.sh')
 
                     # Run the main installer script
-                    with device.shell(f'su root -c "sh {tmp_folder}/{runner["pc"]}"', stream=True) as stream:
+                    with device.shell(f'su root -c "sh {tmp_folder}/install_keybox.sh"', stream=True) as stream:
                         print(stream.read_until_close())
 
                     # Remove the scripts (the keybox was moved already)
-                    device.shell(f'rm {tmp_folder}/{runner["pc"]}')
+                    device.shell(f'rm {tmp_folder}/install_keybox.sh')
             except AdbError as e:
                 print(str(e))
             else:
