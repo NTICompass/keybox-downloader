@@ -17,4 +17,4 @@
 - [x] Add extra "types" to keyboxes
     - [x] Create "semi-valid" for key with valid EC, but invalid RSA
     - [x] `is_keybox_valid` will need to return a tuple `(bool, int)`
-- [ ] Don't quit after installing a keybox
+- [x] Don't quit after installing a keybox

@@ -537,9 +537,11 @@ class FileMenu:
 
         self.dialog_shown = False
 
-    async def __launch(self) -> None:
+    async def __launch(self, *, init: bool = True) -> None:
         """Start the `prompt_toolkit` app and wait for it to complete."""
-        await self._init_app(folder.rglob('*.xml'))
+        if init:
+            await self._init_app(folder.rglob('*.xml'))
+
         selected_file = await self.app.run_async()
 
         if selected_file is None:
@@ -547,6 +549,9 @@ class FileMenu:
         else:
             print(f'Installing {selected_file}')
             await self.android.install(folder / selected_file)
+
+            print('Re-launching app')
+            await self.__launch(init=False)
 
     def __await__(self) -> Generator:
         """Use `await fileMenu` to run the app.
