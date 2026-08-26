@@ -50,7 +50,7 @@ class Options[T = type[Downloader]](Waitable[list[T]]):
         """
         kb = KeyBindings()
 
-        self.__checkboxes = CheckboxSelected[T](
+        self.__checkboxes = CheckboxSelected(
             values=sorted([(dl, dl.__name__) for dl in Downloader.enabled | Downloader.disabled], key=itemgetter(1)),
             default_values=tuple(Downloader.enabled),
         )
