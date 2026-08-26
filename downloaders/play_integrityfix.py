@@ -25,7 +25,7 @@ class PlayIntegrityFix(Downloader, enabled=False):
     https://t.me/s/kernelsu1
 
     GitHub:
-    https://github.com/FBIVIP/Play-IntegrityFix/releases
+    https://github.com/FBIVIP/Play-IntegrityFix
     """
 
     DESCRIPTION = 'PlayIntegrity module (FBIVIP @ GitHub, aka "Root Phantom Fateh", aka @fateh7)'
