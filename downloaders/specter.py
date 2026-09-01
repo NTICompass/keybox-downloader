@@ -38,7 +38,7 @@ class CatalogWorking(BaseModel):  # ruff: ignore[undocumented-public-class]
 class CatalogWorkingEntry(CatalogWorking):  # ruff: ignore[undocumented-public-class]
     source: str
     version: str
-    text: str
+    text: str = ''
 
 
 class CatalogOverride(BaseModel):  # ruff: ignore[undocumented-public-class]
@@ -56,7 +56,7 @@ class Catalog(BaseModel):
     entries: list[CatalogEntry]
     latest: dict[str, str]
     working: CatalogWorking | None = None
-    workingEntries: list[CatalogWorkingEntry]  # ruff: ignore[mixed-case-variable-in-class-scope]
+    workingEntries: list[CatalogWorkingEntry] = []  # ruff: ignore[mixed-case-variable-in-class-scope]
     autoOverride: CatalogOverride | None = None  # ruff: ignore[mixed-case-variable-in-class-scope]
     shared: bool
 
