@@ -149,7 +149,7 @@ class Downloader(ABC):
     @classmethod
     @asynccontextmanager
     async def start(cls) -> AsyncIterator[None]:
-        """Context manger to open/close the `httpx2` and `cloudscraper` modules."""
+        """Context manager to open/close the `httpx2` and `cloudscraper` modules."""
         async with AsyncExitStack() as stack:
             cls.client = await stack.enter_async_context(
                 AsyncClient(
