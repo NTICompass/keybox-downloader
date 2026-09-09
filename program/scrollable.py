@@ -19,6 +19,7 @@ class ScrollableTextControl(FormattedTextControl):
     """A `FormattedTextControl` but you can scroll up and down."""
 
     @override
+    # pyrefly: ignore [bad-override]
     def __init__(self, on_scroll: Callable[[int], None] = lambda _: None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.__on_scroll = on_scroll

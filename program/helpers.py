@@ -4,7 +4,7 @@
 """Helpers for `asyncio.gather()` and `asyncio.as_completed()` using `anyio`."""
 
 from collections.abc import Awaitable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import anyio
 
@@ -22,7 +22,7 @@ async def gather[T](*tasks: Awaitable[T]) -> list[T]:
         The results in the order they were passed in
 
     """
-    results: list[T] = [None] * len(tasks)
+    results: list[T | None] = [None] * len(tasks)
 
     async def run(result_idx: int, coro: Awaitable[T]) -> None:
         results[result_idx] = await coro
@@ -31,7 +31,7 @@ async def gather[T](*tasks: Awaitable[T]) -> list[T]:
         for idx, task in enumerate(tasks):
             tg.start_soon(run, idx, task)
 
-    return results
+    return cast('list[T]', results)
 
 
 async def as_completed[T](tasks: Iterable[Awaitable[T]]) -> AsyncIterable[Awaitable[T]]:

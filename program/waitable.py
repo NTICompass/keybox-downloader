@@ -12,11 +12,13 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
+class _Unset: ...
+
+
 class Waitable[T]:
     """Makes any class "awaitable", just call `finish()`."""
 
-    __UNSET = object()
-    _result: T | None = __UNSET
+    _result: T | _Unset | None = _Unset()
 
     @final
     @cached_property
@@ -39,7 +41,7 @@ class Waitable[T]:
 
         """
         await self._event.wait()
-        return self._result
+        return self._result if not isinstance(self._result, _Unset) else None
 
     def __await__(self) -> Generator[Any, None, T | None]:
         """Lets you just `await obj` instead of `await obj.wait()`.

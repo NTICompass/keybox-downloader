@@ -18,6 +18,7 @@ class AwaitableDialog[T: str](Waitable[T], Dialog):
     """A dialog you can `await` (resolves when the 'ok' button is pressed)."""
 
     @override
+    # pyrefly: ignore [bad-override]
     def __init__(self, buttons: Sequence[Button] | None = None, **kwargs: Any) -> None:
         dialog_buttons: list[Button] = list(buttons or [])
         dialog_buttons.append(Button(text='Ok', handler=lambda: self.finish(None)))

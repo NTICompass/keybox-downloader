@@ -103,7 +103,7 @@ class DroidWin(Downloader):
             await gen.aclose()
 
         # TODO: Sometimes the solver fails and returns the challenge HTML (on Android)  # ruff: ignore[line-contains-todo]
-        if force_zip and not zipfile.is_zipfile(BytesIO(data)):
+        if force_zip and not zipfile.is_zipfile(BytesIO(data if isinstance(data, bytes) else b'')):
             return None
 
         return data

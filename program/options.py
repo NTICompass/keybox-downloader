@@ -33,13 +33,13 @@ class CheckboxSelected[T](CheckboxList[T]):
 
 
 @final
-class Options[T = type[Downloader]](Waitable[list[T]]):
+class Options(Waitable[list[type[Downloader]]]):
     """Open a `Dialog` and let you select which `Downloader` modules you want to run."""
 
     APP_VERSION: ClassVar[str] = version('keybox-downloader')
 
     dialog: Dialog
-    __checkboxes: CheckboxSelected[T]
+    __checkboxes: CheckboxSelected[type[Downloader]]
 
     def __init__(self, *, is_android: bool) -> None:
         """Initialize the `dialog`/`future` for the `Options` dialog.
