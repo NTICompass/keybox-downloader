@@ -22,6 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pyrefly>=0.60.0",
     "python-dotenv[cli]>=1.2.2",
     "ruff>=0.16.6",
 ]
@@ -46,6 +47,9 @@ licenses = [
     "pip-licenses>=5.0.0",
     "poethepoet>=0.46.0",
 ]
+
+[tool.pyrefly]
+python-version = "3.14"
 
 [tool.ruff]
 target-version = "py314"
@@ -97,6 +101,7 @@ multiline-quotes = "double"
 docstring-quotes = "double"
 
 [tool.poe.tasks]
+typecheck = "pyrefly check"
 lint = "ruff check ."
 format = "ruff format ."
 fix = "ruff check . --fix"

@@ -3,6 +3,13 @@
   <component name="PyToolsState">
     <option name="tools">
       <map>
+        <entry key="pyrefly">
+          <value>
+            <ToolEntry>
+              <option name="enabled" value="true" />
+            </ToolEntry>
+          </value>
+        </entry>
         <entry key="ruff">
           <value>
             <ToolEntry>
@@ -12,6 +19,9 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="PyreflyConfiguration2">
+    <option name="inlayHints" value="true" />
   </component>
   <component name="RuffModuleSettingsStorage">
     <option name="moduleSettings">
