@@ -6,6 +6,7 @@
 from collections.abc import AsyncIterable, Awaitable, Callable, Generator, Iterable
 from functools import partial
 from itertools import groupby
+from operator import attrgetter
 from typing import TYPE_CHECKING, ClassVar, Literal, final
 
 import anyio
@@ -78,6 +79,22 @@ class FileMenu:
         self.keybox_info_text = []
         self.action = Action()
 
+    def __sort_keyboxes(self, file: Path) -> tuple[str, str, str]:
+        """Sort the keyboxes based on their folder, serial number and name.
+
+        Args:
+            file: The `Path` of the keybox
+
+        Returns:
+            A `tuple` of values to sort by: folder, 1st serial, file name
+
+        """
+        return (
+            file.parent.name,
+            self._get_cert_serials(file, certs_only=True)[0],
+            file.name,
+        )
+
     async def _init_app(self, keybox_iter: Iterable[Path] | AsyncIterable[Path]) -> None:
         """Run `prompt_toolkit` and show the file-picker menu.  Return the selected file.
 
@@ -95,10 +112,8 @@ class FileMenu:
             return
 
         await Keybox.init_attestation(Downloader.client)
-        self.keyboxes.sort(
-            key=lambda file: (file.parent.name, self._get_cert_serials(file, certs_only=True)[0], file.name)
-        )
 
+        self.keyboxes.sort(key=self.__sort_keyboxes)
         kb, dl_kb = (KeyBindings(), KeyBindings())
 
         # Start the app and preload the panels with information
@@ -402,7 +417,7 @@ class FileMenu:
         start = 0
         cursor = 0
 
-        for kb_folder, kb_files in groupby(self.keyboxes, key=lambda file: file.parent.name):
+        for kb_folder, kb_files in groupby(self.keyboxes, key=attrgetter('parent.name')):
             rows.append((f'class:{kb_folder}', f'{kb_folder}\n'))
             cursor += 1
 
@@ -552,7 +567,7 @@ class FileMenu:
             print('Re-launching app')
             await self.__launch(init=False)
 
-    def __await__(self) -> Generator:
+    def __await__(self) -> Generator[None]:
         """Use `await fileMenu` to run the app.
 
         Returns:

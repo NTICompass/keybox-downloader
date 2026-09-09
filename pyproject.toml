@@ -51,6 +51,7 @@ licenses = [
 
 [tool.pyrefly]
 python-version = "3.14"
+preset = "strict"
 
 [tool.ruff]
 target-version = "py314"

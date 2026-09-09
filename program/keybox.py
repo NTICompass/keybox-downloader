@@ -118,7 +118,7 @@ class Keybox:
     _AOSP_CERTS: ClassVar[Counter[int]] = Counter((0x1001, 0x00A2059ED10E435B57, 0x1000, 0x00FF94D9DD9F07C80C))
 
     def __init__(
-        self, keybox_data: Element | PathLike | IOBase | str | bytes, metadata: KeyboxMetadata | None = None
+        self, keybox_data: Element | PathLike[str] | IOBase | str | bytes, metadata: KeyboxMetadata | None = None
     ) -> None:
         """Wrap a keybox.xml file.
 

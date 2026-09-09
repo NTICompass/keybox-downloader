@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from functools import partial
 from io import BytesIO
-from typing import TYPE_CHECKING, ClassVar, Literal, Self, final, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, final, overload
 from zipfile import Path as ZipPath
 from zipfile import ZipFile
 
@@ -235,7 +235,7 @@ class Downloader(ABC):
         return {'Authorization': f'Bearer {github_token}'} if github_token else None
 
     @final
-    async def get_latest_github_release(self, data: GitHubRelease | dict | str) -> bytes | None:
+    async def get_latest_github_release(self, data: GitHubRelease | dict[str, Any] | str) -> bytes | None:
         """Parse the data from the GitHub API and download the latest release's ZIP file.
 
         Args:
