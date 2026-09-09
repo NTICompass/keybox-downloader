@@ -148,7 +148,7 @@ class Downloader(ABC):
     @final
     @classmethod
     @asynccontextmanager
-    async def start(cls) -> AsyncIterator[None]:
+    async def start(cls) -> AsyncGenerator[None]:
         """Context manager to open/close the `httpx2` and `cloudscraper` modules."""
         async with AsyncExitStack() as stack:
             cls.client = await stack.enter_async_context(
@@ -171,11 +171,8 @@ class Downloader(ABC):
             yield
 
     @final
-    async def run(self) -> AsyncIterator[Keybox | None]:
+    async def __call__(self) -> AsyncIterator[Keybox | None]:
         """Run the downloader.
-
-        Renamed to `run()` from `__call__()` due to PyCharm bug:
-        https://youtrack.jetbrains.com/issue/PY-89873
 
         Yields:
             `Keybox` or `None`

@@ -215,7 +215,7 @@ class Keybox:
             name = keybox.device_id
 
             groups[key].append(
-                name if name is not None else str(keybox.meta.original.stem if keybox.meta.original is not None else '')
+                name if name is not None else (keybox.meta.original.stem if keybox.meta.original is not None else '')
             )
 
         return groups

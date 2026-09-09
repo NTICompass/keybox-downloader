@@ -119,7 +119,6 @@ class FileMenu:
         )
         preview = Window(FormattedTextControl(text=lambda: self.keybox_info_text, focusable=False))
 
-        # The warning here is due to https://youtrack.jetbrains.com/issue/PY-89873
         @Condition
         def keybox_filter() -> bool:
             return len(self.keyboxes) > 0
