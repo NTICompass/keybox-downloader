@@ -10,10 +10,10 @@ dependencies = [
     "cloudscraper>=1.2.71",
     "httpx2[brotli,http2,zstd]>=2.16.0",
     "prompt-toolkit>=3.0.53",
-    # On Android, I have a pre-built wheel of `pydantic-core==2.41.5` (for `pydantic==2.12.5`)
-    "pydantic==2.12.5; platform_system == 'Android'",
+    # On Android, I have a pre-built wheel of `pydantic-core==2.50.4` (for `pydantic==2.14.3`)
+    "pydantic==2.14.3; platform_system == 'Android'",
     "pydantic>=2.14.3; platform_system != 'Android'",
-    "pydantic-core==2.41.5; platform_system == 'Android'",
+    "pydantic-core==2.50.4; platform_system == 'Android'",
     "pydantic-core>=2.50.4; platform_system != 'Android'",
     "python-dotenv>=1.2.4",
     "requests>=2.34.2",
@@ -177,6 +177,6 @@ pydantic-core = { index = "labs", marker = "platform_system == 'Android'" }
 
 [[tool.uv.index]]
 name = "labs"
-# Actual wheels are from https://github.com/tur-pypi-dists/python3.14-pydantic_core/releases/tag/v2.41.5
+# Actual wheels are from https://github.com/tur-pypi-dists/python3.14-pydantic_core/releases
 url = "https://labs.nticompassinc.com/idk-lol/repo/"
 explicit = true

@@ -445,9 +445,8 @@ dependencies = [
     { name = "cloudscraper" },
     { name = "httpx2", extra = ["brotli", "http2"] },
     { name = "prompt-toolkit" },
-    { name = "pydantic", version = "2.12.5", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'android'" },
-    { name = "pydantic", version = "2.14.3", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'android'" },
-    { name = "pydantic-core", version = "2.41.5", source = { registry = "https://labs.nticompassinc.com/idk-lol/repo/" }, marker = "sys_platform == 'android'" },
+    { name = "pydantic" },
+    { name = "pydantic-core", version = "2.50.4", source = { registry = "https://labs.nticompassinc.com/idk-lol/repo/" }, marker = "sys_platform == 'android'" },
     { name = "pydantic-core", version = "2.50.4", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'android'" },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -494,9 +493,9 @@ requires-dist = [
     { name = "poethepoet", marker = "extra == 'licenses'", specifier = ">=0.46.0" },
     { name = "prompt-toolkit", specifier = ">=3.0.53" },
     { name = "pydantic", marker = "sys_platform != 'android'", specifier = ">=2.14.3" },
-    { name = "pydantic", marker = "sys_platform == 'android'", specifier = "==2.12.5" },
+    { name = "pydantic", marker = "sys_platform == 'android'", specifier = "==2.14.3" },
     { name = "pydantic-core", marker = "sys_platform != 'android'", specifier = ">=2.50.4" },
-    { name = "pydantic-core", marker = "sys_platform == 'android'", specifier = "==2.41.5", index = "https://labs.nticompassinc.com/idk-lol/repo/" },
+    { name = "pydantic-core", marker = "sys_platform == 'android'", specifier = "==2.50.4", index = "https://labs.nticompassinc.com/idk-lol/repo/" },
     { name = "pyinstaller", marker = "extra == 'build'", specifier = ">=6.22.3" },
     { name = "pyrefly", marker = "extra == 'dev'", specifier = ">=1.4.1" },
     { name = "python-dotenv", specifier = ">=1.2.4" },
@@ -682,34 +681,14 @@ wheels = [
 
 [[package]]
 name = "pydantic"
-version = "2.12.5"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "sys_platform == 'android'",
-]
-dependencies = [
-    { name = "annotated-types" },
-    { name = "pydantic-core", version = "2.41.5", source = { registry = "https://labs.nticompassinc.com/idk-lol/repo/" } },
-    { name = "typing-extensions" },
-    { name = "typing-inspection", version = "0.4.2", source = { registry = "https://pypi.org/simple" } },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/69/44/36f1a6e523abc58ae5f928898e4aca2e0ea509b5aa6f6f392a5d882be928/pydantic-2.12.5.tar.gz", hash = "sha256:4d351024c75c0f085a9febbb665ce8c0c6ec5d30e903bdb6394b7ede26aebb49", size = 821591, upload-time = "2025-11-26T15:11:46.471Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/87/b70ad306ebb6f9b585f114d0ac2137d792b48be34d732d60e597c2f8465a/pydantic-2.12.5-py3-none-any.whl", hash = "sha256:e561593fccf61e8a20fc46dfc2dfe075b8be7d0188df33f221ad1f0139180f9d", size = 463580, upload-time = "2025-11-26T15:11:44.605Z" },
-]
-
-[[package]]
-name = "pydantic"
 version = "2.14.3"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "sys_platform != 'android'",
-]
 dependencies = [
     { name = "annotated-types" },
-    { name = "pydantic-core", version = "2.50.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "pydantic-core", version = "2.50.4", source = { registry = "https://labs.nticompassinc.com/idk-lol/repo/" }, marker = "sys_platform == 'android'" },
+    { name = "pydantic-core", version = "2.50.4", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'android'" },
     { name = "typing-extensions" },
-    { name = "typing-inspection", version = "0.4.5", source = { registry = "https://pypi.org/simple" } },
+    { name = "typing-inspection" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b4/fc/1203d011145c98ddce3cd2f505bb54375ef8d43223053df6bfcf3c746f46/pydantic-2.14.3.tar.gz", hash = "sha256:1054f237f4d4733e5a30e1e2333bd33a2004ab9ab1510bd053a9a31bb48e232d", size = 925636, upload-time = "2026-11-05T09:17:04.686Z" }
 wheels = [
@@ -718,7 +697,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-core"
-version = "2.41.5"
+version = "2.50.4"
 source = { registry = "https://labs.nticompassinc.com/idk-lol/repo/" }
 resolution-markers = [
     "sys_platform == 'android'",
@@ -727,7 +706,7 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://github.com/tur-pypi-dists/python3.14-pydantic_core/releases/download/v2.41.5/pydantic_core-2.41.5-cp314-cp314-android_24_arm64_v8a.whl", hash = "sha256:d0c5cb28d67faa63feac017db84a838a0d9e45134dbd180a5d34562466638dc8", upload-time = "2026-07-04T13:37:00Z" },
+    { url = "https://github.com/tur-pypi-dists/python3.14-pydantic_core/releases/download/v2.50.4/pydantic_core-2.50.4-cp314-cp314-android_24_arm64_v8a.whl", hash = "sha256:e77585f29ab45c3ddccc1b8c667bda9b0b7edadac2d3664b94f537c99062b169", upload-time = "2026-11-05T14:12:11Z" },
 ]
 
 [[package]]
@@ -1044,26 +1023,8 @@ wheels = [
 
 [[package]]
 name = "typing-inspection"
-version = "0.4.2"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "sys_platform == 'android'",
-]
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac53367ae42139cf4b1ca5f36bb3dc6c9d33acdb43655/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464", size = 75949, upload-time = "2025-10-01T02:14:41.687Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
-]
-
-[[package]]
-name = "typing-inspection"
 version = "0.4.5"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "sys_platform != 'android'",
-]
 dependencies = [
     { name = "typing-extensions" },
 ]
