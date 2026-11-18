@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from functools import partial
 from io import BytesIO
+from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, final, overload
 from zipfile import Path as ZipPath
 from zipfile import ZipFile
@@ -30,6 +31,7 @@ from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Sequence
+    from datetime import datetime
 
     from anyio import Path
     from httpx2 import Response as HttpResponse
@@ -45,6 +47,8 @@ class GitHubAsset(BaseModel):
     digest: str | None = None
     content_type: str
     browser_download_url: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class GitHubRelease(BaseModel):
@@ -259,7 +263,7 @@ class Downloader(ABC):
         if releases is None:
             return None
 
-        for release in releases.assets:
+        for release in sorted(releases.assets, key=attrgetter('updated_at', 'created_at'), reverse=True):
             if release.content_type in {'application/zip', 'application/x-zip-compressed'}:
                 self.logger.info(f'Downloading {release.name}')
 

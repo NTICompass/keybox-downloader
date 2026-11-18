@@ -23,10 +23,11 @@ class CatalogEntry(BaseModel):  # ruff: ignore[undocumented-public-class]
     text: str
     revoked: bool
     softbanned: bool
-    shared: bool
     serial: str = Field(pattern=r'^[0-9a-fA-F]+$')
     last_checked: datetime
     timestamp: datetime
+    rkp: bool
+    expires_at: datetime | None = None  # Only `rkp` keys have an expiration
 
 
 class CatalogWorking(BaseModel):  # ruff: ignore[undocumented-public-class]
@@ -58,7 +59,6 @@ class Catalog(BaseModel):
     working: CatalogWorking | None = None
     workingEntries: list[CatalogWorkingEntry] = []  # ruff: ignore[mixed-case-variable-in-class-scope]
     autoOverride: CatalogOverride | None = None  # ruff: ignore[mixed-case-variable-in-class-scope]
-    shared: bool
 
 
 @final
@@ -69,17 +69,17 @@ class Specter(Downloader):
     https://t.me/dpejoh
 
     GitHub:
-    https://github.com/dpejoh/specter/
+    https://github.com/dpejoh/specter
 
     Docs:
     https://specter.dpejoh.com/reference/config#urls
     """
 
     DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
-    URL = 'https://rawbin.dpejoh.com/catalog'
+    URL = 'https://rawbin.dpejoh.com/catalog'  # Fallback: https://rawbin.dpejoh.workers.dev/catalog
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
-    KEYBOX_URL = 'https://rawbin.dpejoh.com/key'
+    KEYBOX_URL = 'https://rawbin.dpejoh.com/key'  # Fallback: https://rawbin.dpejoh.workers.dev/key
     ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     SHUFFLED = '1dgWnocayqxU3r6vA5lCIPYfHmkV08b4tz+KMsp2NQ9LRXihODwSj7BEFJ/ZuGTe'
 

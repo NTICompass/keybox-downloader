@@ -18,11 +18,11 @@ class AlwaysStrong(Downloader):
     https://t.me/evokeroot
     https://t.me/evokerr
 
-    GitHub:
-    https://github.com/evoker0/AlwaysStrong
+    GitLab:
+    https://gitlab.com/Evokerr/AlwaysStrong
     """
 
-    DESCRIPTION = 'AlwaysStrong module (evoker0 @ GitHub)'
+    DESCRIPTION = 'AlwaysStrong module (Evokerr @ GitLab)'
     URL = 'https://evoker.qzz.io/key'
 
     @override
