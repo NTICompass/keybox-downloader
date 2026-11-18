@@ -9,6 +9,8 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import ClassVar
 
+from pydantic import BaseModel
+
 import __main__
 
 
@@ -53,4 +55,11 @@ class BaseData[T]:
     def save(self) -> None:
         """Write the saved data into a JSON file."""
         with self._manifest_file.open('w', encoding='utf-8') as file:
-            json.dump({f.name: getattr(self, f.name) for f in fields(self) if not f.name.startswith('_')}, file)
+            output = {}
+
+            for f in fields(self):
+                if not f.name.startswith('_'):
+                    value = getattr(self, f.name)
+                    output[f.name] = value.model_dump() if isinstance(value, BaseModel) else value
+
+            json.dump(output, file)

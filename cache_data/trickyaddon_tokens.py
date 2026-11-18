@@ -3,8 +3,10 @@
 
 """Token cache for TrickyAddon's repo."""
 
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import Literal
 
 from pydantic import UUID4, BaseModel, ConfigDict, TypeAdapter, ValidationInfo, field_validator
 
@@ -18,19 +20,19 @@ class DownloadToken(BaseModel):  # ruff: ignore[undocumented-public-class]
     token: UUID4
     url: str
     expires_at: datetime
-    created_at: str  # Seems to just be "0001-01-01T00:00:00Z"
+    created_at: Literal['0001-01-01T00:00:00Z']
 
     @field_validator('url')
     @classmethod
     def validate_url(cls, value: str, info: ValidationInfo) -> str:  # ruff: ignore[undocumented-public-method]
-        prefix = '/download/'
+        match = re.search(r'^.+?/download/(.+?)$', value)
 
-        if prefix not in value:
-            msg = 'Must start with /download/'
+        if match is None:
+            msg = 'Must contain /download/'
             raise ValueError(msg)
 
         try:
-            url_token = uuid4_adapter.validate_python(value[len(prefix) :])
+            url_token = uuid4_adapter.validate_python(match.group(1))
         except ValueError as err:
             msg = 'Must contain a valid UUID4'
             raise ValueError(msg) from err
@@ -41,7 +43,7 @@ class DownloadToken(BaseModel):  # ruff: ignore[undocumented-public-class]
             msg = 'UUID must match token'
             raise ValueError(msg)
 
-        return value
+        return match.group(0)
 
 
 class DownloadError(BaseModel):  # ruff: ignore[undocumented-public-class]
