@@ -4,27 +4,27 @@ version = "2.0.0"
 description = "Downloads TrickyStore Keyboxes from GitHub projects"
 requires-python = ">=3.14.0"
 dependencies = [
-    "anyio>=4.15.1",
+    "anyio>=4.16.0",
     "asyncstdlib>=3.14.0",
     "beautifulsoup4>=4.15.0",
     "cloudscraper>=1.2.71",
-    "httpx2[brotli,http2,zstd]>=2.12.0",
+    "httpx2[brotli,http2,zstd]>=2.16.0",
     "prompt-toolkit>=3.0.53",
     # On Android, I have a pre-built wheel of `pydantic-core==2.41.5` (for `pydantic==2.12.5`)
     "pydantic==2.12.5; platform_system == 'Android'",
-    "pydantic>=2.13.5, <2.14.0b1; platform_system != 'Android'", # Don't install "alpha" or "beta" version
+    "pydantic>=2.14.3; platform_system != 'Android'",
     "pydantic-core==2.41.5; platform_system == 'Android'",
-    "pydantic-core>=2.46.5, <2.47.0; platform_system != 'Android'", # 2.48.0 is for pydantic 2.14.0b1
-    "python-dotenv>=1.2.3",
+    "pydantic-core>=2.50.4; platform_system != 'Android'",
+    "python-dotenv>=1.2.4",
     "requests>=2.34.2",
-    "tqdm>=4.70.0",
+    "tqdm>=4.70.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pyrefly>=0.60.0",
-    "python-dotenv[cli]>=1.2.2",
-    "ruff>=0.16.6",
+    "pyrefly>=1.4.1",
+    "python-dotenv[cli]>=1.2.4",
+    "ruff>=0.17.5",
     "types-tqdm>=4.70.0.20260906",
 ]
 
@@ -37,11 +37,11 @@ pc = [
 # nuitka uses imageio to convert png -> ico
 # pyinstaller uses pillow to convert png -> ico
 build = [
-    "imageio>=2.37.4",
-    "nuitka[app]",
-    "pillow>=12.2.0",
-    "poethepoet>=0.46.0",
-    "pyinstaller>=6.22.2",
+    "imageio>=2.38.2",
+    "nuitka[app]>=4.3.5",
+    "pillow>=13.0.0",
+    "poethepoet>=0.49.0",
+    "pyinstaller>=6.22.3",
 ]
 
 licenses = [
@@ -172,7 +172,7 @@ package = true
 # exclude-newer = "7 days"
 
 [tool.uv.sources]
-nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "factory" }
+# nuitka = { git = "https://github.com/Nuitka/Nuitka.git", rev = "factory" }
 pydantic-core = { index = "labs", marker = "platform_system == 'Android'" }
 
 [[tool.uv.index]]
