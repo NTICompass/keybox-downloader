@@ -7,9 +7,7 @@ import json
 from dataclasses import dataclass, field, fields
 from json import JSONDecodeError
 from pathlib import Path
-from typing import ClassVar
-
-from pydantic import BaseModel
+from typing import Any, ClassVar
 
 import __main__
 
@@ -52,14 +50,19 @@ class BaseData[T]:
         if not name.startswith('_') and self._loaded:
             self.save()
 
+    def convert_for_save(self, name: str) -> Any:  # ruff: ignore[any-type]
+        """Convert the fields to a JSON-serializable format.
+
+        Args:
+            name: Property name
+
+        Returns:
+            Property value
+
+        """
+        return getattr(self, name)
+
     def save(self) -> None:
         """Write the saved data into a JSON file."""
         with self._manifest_file.open('w', encoding='utf-8') as file:
-            output = {}
-
-            for f in fields(self):
-                if not f.name.startswith('_'):
-                    value = getattr(self, f.name)
-                    output[f.name] = value.model_dump() if isinstance(value, BaseModel) else value
-
-            json.dump(output, file)
+            json.dump({f.name: self.convert_for_save(f.name) for f in fields(self) if not f.name.startswith('_')}, file)

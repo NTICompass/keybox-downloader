@@ -6,7 +6,7 @@
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal, override
 
 from pydantic import UUID4, BaseModel, ConfigDict, TypeAdapter, ValidationInfo, field_validator
 
@@ -87,7 +87,7 @@ class TrickyAddonTokens(BaseData[dict[int, DownloadToken]]):
             if save:
                 self.save()
 
-            return self.tokens[key_id]
+            return response
 
         raise TokenDownloadError(response.error)
 
@@ -123,4 +123,10 @@ class TrickyAddonTokens(BaseData[dict[int, DownloadToken]]):
 
             self.remove_token(key_id, save=save)
 
+        return None
+
+    @override
+    def convert_for_save(self, name: str) -> dict[int, dict[str, Any]] | None:
+        if name == 'tokens':
+            return {keyid: data.model_dump(mode='json') for keyid, data in self.tokens.items()}
         return None

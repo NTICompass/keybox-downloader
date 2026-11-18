@@ -93,10 +93,17 @@ class TrickyAddon(Downloader, enabled=False):
             valid: set[int] = {kb.id for kb in repo.keyboxes if kb.status == 'valid'}
             self.logger.info(f'Found {len(valid)} valid keyboxes out of {repo.total}')
 
-            async for data in self.download_urls(download=[dl.url async for dl in self.load_download_urls(valid)]):
-                yield data
+            try:
+                downloads = {dl.url: key_id async for key_id, dl in self.load_download_urls(valid)}
+                async for data in self.download_urls(download=list(downloads.keys())):
+                    yield data
+                    self.token_cache.remove_token(
+                        downloads[self.current_url if isinstance(self.current_url, str) else str(self.current_url)]
+                    )
+            finally:
+                self.token_cache.save()
 
-    async def load_download_urls(self, ids: set[int]) -> AsyncGenerator[DownloadToken]:
+    async def load_download_urls(self, ids: set[int]) -> AsyncGenerator[tuple[int, DownloadToken]]:
         """Load the download tokens into the cache (if they are not there already).
 
         Args:
@@ -125,7 +132,7 @@ class TrickyAddon(Downloader, enabled=False):
                 cached_token = self.token_cache.get_token(key_id)
                 if cached_token is not None:
                     self.logger.info(f'Using cached token for keybox {key_id}')
-                    yield cached_token
+                    yield key_id, cached_token
                 else:
                     self.logger.info('Solving CloudFlare Turnstile challenge')
                     turnstile = await self.client.post(
@@ -140,9 +147,12 @@ class TrickyAddon(Downloader, enabled=False):
                     )
 
                     # TODO: Parse with pydantic  # ruff: ignore[line-contains-todo]
+                    """
+                    Error Response: {'error': 'Proxy connection failed - verify proxy format (http://user:pass@ip:port) and availability', 'error_code': 'proxy_error', 'success': False}
+                    """
                     turnstile_data = turnstile.json()
                     if not turnstile_data['success']:
-                        self.logger.info('CloudFlare Turnstile failed')
+                        self.logger.info(f'CloudFlare Turnstile failed: {turnstile_data["error"]}')
                         return
 
                     self.logger.info('CloudFlare Turnstile completed')
@@ -156,14 +166,15 @@ class TrickyAddon(Downloader, enabled=False):
                         )
 
                         try:
-                            self.logger.info(f'Saving download token for {key_id}')
-                            yield self.token_cache.add_token(key_id, token.text)
+                            download_token = self.token_cache.add_token(key_id, token.text, save=True)
+                            self.logger.info(f'Saving download token for {key_id}: {download_token.token}')
+
+                            yield key_id, download_token
                         except TokenDownloadError as err:
                             self.logger.info(f'Error downloading token: {err}')
                     except Exception as e:  # ruff: ignore[blind-except]
                         self.logger.info(f'Download error {e}')
         finally:
-            self.token_cache.save()
             await proxy_client.aclose()
 
     @override
