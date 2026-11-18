@@ -23,6 +23,10 @@
   <component name="PyreflyConfiguration2">
     <option name="inlayHints" value="true" />
   </component>
+  <component name="RuffConfiguration">
+    <option name="fixOnSave" value="true" />
+    <option name="formatSortImports" value="true" />
+  </component>
   <component name="RuffModuleSettingsStorage">
     <option name="moduleSettings">
       <map>
