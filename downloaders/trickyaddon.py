@@ -6,6 +6,7 @@
 from datetime import datetime  # ruff: ignore[typing-only-standard-library-import]
 from typing import TYPE_CHECKING, Literal, final, override
 
+from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict
 
 from cache_data import TokenDownloadError, TrickyAddonTokens
@@ -13,7 +14,7 @@ from cache_data import TokenDownloadError, TrickyAddonTokens
 from . import Downloader
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Generator
+    from collections.abc import AsyncGenerator
 
     from cache_data import DownloadToken
 
@@ -67,6 +68,9 @@ class TrickyAddon(Downloader, enabled=False):
 
     BASE_URL = 'https://keybox.kowx712.cc'
 
+    # TODO: Save this in a cache.json file  # ruff: ignore[line-contains-todo]
+    site_keys: SiteKeys | None = None
+
     @override
     def __init__(self) -> None:
         super().__init__()
@@ -76,13 +80,6 @@ class TrickyAddon(Downloader, enabled=False):
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
         repo: Repository | None
         self.logger.info('Downloading keybox list from repository')
-
-        keys = await self.client.get('https://keybox.kowx712.cc/api/config')
-        site_keys = SiteKeys.model_validate_json(keys.text)
-
-        """
-        TODO: Need to run a turnstile challenge to get a token to send to the download
-        """
 
         try:
             repo = Repository.model_validate_json(await anext(downloaded))
@@ -96,10 +93,10 @@ class TrickyAddon(Downloader, enabled=False):
             valid: set[int] = {kb.id for kb in repo.keyboxes if kb.status == 'valid'}
             self.logger.info(f'Found {len(valid)} valid keyboxes out of {repo.total}')
 
-            async for data in self.download_urls(download=[dl.url for dl in self.load_download_urls(valid)]):
+            async for data in self.download_urls(download=[dl.url async for dl in self.load_download_urls(valid)]):
                 yield data
 
-    def load_download_urls(self, ids: set[int]) -> Generator[DownloadToken]:
+    async def load_download_urls(self, ids: set[int]) -> AsyncGenerator[DownloadToken]:
         """Load the download tokens into the cache (if they are not there already).
 
         Args:
@@ -109,25 +106,65 @@ class TrickyAddon(Downloader, enabled=False):
             The token object for each id
 
         """
-        for key_id in ids:
-            self.logger.info(f'Getting download token for keybox {key_id}')
+        peak_api, peak_proxy = await self.get_peak_token()
+        if peak_api is None or peak_proxy is None:
+            self.logger.info('peak.fo api key/proxy not found')
+            return
 
-            cached_token = self.token_cache.get_token(key_id)
-            if cached_token is not None:
-                self.logger.info(f'Using cached token for keybox {key_id}')
-                yield cached_token
-            else:
-                self.logger.info(f'Downloading token for keybox {key_id}')
+        proxy_client = AsyncClient(proxy=peak_proxy, timeout=30)
 
-                # TODO: Needs `Cf-Turnstile-Token` header and `cf_clearance` cookie
-                token = self.cloudflare_client.post(f'{self.BASE_URL}/api/keyboxes/{key_id}/download')
+        try:
+            for key_id in ids:
+                if self.site_keys is None:
+                    self.logger.info('Fetching Turnstile sitekey')
+                    keys = await self.client.get('https://keybox.kowx712.cc/api/config')
+                    self.site_keys = SiteKeys.model_validate_json(keys.text)
 
-                try:
-                    yield self.token_cache.add_token(key_id, token.text)
-                except TokenDownloadError as err:
-                    self.logger.info(f'Error downloading token: {err}')
+                self.logger.info(f'Getting download token for keybox {key_id}')
 
-        self.token_cache.save()
+                cached_token = self.token_cache.get_token(key_id)
+                if cached_token is not None:
+                    self.logger.info(f'Using cached token for keybox {key_id}')
+                    yield cached_token
+                else:
+                    self.logger.info('Solving CloudFlare Turnstile challenge')
+                    turnstile = await self.client.post(
+                        'https://api.peak.fo/solve',
+                        json={
+                            'task_type': 'turnstiletask',
+                            'url': 'https://keybox.kowx712.cc/',
+                            'sitekey': self.site_keys.turnstile_site_key,
+                            'proxy': peak_proxy,
+                        },
+                        headers={'X-API-Key': peak_api, 'Content-Type': 'application/json'},
+                    )
+
+                    # TODO: Parse with pydantic  # ruff: ignore[line-contains-todo]
+                    turnstile_data = turnstile.json()
+                    if not turnstile_data['success']:
+                        self.logger.info('CloudFlare Turnstile failed')
+                        return
+
+                    self.logger.info('CloudFlare Turnstile completed')
+                    turnstile_token = turnstile_data['data']['token']  # also `secondary_token`
+
+                    try:
+                        self.logger.info(f'Downloading token for keybox {key_id} via proxy')
+                        token = await proxy_client.post(
+                            f'{self.BASE_URL}/api/keyboxes/{key_id}/download',
+                            headers={'Cf-Turnstile-Token': str(turnstile_token)},
+                        )
+
+                        try:
+                            self.logger.info(f'Saving download token for {key_id}')
+                            yield self.token_cache.add_token(key_id, token.text)
+                        except TokenDownloadError as err:
+                            self.logger.info(f'Error downloading token: {err}')
+                    except Exception as e:  # ruff: ignore[blind-except]
+                        self.logger.info(f'Download error {e}')
+        finally:
+            self.token_cache.save()
+            await proxy_client.aclose()
 
     @override
     def decode(self, encoded: str) -> str:

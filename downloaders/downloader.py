@@ -228,7 +228,7 @@ class Downloader(ABC):
         """Use `GITHUB_TOKEN` from the environment for the GitHub API.
 
         Returns:
-            `GITHUB_TOKEN` from the envrionment (if set)
+            `GITHUB_TOKEN` from the environment (if set)
 
         """
         if not cls._env_loaded:
@@ -237,6 +237,21 @@ class Downloader(ABC):
 
         github_token = os.getenv('GITHUB_TOKEN')
         return {'Authorization': f'Bearer {github_token}'} if github_token else None
+
+    @final
+    @classmethod
+    async def get_peak_token(cls) -> tuple[str | None, str | None]:
+        """Use `PEAK_SOLVER` from the environment for the peak.fo solver API.
+
+        Returns:
+            `PEAK_SOLVER` and `PEAK_PROXY` from the environment (if set)
+
+        """
+        if not cls._env_loaded:
+            load_dotenv(cls.env_file if await cls.env_file.exists() else None)
+            cls._env_loaded = True
+
+        return os.getenv('PEAK_SOLVER'), os.getenv('PEAK_PROXY')
 
     @final
     async def get_latest_github_release(self, data: GitHubRelease | dict[str, Any] | str) -> bytes | None:
