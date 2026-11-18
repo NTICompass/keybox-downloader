@@ -9,6 +9,7 @@ import os
 import re
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from datetime import datetime  # ruff: ignore[typing-only-standard-library-import]
 from functools import partial
 from io import BytesIO
 from operator import attrgetter
@@ -31,7 +32,6 @@ from program.keybox import Keybox, KeyboxError, KeyboxMetadata
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Sequence
-    from datetime import datetime
 
     from anyio import Path
     from httpx2 import Response as HttpResponse

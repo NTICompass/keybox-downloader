@@ -1,0 +1,124 @@
+# SPDX-FileCopyrightText: Copyright 2026 gen\Eric Computers
+# SPDX-License-Identifier: MIT
+
+"""Token cache for TrickyAddon's repo."""
+
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+
+from pydantic import UUID4, BaseModel, ConfigDict, TypeAdapter, ValidationInfo, field_validator
+
+from .basedata import BaseData
+
+uuid4_adapter = TypeAdapter(UUID4)
+
+
+class DownloadToken(BaseModel):  # ruff: ignore[undocumented-public-class]
+    model_config = ConfigDict(frozen=True)
+    token: UUID4
+    url: str
+    expires_at: datetime
+    created_at: str  # Seems to just be "0001-01-01T00:00:00Z"
+
+    @field_validator('url')
+    @classmethod
+    def validate_url(cls, value: str, info: ValidationInfo) -> str:  # ruff: ignore[undocumented-public-method]
+        prefix = '/download/'
+
+        if prefix not in value:
+            msg = 'Must start with /download/'
+            raise ValueError(msg)
+
+        try:
+            url_token = uuid4_adapter.validate_python(value[len(prefix) :])
+        except ValueError as err:
+            msg = 'Must contain a valid UUID4'
+            raise ValueError(msg) from err
+
+        token: UUID4 | None = info.data.get('token')
+
+        if token is not None and url_token != token:
+            msg = 'UUID must match token'
+            raise ValueError(msg)
+
+        return value
+
+
+class DownloadError(BaseModel):  # ruff: ignore[undocumented-public-class]
+    model_config = ConfigDict(frozen=True)
+    error: str
+
+
+class TokenDownloadError(Exception): ...  # ruff: ignore[undocumented-public-class]
+
+
+download_response_adapter = TypeAdapter(DownloadToken | DownloadError)
+
+
+@dataclass
+class TrickyAddonTokens(BaseData[dict[int, DownloadToken]]):
+    """Saves each token with its expiration.  Removes it on use."""
+
+    tokens: dict[int, DownloadToken] = field(default_factory=dict)
+    _manifest_json = 'trickyaddon_tokens.json'
+
+    def add_token(self, key_id: int, data: str, *, save: bool = False) -> DownloadToken:
+        """Add a token to the cache, they are one-time use and expire in 24 hours.
+
+        Args:
+            key_id: The id from the repo
+            data: The response from the endpoint (JSON)
+            save: Save file after adding
+
+        Returns:
+            The added token
+
+        Raises:
+            TokenDownloadError: If the endpoint returns an error
+
+        """
+        response = download_response_adapter.validate_json(data)
+
+        if isinstance(response, DownloadToken):
+            self.tokens[key_id] = response
+
+            if save:
+                self.save()
+
+            return self.tokens[key_id]
+
+        raise TokenDownloadError(response.error)
+
+    def remove_token(self, key_id: int, *, save: bool = False) -> None:
+        """Remove a token from the cache after using it.
+
+        Args:
+            key_id: The id from the repo
+            save: Save file after removing
+
+        """
+        del self.tokens[key_id]
+
+        if save:
+            self.save()
+
+    def get_token(self, key_id: int, *, save: bool = False) -> DownloadToken | None:
+        """Get a token from the cache, so we don't need to request another one.
+
+        Args:
+            key_id: The id from the repo
+            save: Auto-save the file?
+
+        Returns:
+            The token if it exists and it's not expired
+
+        """
+        token = self.tokens.get(key_id)
+
+        if token is not None:
+            if datetime.now(UTC) < token.expires_at:
+                return token
+
+            self.remove_token(key_id, save=save)
+
+        return None
