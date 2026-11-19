@@ -147,7 +147,8 @@ class TrickyAddon(Downloader):
 
                         self.logger.info('Solving CloudFlare Turnstile challenge')
                         try:
-                            (turnstile_token,) = await solver.challenge()
+                            challenge_result = await solver.challenge()
+                            turnstile_token = challenge_result[0]
                         except SolverError as solve_err:
                             self.logger.info(f'CloudFlare Turnstile failed: {solve_err}')
                             continue
