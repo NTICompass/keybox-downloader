@@ -42,7 +42,7 @@ class Repository(BaseModel):  # ruff: ignore[undocumented-public-class]
 
 
 @final
-class TrickyAddon(Downloader, enabled=False):
+class TrickyAddon(Downloader):
     """TrickyAddon Downloader.
 
     Telegram:
