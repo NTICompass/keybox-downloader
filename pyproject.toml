@@ -12,9 +12,9 @@ dependencies = [
     "prompt-toolkit>=3.0.53",
     # On Android, I have a pre-built wheel of `pydantic-core==2.50.4` (for `pydantic==2.14.3`)
     "pydantic==2.14.3; platform_system == 'Android'",
-    "pydantic>=2.14.3; platform_system != 'Android'",
     "pydantic-core==2.50.4; platform_system == 'Android'",
-    "pydantic-core>=2.50.4; platform_system != 'Android'",
+    "pydantic>=2.14.4; platform_system != 'Android'",
+    "pydantic-core>=2.50.5; platform_system != 'Android'",
     "python-dotenv>=1.2.4",
     "requests>=2.34.2",
     "tqdm>=4.70.1",
@@ -22,16 +22,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pyrefly>=1.4.1",
+    "pyrefly>=1.5.0",
     "python-dotenv[cli]>=1.2.4",
     "ruff>=0.17.5",
-    "types-tqdm>=4.70.0.20260906",
+    "types-tqdm>=4.70.0.20261106",
 ]
 
 pc = [
     "adbutils>=2.12.0",
-    # Make sure to install `python-cryptography` on Android
-    "cryptography>=50.0.1",
+    # Make sure to install `python-cryptography` on Android/python-cryptography
+    "cryptography>=50.0.2",
 ]
 
 # nuitka uses imageio to convert png -> ico
