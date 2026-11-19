@@ -119,7 +119,7 @@ class TrickyAddon(Downloader):
         """
         if self.data_cache.keys is None:
             self.logger.info('Fetching Turnstile sitekey')
-            keys = await self.client.get(f'https://{self.BASE_URL}/api/config')
+            keys = await self.client.get(f'{self.BASE_URL}/api/config')
 
             try:
                 self.data_cache.save_site_key(keys.text)

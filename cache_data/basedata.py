@@ -39,13 +39,13 @@ class BaseData[T]:
         with self._manifest_file.open(encoding='utf-8') as file:
             try:
                 for k, v in json.load(file).items():
-                    object.__setattr__(self, k, v)
+                    object.__setattr__(self, k, self.convert_on_load(k, v))
             except JSONDecodeError:
                 pass
             finally:
                 self._loaded = True
 
-    def __setattr__(self, name: str, value: T) -> None:
+    def __setattr__(self, name: str, value: T | None) -> None:
         """Keys starting with an `_` are "private", the rest are saved into the JSON."""
         super().__setattr__(name, value)
 
@@ -62,8 +62,21 @@ class BaseData[T]:
             Property value
 
         """
-        value = getattr(self, name)
+        value: T | None = getattr(self, name)
         return value.model_dump(mode='json') if isinstance(value, BaseModel) else value
+
+    def convert_on_load(self, name: str, value: Any) -> T | None:  # ruff: ignore[any-type, no-self-use]
+        """Convert the fields after loading the JSON file.
+
+        Args:
+            name: Property name
+            value: Property value
+
+        Returns:
+            Converted value
+
+        """
+        return value
 
     def save(self) -> None:
         """Write the saved data into a JSON file."""

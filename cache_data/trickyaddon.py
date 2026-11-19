@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, override
 
+from pydantic import ValidationError
+
 from .basedata import BaseData
 from .trickyaddon_extras import (
     DLTokens,
@@ -18,7 +20,7 @@ from .trickyaddon_extras import (
 
 
 @dataclass
-class TrickyAddon(BaseData[DLTokens]):
+class TrickyAddon(BaseData[DLTokens | SiteKeys]):
     """Saves each token with its expiration.  Removes it on use."""
 
     keys: SiteKeys | None = None
@@ -109,3 +111,16 @@ class TrickyAddon(BaseData[DLTokens]):
         if name == 'tokens':
             return {keyid: data.model_dump(mode='json') for keyid, data in self.tokens.items()}
         return super().convert_for_save(name)
+
+    @override
+    def convert_on_load(self, name: str, value: Any) -> DLTokens | SiteKeys | None:
+        try:
+            match name:
+                case 'keys':
+                    return SiteKeys.model_validate(value)
+                case 'tokens':
+                    return {key_id: DownloadToken.model_validate(data) for key_id, data in value.items()}
+                case _:
+                    return None
+        except ValidationError:
+            return None

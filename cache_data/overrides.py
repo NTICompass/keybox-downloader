@@ -9,7 +9,7 @@ from .basedata import BaseData
 
 
 @dataclass
-class Overrides[T: type](BaseData[T]):
+class Overrides[T: type](BaseData[dict[str, bool]]):
     """Allows toggling each `Downloader` class on and off (overrides its `enabled` property)."""
 
     enabled: dict[str, bool] = field(default_factory=dict)
