@@ -56,13 +56,15 @@ class TokenDownloadError(Exception): ...  # ruff: ignore[undocumented-public-cla
 
 download_response_adapter = TypeAdapter(DownloadToken | DownloadError)
 
+type DLTokens = dict[int, DownloadToken]
+
 
 @dataclass
-class TrickyAddonTokens(BaseData[dict[int, DownloadToken]]):
+class TrickyAddon(BaseData[DLTokens]):
     """Saves each token with its expiration.  Removes it on use."""
 
-    tokens: dict[int, DownloadToken] = field(default_factory=dict)
-    _manifest_json = 'trickyaddon_tokens.json'
+    tokens: DLTokens = field(default_factory=dict)
+    _manifest_json = 'trickyaddon.json'
 
     def add_token(self, key_id: int, data: str, *, save: bool = False) -> DownloadToken:
         """Add a token to the cache, they are one-time use and expire in 24 hours.

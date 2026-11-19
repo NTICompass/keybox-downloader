@@ -5,6 +5,6 @@
 
 from .manifest import Manifest
 from .overrides import Overrides
-from .trickyaddon_tokens import DownloadToken, TokenDownloadError, TrickyAddonTokens
+from .trickyaddon import DownloadToken, TokenDownloadError, TrickyAddon
 
-__all__ = ['DownloadToken', 'Manifest', 'Overrides', 'TokenDownloadError', 'TrickyAddonTokens']
+__all__ = ['DownloadToken', 'Manifest', 'Overrides', 'TokenDownloadError', 'TrickyAddon']

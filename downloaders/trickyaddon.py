@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, Literal, final, override
 from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict
 
-from cache_data import TokenDownloadError, TrickyAddonTokens
+from cache_data import TokenDownloadError
+from cache_data import TrickyAddon as TrickyCache
 
 from . import Downloader
 
@@ -74,7 +75,7 @@ class TrickyAddon(Downloader, enabled=False):
     @override
     def __init__(self) -> None:
         super().__init__()
-        self.token_cache = TrickyAddonTokens()
+        self.token_cache = TrickyCache()
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
