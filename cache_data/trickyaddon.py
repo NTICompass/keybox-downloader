@@ -123,4 +123,4 @@ class TrickyAddon(BaseData[DLTokens | SiteKeys]):
                 case _:
                     return None
         except ValidationError:
-            return None
+            return None if name == 'keys' else {}
