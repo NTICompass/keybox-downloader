@@ -3,21 +3,22 @@
 
 """TrickyAddon download module."""
 
+from contextlib import aclosing, asynccontextmanager
 from datetime import datetime  # ruff: ignore[typing-only-standard-library-import]
 from typing import TYPE_CHECKING, Literal, final, override
 
-from httpx2 import AsyncClient
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from cache_data import TokenDownloadError
 from cache_data import TrickyAddon as TrickyCache
+from cache_data.trickyaddon_extras import TokenDownloadError
 
 from . import Downloader
+from .utils import PeakSolver, SolverError
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from cache_data import DownloadToken
+    from cache_data.trickyaddon_extras import DownloadToken
 
 
 class RepoEntry(BaseModel):  # ruff: ignore[undocumented-public-class]
@@ -39,6 +40,14 @@ class Repository(BaseModel):  # ruff: ignore[undocumented-public-class]
     total: int
     page: int
     per_page: int
+
+
+@asynccontextmanager
+async def dummy_context() -> AsyncGenerator[None]:  # ruff: ignore[undocumented-public-function]
+    yield None
+
+
+type DownloadURLs = AsyncGenerator[tuple[int, DownloadToken]]
 
 
 @final
@@ -86,7 +95,9 @@ class TrickyAddon(Downloader):
             self.logger.info(f'Found {len(valid)} valid keyboxes out of {repo.total}')
 
             try:
-                downloads = {dl.url: key_id async for key_id, dl in self.load_download_urls(valid)}
+                async with self.load_download_urls(valid) as load_urls:
+                    downloads = {dl.url: key_id async for key_id, dl in load_urls}
+
                 async for data in self.download_urls(download=list(downloads.keys())):
                     yield data
                     self.data_cache.remove_token(
@@ -95,7 +106,8 @@ class TrickyAddon(Downloader):
             finally:
                 self.data_cache.save()
 
-    async def load_download_urls(self, ids: set[int]) -> AsyncGenerator[tuple[int, DownloadToken]]:
+    @asynccontextmanager
+    async def load_download_urls(self, ids: set[int]) -> AsyncGenerator[DownloadURLs]:
         """Load the download tokens into the cache (if they are not there already).
 
         Args:
@@ -105,77 +117,64 @@ class TrickyAddon(Downloader):
             The token object for each id
 
         """
-        peak_api, peak_proxy = await self.get_peak_token()
-        if peak_api is None or peak_proxy is None:
-            self.logger.info('peak.fo api key/proxy not found')
-            return
+        if self.data_cache.keys is None:
+            self.logger.info('Fetching Turnstile sitekey')
+            keys = await self.client.get(f'https://{self.BASE_URL}/api/config')
 
-        proxy_client = AsyncClient(proxy=peak_proxy, timeout=30)
+            try:
+                self.data_cache.save_site_key(keys.text)
+            except ValidationError as err:
+                self.logger.info(f'Error getting sitekeys: {err}')
 
-        try:
-            if self.data_cache.keys is None:
-                self.logger.info('Fetching Turnstile sitekey')
-                keys = await self.client.get('https://keybox.kowx712.cc/api/config')
+        async with (
+            PeakSolver(self.BASE_URL, self.data_cache.keys.turnstile_site_key)
+            if self.data_cache.keys is not None
+            else dummy_context()
+        ) as solver:
 
-                try:
-                    self.data_cache.save_site_key(keys.text)
-                except ValidationError as err:
-                    self.logger.info(f'Error getting sitekeys: {err}')
+            async def generate() -> DownloadURLs:
+                for key_id in ids:
+                    self.logger.info(f'Getting download token for keybox {key_id}')
+                    cached_token = self.data_cache.get_token(key_id)
 
-            for key_id in ids:
-                self.logger.info(f'Getting download token for keybox {key_id}')
-                cached_token = self.data_cache.get_token(key_id)
+                    if cached_token is not None:
+                        self.logger.info(f'Using cached token for keybox {key_id}')
+                        yield key_id, cached_token
+                    else:
+                        if solver is None:
+                            self.logger.info('Turnstile sitekey not found or solver not initialized')
+                            continue
 
-                if cached_token is not None:
-                    self.logger.info(f'Using cached token for keybox {key_id}')
-                    yield key_id, cached_token
-                else:
-                    if self.data_cache.keys is None:
-                        self.logger.info('Turnstile sitekey not found')
-                        continue
-
-                    self.logger.info('Solving CloudFlare Turnstile challenge')
-                    turnstile = await self.client.post(
-                        'https://api.peak.fo/solve',
-                        json={
-                            'task_type': 'turnstiletask',
-                            'url': 'https://keybox.kowx712.cc/',
-                            'sitekey': self.data_cache.keys.turnstile_site_key,
-                            'proxy': peak_proxy,
-                        },
-                        headers={'X-API-Key': peak_api, 'Content-Type': 'application/json'},
-                    )
-
-                    # TODO: Parse with pydantic  # ruff: ignore[line-contains-todo]
-                    """
-                    Error Response: {'error': 'Proxy connection failed - verify proxy format (http://user:pass@ip:port) and availability', 'error_code': 'proxy_error', 'success': False}
-                    """
-                    turnstile_data = turnstile.json()
-                    if not turnstile_data['success']:
-                        self.logger.info(f'CloudFlare Turnstile failed: {turnstile_data["error"]}')
-                        return
-
-                    self.logger.info('CloudFlare Turnstile completed')
-                    turnstile_token = turnstile_data['data']['token']  # also `secondary_token`
-
-                    try:
-                        self.logger.info(f'Downloading token for keybox {key_id} via proxy')
-                        token = await proxy_client.post(
-                            f'{self.BASE_URL}/api/keyboxes/{key_id}/download',
-                            headers={'Cf-Turnstile-Token': str(turnstile_token)},
-                        )
+                        self.logger.info('Solving CloudFlare Turnstile challenge')
+                        try:
+                            (turnstile_token,) = await solver.challenge()
+                        except SolverError as solve_err:
+                            self.logger.info(f'CloudFlare Turnstile failed: {solve_err}')
+                            continue
 
                         try:
-                            download_token = self.data_cache.add_token(key_id, token.text, save=True)
-                            self.logger.info(f'Saving download token for {key_id}: {download_token.token}')
+                            if solver.proxy_client is None:
+                                self.logger.info('Error getting proxy_client')
+                                continue
 
-                            yield key_id, download_token
-                        except TokenDownloadError as err:
-                            self.logger.info(f'Error downloading token: {err}')
-                    except Exception as e:  # ruff: ignore[blind-except]
-                        self.logger.info(f'Download error {e}')
-        finally:
-            await proxy_client.aclose()
+                            self.logger.info(f'Downloading token for keybox {key_id} via proxy')
+                            token = await solver.proxy_client.post(
+                                f'{self.BASE_URL}/api/keyboxes/{key_id}/download',
+                                headers={'Cf-Turnstile-Token': turnstile_token},
+                            )
+
+                            try:
+                                download_token = self.data_cache.add_token(key_id, token.text, save=True)
+                                self.logger.info(f'Saving download token for {key_id}: {download_token.token}')
+
+                                yield key_id, download_token
+                            except TokenDownloadError as token_err:
+                                self.logger.info(f'Error downloading token: {token_err}')
+                        except Exception as e:  # ruff: ignore[blind-except]
+                            self.logger.info(f'Download error {e}')
+
+            async with aclosing(generate()) as gen:
+                yield gen
 
     @override
     def decode(self, encoded: str) -> str:
