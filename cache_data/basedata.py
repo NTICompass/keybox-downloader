@@ -65,7 +65,8 @@ class BaseData[T]:
         value: T | None = getattr(self, name)
         return value.model_dump(mode='json') if isinstance(value, BaseModel) else value
 
-    def convert_on_load(self, name: str, value: Any) -> T | None:  # ruff: ignore[any-type, no-self-use]
+    # pyrefly: ignore[unused-parameter]
+    def convert_on_load(self, name: str, value: Any) -> T | None:  # ruff: ignore[any-type, no-self-use, unused-method-argument]
         """Convert the fields after loading the JSON file.
 
         Args:
