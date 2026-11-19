@@ -7,7 +7,7 @@ from datetime import datetime  # ruff: ignore[typing-only-standard-library-impor
 from typing import TYPE_CHECKING, Literal, final, override
 
 from httpx2 import AsyncClient
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from cache_data import TokenDownloadError
 from cache_data import TrickyAddon as TrickyCache
@@ -41,12 +41,6 @@ class Repository(BaseModel):  # ruff: ignore[undocumented-public-class]
     per_page: int
 
 
-class SiteKeys(BaseModel):  # ruff: ignore[undocumented-public-class]
-    model_config = ConfigDict(frozen=True)
-    recaptcha_site_key: str
-    turnstile_site_key: str
-
-
 @final
 class TrickyAddon(Downloader, enabled=False):
     """TrickyAddon Downloader.
@@ -69,13 +63,10 @@ class TrickyAddon(Downloader, enabled=False):
 
     BASE_URL = 'https://keybox.kowx712.cc'
 
-    # TODO: Save this in a cache.json file  # ruff: ignore[line-contains-todo]
-    site_keys: SiteKeys | None = None
-
     @override
     def __init__(self) -> None:
         super().__init__()
-        self.token_cache = TrickyCache()
+        self.data_cache = TrickyCache()
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
@@ -98,11 +89,11 @@ class TrickyAddon(Downloader, enabled=False):
                 downloads = {dl.url: key_id async for key_id, dl in self.load_download_urls(valid)}
                 async for data in self.download_urls(download=list(downloads.keys())):
                     yield data
-                    self.token_cache.remove_token(
+                    self.data_cache.remove_token(
                         downloads[self.current_url if isinstance(self.current_url, str) else str(self.current_url)]
                     )
             finally:
-                self.token_cache.save()
+                self.data_cache.save()
 
     async def load_download_urls(self, ids: set[int]) -> AsyncGenerator[tuple[int, DownloadToken]]:
         """Load the download tokens into the cache (if they are not there already).
@@ -122,26 +113,34 @@ class TrickyAddon(Downloader, enabled=False):
         proxy_client = AsyncClient(proxy=peak_proxy, timeout=30)
 
         try:
+            if self.data_cache.keys is None:
+                self.logger.info('Fetching Turnstile sitekey')
+                keys = await self.client.get('https://keybox.kowx712.cc/api/config')
+
+                try:
+                    self.data_cache.save_site_key(keys.text)
+                except ValidationError as err:
+                    self.logger.info(f'Error getting sitekeys: {err}')
+
             for key_id in ids:
-                if self.site_keys is None:
-                    self.logger.info('Fetching Turnstile sitekey')
-                    keys = await self.client.get('https://keybox.kowx712.cc/api/config')
-                    self.site_keys = SiteKeys.model_validate_json(keys.text)
-
                 self.logger.info(f'Getting download token for keybox {key_id}')
+                cached_token = self.data_cache.get_token(key_id)
 
-                cached_token = self.token_cache.get_token(key_id)
                 if cached_token is not None:
                     self.logger.info(f'Using cached token for keybox {key_id}')
                     yield key_id, cached_token
                 else:
+                    if self.data_cache.keys is None:
+                        self.logger.info('Turnstile sitekey not found')
+                        continue
+
                     self.logger.info('Solving CloudFlare Turnstile challenge')
                     turnstile = await self.client.post(
                         'https://api.peak.fo/solve',
                         json={
                             'task_type': 'turnstiletask',
                             'url': 'https://keybox.kowx712.cc/',
-                            'sitekey': self.site_keys.turnstile_site_key,
+                            'sitekey': self.data_cache.keys.turnstile_site_key,
                             'proxy': peak_proxy,
                         },
                         headers={'X-API-Key': peak_api, 'Content-Type': 'application/json'},
@@ -167,7 +166,7 @@ class TrickyAddon(Downloader, enabled=False):
                         )
 
                         try:
-                            download_token = self.token_cache.add_token(key_id, token.text, save=True)
+                            download_token = self.data_cache.add_token(key_id, token.text, save=True)
                             self.logger.info(f'Saving download token for {key_id}: {download_token.token}')
 
                             yield key_id, download_token

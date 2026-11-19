@@ -15,6 +15,12 @@ from .basedata import BaseData
 uuid4_adapter = TypeAdapter(UUID4)
 
 
+class SiteKeys(BaseModel):  # ruff: ignore[undocumented-public-class]
+    model_config = ConfigDict(frozen=True)
+    recaptcha_site_key: str
+    turnstile_site_key: str
+
+
 class DownloadToken(BaseModel):  # ruff: ignore[undocumented-public-class]
     model_config = ConfigDict(frozen=True)
     token: UUID4
@@ -63,8 +69,27 @@ type DLTokens = dict[int, DownloadToken]
 class TrickyAddon(BaseData[DLTokens]):
     """Saves each token with its expiration.  Removes it on use."""
 
+    keys: SiteKeys | None = None
     tokens: DLTokens = field(default_factory=dict)
     _manifest_json = 'trickyaddon.json'
+
+    def save_site_key(self, data: str, *, save: bool = False) -> SiteKeys:
+        """Cache the sitekeys (I assume they're not going to change often).
+
+        Args:
+            data: The JSON from the site endpoint
+            save: Save the file?
+
+        Returns:
+            The site keys
+
+        """
+        self.keys = SiteKeys.model_validate_json(data)
+
+        if save:
+            self.save()
+
+        return self.keys
 
     def add_token(self, key_id: int, data: str, *, save: bool = False) -> DownloadToken:
         """Add a token to the cache, they are one-time use and expire in 24 hours.
@@ -128,7 +153,7 @@ class TrickyAddon(BaseData[DLTokens]):
         return None
 
     @override
-    def convert_for_save(self, name: str) -> dict[int, dict[str, Any]] | None:
+    def convert_for_save(self, name: str) -> dict[int, dict[str, Any]]:
         if name == 'tokens':
             return {keyid: data.model_dump(mode='json') for keyid, data in self.tokens.items()}
-        return None
+        return super().convert_for_save(name)

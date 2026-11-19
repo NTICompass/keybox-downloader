@@ -9,6 +9,8 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, ClassVar
 
+from pydantic import BaseModel
+
 import __main__
 
 
@@ -60,7 +62,8 @@ class BaseData[T]:
             Property value
 
         """
-        return getattr(self, name)
+        value = getattr(self, name)
+        return value.model_dump(mode='json') if isinstance(value, BaseModel) else value
 
     def save(self) -> None:
         """Write the saved data into a JSON file."""
