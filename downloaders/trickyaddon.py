@@ -79,19 +79,16 @@ class TrickyAddon(Downloader):
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
-        repo: Repository | None
         self.logger.info('Downloading keybox list from repository')
 
-        try:
-            repo = Repository.model_validate_json(await anext(downloaded))
-        except StopAsyncIteration:
-            repo = None
+        repo_data = await anext(downloaded, None)
+        repo = Repository.model_validate_json(repo_data) if repo_data is not None else None
+
+        if repo is None:
             self.logger.info('Error downloading repository')
-
             yield None
-
-        if repo is not None:
-            valid: set[int] = {kb.id for kb in repo.keyboxes if kb.status == 'valid'}
+        else:
+            valid = {kb.id for kb in repo.keyboxes if kb.status == 'valid'}
             self.logger.info(f'Found {len(valid)} valid keyboxes out of {repo.total}')
 
             try:

@@ -86,19 +86,20 @@ class DroidWin(Downloader):
         gen = dl()
 
         try:
-            data = await anext(gen)
-        except StopAsyncIteration:
-            """
-            This means that the httpx returned an error downloading the website
-            Probably a 403, probably a CloudFlare challenge...
-            """
-            self.logger.info('Hit CloudFlare challenge, trying to solve it')
+            data = await anext(gen, None)
 
-            self.cloudflare = True
-            await gen.aclose()
-            gen = dl()
+            if data is None:
+                """
+                This means that the httpx returned an error downloading the website
+                Probably a 403, probably a CloudFlare challenge...
+                """
+                self.logger.info('Hit CloudFlare challenge, trying to solve it')
 
-            data = await anext(gen)
+                self.cloudflare = True
+                await gen.aclose()
+                gen = dl()
+
+                data = await anext(gen)
         finally:
             await gen.aclose()
 
