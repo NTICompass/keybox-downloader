@@ -13,7 +13,7 @@ from datetime import datetime  # ruff: ignore[typing-only-standard-library-impor
 from functools import partial
 from io import BytesIO
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, final, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, cast, final, overload
 from zipfile import Path as ZipPath
 from zipfile import ZipFile
 
@@ -22,7 +22,7 @@ from asyncstdlib import enumerate as a_enumerate
 from cloudscraper import CloudScraper
 from dotenv import load_dotenv
 from httpx2 import URL as HTTP_URL
-from httpx2 import AsyncClient, HTTPStatusError
+from httpx2 import AsyncClient, ConnectError, HTTPStatusError, RequestError, Response
 from pydantic import BaseModel, ConfigDict
 
 import __main__
@@ -383,17 +383,27 @@ class Downloader(ABC):
             The `Response` from each download, in order
 
         """
-        tasks = [
-            self.client.get(get_download_url(dl), headers=await self._get_headers(idx))
-            for idx, dl in enumerate(download)
-        ]
 
-        for r in await gather(*tasks):
-            try:
-                r.raise_for_status()
-            except HTTPStatusError as exc:
+        async def get_response(url: str, headers: dict[str, str]) -> Response:
+            response = await self.client.get(url, headers=headers)
+            response.raise_for_status()
+            return response
+
+        tasks = [get_response(get_download_url(dl), await self._get_headers(idx)) for idx, dl in enumerate(download)]
+
+        try:
+            responses = await gather(*tasks)
+        except* HTTPStatusError as eg:
+            for exc in cast('tuple[HTTPStatusError]', eg.exceptions):
                 self.logger.info(f'Error response {exc.response.status_code} while requesting {exc.request.url!r}.')
-            else:
+        except* ConnectError as eg:
+            for exc in cast('tuple[ConnectError]', eg.exceptions):
+                self.logger.info(f'Cannot connect to {exc.request.url!r}: {exc}')
+        except* RequestError as eg:
+            for exc in cast('tuple[RequestError]', eg.exceptions):
+                self.logger.info(f'Error while requesting {exc.request.url!r}: {exc}')
+        else:
+            for r in responses:
                 yield r
 
     @final

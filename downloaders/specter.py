@@ -5,8 +5,10 @@
 
 from base64 import b64decode
 from datetime import datetime  # ruff: ignore[typing-only-standard-library-import]
-from typing import TYPE_CHECKING, final, override
+from typing import TYPE_CHECKING, cast, final, override
 
+from asyncstdlib import enumerate as a_enumerate
+from httpx2 import ConnectError, HTTPStatusError, RequestError
 from pydantic import UUID4, BaseModel, ConfigDict, Field
 
 from . import Downloader
@@ -76,10 +78,13 @@ class Specter(Downloader):
     """
 
     DESCRIPTION = 'Specter module (dpejoh @ GitHub, formerly worked on YuriKey)'
-    URL = 'https://rawbin.dpejoh.com/catalog'  # Fallback: https://rawbin.dpejoh.workers.dev/catalog
+    URL = 'https://rawbin.dpejoh.com/catalog'
+    URL_FALLBACK = 'https://rawbin.dpejoh.workers.dev/catalog'
 
     # Append `/source/version` to get that key, leave as-is to get "working" key
-    KEYBOX_URL = 'https://rawbin.dpejoh.com/key'  # Fallback: https://rawbin.dpejoh.workers.dev/key
+    KEYBOX_URL = 'https://rawbin.dpejoh.com/key'
+    KEYBOX_URL_FALLBACK = 'https://rawbin.dpejoh.workers.dev/key'
+
     ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     SHUFFLED = '1dgWnocayqxU3r6vA5lCIPYfHmkV08b4tz+KMsp2NQ9LRXihODwSj7BEFJ/ZuGTe'
 
@@ -93,16 +98,23 @@ class Specter(Downloader):
 
     @override
     async def process(self, downloaded: AsyncGenerator[str]) -> AsyncGenerator[str | None]:
-        cat: Catalog | None
         self.logger.info('Downloading catalog')
 
-        try:
-            cat = Catalog.model_validate_json(await anext(downloaded))
-        except StopAsyncIteration:
-            cat = None
-            self.logger.info('Error downloading catalog')
+        cat: Catalog | None
+        cat_dl = await anext(downloaded, None)
 
-            yield None
+        if cat_dl is None:
+            try:
+                fallback_cat = await self.client.get(
+                    self.URL_FALLBACK, headers=cast('dict[str, str]', self.extra_headers)
+                )
+            except HTTPStatusError, ConnectError, RequestError:
+                self.logger.info('Error downloading catalog')
+                yield None
+            else:
+                cat_dl = fallback_cat.raise_for_status().text
+
+        cat = Catalog.model_validate_json(cat_dl) if cat_dl is not None else None
 
         if cat is not None:
             other_keys = [
@@ -124,14 +136,27 @@ class Specter(Downloader):
             else:
                 self.logger.info('No other keys')
 
-            async for data in self.download_urls(
-                download=[
-                    f'{self.KEYBOX_URL}/{entry.source}/{entry.version}'
-                    for entry in cat.entries
-                    if not entry.revoked and not entry.softbanned
-                ]
+            keys_to_get = [
+                f'{entry.source}/{entry.version}' for entry in cat.entries if not entry.revoked and not entry.softbanned
+            ]
+
+            keys_downloaded = [False] * len(keys_to_get)
+
+            async for idx, data in a_enumerate(
+                self.download_urls(download=[f'{self.KEYBOX_URL}/{key_dl}' for key_dl in keys_to_get])
             ):
+                keys_downloaded[idx] = True
                 yield data
+
+            if not all(keys_downloaded):
+                keys_to_get_fallback = [
+                    keys_to_get[idx] for idx, was_downloaded in enumerate(keys_downloaded) if not was_downloaded
+                ]
+
+                async for data in self.download_urls(
+                    download=[f'{self.KEYBOX_URL_FALLBACK}/{key_dl}' for key_dl in keys_to_get_fallback]
+                ):
+                    yield data
 
     @override
     def decode(self, encoded: str) -> str:
